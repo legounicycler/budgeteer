@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+  <title>Budgeteer</title>
+
+  <!-- CSS  -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="css/main.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+</head>
+
+<body>
+
+  <!--Features to add
+      Photo of recipt (maybe until reconciled)
+      envelope average spending/ spent last month
+      cover overspending button
+      goals function (target category balance/ balance by date)
+      average spent in each envelope
+      sort transaction lists (multiple ways date, amount, name, etc.)
+      one click reconcile button
+      temporary envelopes (archive feature)
+    -->
+
+
+    <!-- Side Nav -->
+	<ul id="slide-out" class="side-nav">
+		<li><div class="userView">
+		  <div class="background">
+			<img src="img/user-background.jpg">
+		  </div>
+		  <a href="#!user"><img class="circle" src="img/default-user-image.png"></a>
+		  <a href="#!name"><span class="white-text name">Example Name</span></a>
+		  <a href="#!email"><span class="white-text email">example-email@gmail.com</span></a>
+		</div></li>
+		<li><a href="#" class="waves-effect"><i class="material-icons">assignment_ind</i>Personalize</a></li>
+		<li><a href="#" class="waves-effect"><i class="material-icons">settings</i>Settings</a></li>
+		<li><a href="#" class="waves-effect"><i class="material-icons">live_help</i>Help & Feedback</a></li>
+		<li><a href="#" class="waves-effect"><i class="material-icons">info</i>About Budgeteer</a></li>
+	</ul>
+
+	<!-- Main Nav -->
+	<div class="navbar-fixed">
+	  <nav class="yellow darken-4">
+		<div class="nav-wrapper">
+      <ul class="left">
+			<li><a href="#" data-activates="slide-out" class="button-collapse"><i class="medium material-icons">menu</i></a></li>
+		  </ul>
+			<a id="logo-container" href="main.html" class="brand-logo center"><img src="img/Budgeteer_Text_Shadow.png" id="logo"></a>
+      <ul class="right">
+        <li><a href="#"><i class="material-icons" id="new_plan">add</i></a></li>
+      </ul>
+		</div>
+	  </nav>
+	</div>
+
+  <!-- Content -->
+
+  <!--Transaction Button-->
+  <a class="btn-floating btn-large waves-effect waves-light orange darken-3 modal-trigger floater" href="#modal1"><i class="material-icons">add</i></a>
+
+  <!-- Transaction Creator -->
+  <div id="modal1" class="modal">
+    <div class="modal-content">
+      <div class="row">
+        <ul class="tabs">
+          <li class="tab col s4"><a class="active" href="#expense-credit">Expense/Credit</a></li>
+          <li class="tab col s4"><a href="#transfer">Transfer</a></li>
+          <li class="tab col s4"><a href="#income">Income</a></li>
+        </ul>
+
+      <!--Expense/Credit tab-->
+        <div id="expense-credit" class="col s12">
+          <h3>Expense/Credit</h3>
+          <div class="row">
+            <form class="col s12">
+              <div class="row">
+                <div class="input-field col s12">
+                  <input id="name" type="text">
+                  <label for="name">Name</label>
+                </div>
+              </div>
+              <div class="row">
+                  <div class="input-field col s12">
+                    <select>
+                      <option value="" disabled selected>Choose an Envelope</option>
+                      <option value="1">Option 1</option>
+                      <option value="2">Option 2</option>
+                      <option value="3">Option 3</option>
+                    </select>
+                    <label>Envelope</label>
+                  </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s12">
+                  <select>
+                    <option value="" disabled selected>Choose an Account</option>
+                    <option value="1">Option 1</option>
+                    <option value="2">Option 2</option>
+                    <option value="3">Option 3</option>
+                  </select>
+                  <label>Account</label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s6 ">
+                  <input id="transaction-date" type="date" class="datepicker">
+                  <label for="transaction-date">Date</label>
+                </div>
+                <div class="input-field col s6 ">
+                  <input id="amount" type="text">
+                  <label for="amount">Amount</label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s12">
+                  <input id="note" type="text" placeholder="(Optional)">
+                  <label for="note">Note</label>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!--transfer tab-->
+        <div id="transfer" class="col s12">
+          <div id="expense-credit" class="col s12">
+          <h3>Transfer</h3>
+          <div class="row">
+            <form class="col s12">
+              <div class="row">
+                <div class="input-field col s12">
+                  <input id="name" type="text">
+                  <label for="name">Name</label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s12">
+                  <select>
+                    <option value="1">Envelope Transfer</option>
+                    <option value="2">Account Transfer</option>
+                  </select>
+                  <label>Type</label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s6">
+                  <select>
+                    <option value="" disabled selected>Choose an Account</option>
+                    <option value="1">Option 1</option>
+                    <option value="2">Option 2</option>
+                    <option value="3">Option 3</option>
+                  </select>
+                  <label>From</label>
+                </div>
+                <div class="input-field col s6">
+                  <select>
+                    <option value="" disabled selected>Choose an Account</option>
+                    <option value="1">Option 1</option>
+                    <option value="2">Option 2</option>
+                    <option value="3">Option 3</option>
+                  </select>
+                  <label>To</label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s6 ">
+                  <input id="transaction-date" type="date" class="datepicker">
+                  <label for="transaction-date">Date</label>
+                </div>
+                <div class="input-field col s6 ">
+                  <input id="amount" type="text">
+                  <label for="amount">Amount</label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s12">
+                  <input id="note" type="text" placeholder="(Optional)">
+                  <label for="note">Note</label>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        </div>
+        <!--Income tab-->
+        <div id="income" class="col s12">
+          <div id="expense-credit" class="col s12">
+          <h3>Income</h3>
+          <div class="row">
+            <form class="col s12">
+              <div class="row">
+                <div class="input-field col s12">
+                  <input id="name" type="text">
+                  <label for="name">Name</label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s12">
+                  <select>
+                    <option value="" disabled selected>Choose an Envelope</option>
+                    <option value="1">Option 1</option>
+                    <option value="2">Option 2</option>
+                    <option value="3">Option 3</option>
+                  </select>
+                  <label>Envelope</label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s12">
+                  <select>
+                    <option value="" disabled selected>Choose an Account</option>
+                    <option value="1">Option 1</option>
+                    <option value="2">Option 2</option>
+                    <option value="3">Option 3</option>
+                  </select>
+                  <label>Account</label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s6 ">
+                  <input id="transaction-date" type="date" class="datepicker">
+                  <label for="transaction-date">Date</label>
+                </div>
+                <div class="input-field col s6 ">
+                  <input id="amount" type="text">
+                  <label for="amount">Amount</label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s12">
+                  <input id="note" type="text" placeholder="(Optional)">
+                  <label for="note">Note</label>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn waves-effect waves-light modal-close yellow darken-4" type="submit" name="action" href="#!">Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="row content">
+
+    <!--Envelopes/Accounts-->
+    <div class="col m12 l4 s12 left-content blue-grey">
+      <div class="row" id="total">
+        <h3 class="col s4 white-text bold">Total:</h3>
+        <h3 class="col s8"><span class="balance">$1,234.15</span></h3>
+      </div>
+      <div class="row">
+        <ul class="tabs blue-grey lighten-5">
+          <li class="tab col s6"><a class="active" href="#envelopes">Envelopes</a></li>
+          <li class="tab col s6"><a href="#accounts">Accounts</a></li>
+        </ul>
+      </div>
+
+      <!--Envelopes-->
+      <div id="envelopes" class="col s12">
+        <a href="#" class="btn orange waves-effect" id="edit-envelopes">Edit Envelopes</a>
+        <ul class="collection envelopes-bin">
+
+          <li class="row plans valign-wrapper collection-item left-align grey lighten-3">
+            <div class="col s5 offset-s1 left-align">Name</div>
+            <div class="col s3 envelope-budget">Budgeted</div>
+            <div class="col s3 envelope-balance">Balance</div>
+          </li>
+
+          <a class="waves-effect collection-item" href="#">
+            <li class="row plans valign-wrapper envelope-row">
+              <i class="col s1 material-icons envelope-icon">mail_outline</i>
+              <div class="col s5 envelope-name left-align"><h5 class="truncate">Transportation</h5></div>
+              <div class="col s3 envelope-budget">$120.00</div>
+              <div class="col s3 envelope-balance"><span class="negative balance">-$10.41</span></div>
+            </li>
+          </a>
+
+          <a class="waves-effect collection-item" href="#">
+            <li class="row plans valign-wrapper envelope-row">
+              <i class="col s1 material-icons envelope-icon">mail_outline</i>
+              <div class="col s5 envelope-name left-align"><h5 class="truncate">Rent/Utilities</h5></div>
+              <div class="col s3 envelope-budget">$120.00</div>
+              <div class="col s3 envelope-balance"><span class="negative balance">-$10.41</span></div>
+            </li>
+          </a>
+
+          <a class="waves-effect collection-item" href="#">
+            <li class="row plans valign-wrapper envelope-row">
+              <i class="col s1 material-icons envelope-icon">mail_outline</i>
+              <div class="col s5 envelope-name left-align"><h5 class="truncate">Food</h5></div>
+              <div class="col s3 envelope-budget">$120.00</div>
+              <div class="col s3 envelope-balance"><span class="negative balance">-$10.41</span></div>
+            </li>
+          </a>
+        </ul>
+      </div>
+
+      <!--Accounts-->
+      <div id="accounts" class="col s12">
+        <a href="#" class="btn orange waves-effect" id="edit-accounts">Edit Accounts</a>
+        <ul class="collection envelopes-bin">
+
+          <li class="row plans valign-wrapper collection-item left-align grey lighten-3">
+            <div class="col s8 offset-s1 left-align">Name</div>
+            <div class="col s3 account-balance">Balance</div>
+          </li>
+
+          <a class="waves-effect collection-item" href="#">
+            <li class="row plans valign-wrapper envelope-row">
+              <i class="col s1 material-icons account-icon">account_balance</i>
+              <div class="col s8 account-name left-align"><h5 class="truncate">Checking</h5></div>
+              <div class="col s3 account-balance"><span class="negative balance">-$10.41</span></div>
+            </li>
+          </a>
+
+          <a class="waves-effect collection-item" href="#">
+            <li class="row plans valign-wrapper envelope-row">
+              <i class="col s1 material-icons account-icon">account_balance</i>
+              <div class="col s8 account-name left-align"><h5 class="truncate">Savings</h5></div>
+              <div class="col s3 account-balance"><span class="balance">$140.55</span></div>
+            </li>
+          </a>
+
+          <a class="waves-effect collection-item" href="#">
+            <li class="row plans valign-wrapper account-row">
+              <i class="col s1 material-icons account-icon">account_balance</i>
+              <div class="col s8 account-name left-align"><h5 class="truncate">Discover Card</h5></div>
+              <div class="col s3 account-balance"><span class="negative balance">-$1004.41</span></div>
+            </li>
+          </a>
+
+        </ul>
+      </div>
+
+    </div>
+
+    <!--Transactions-->
+    <div class="col s12 m12 l8 hide-on-small-only" id="transactions-column">
+      <div class="transaction-header orange">
+        <div class="row left-align valign-wrapper header white-text orange lighten-1"><h4 id="transaction-title">Transactions</h4></div>
+        <div class="row orange">
+          <div class="col s2">Date</div>
+          <div class="col s7">Payee</div>
+          <div class="col s2">Amount</div>
+          <div class="col s1">Status</div>
+        </div>
+      </div>
+
+      <ul class="collection" id="transactions-bin">
+        <a class="waves-effect collection-item" href="#">
+          <li class="row plans valign-wrapper transaction-row">
+            <div class="col s2 transaction-date">6/30/15</div>
+            <div class="col s7 transaction-name left-align"><h5 class="truncate">Transaction Name</h5></div>
+            <div class="col s2 transaction-amount"><span class="negative balance">-$5.21</span></div>
+            <div class="col s1 transaction-status"><i class="small material-icons">remove</i></div>
+          </li>
+        </a>
+
+        <a class="waves-effect collection-item" href="#">
+          <li class="row plans valign-wrapper transaction-row">
+            <div class="col s2 transaction-date">6/30/15</div>
+            <div class="col s7 transaction-name left-align"><h5 class="truncate">Something that is really long and will run off the screen if I put even more text here</h5></div>
+            <div class="col s2 transaction-amount"><span class="negative balance">-$10.41</span></div>
+            <div class="col s1 transaction-status"><i class="small material-icons">check</i></div>
+          </li>
+        </a>
+
+        <a class="waves-effect collection-item" href="#">
+          <li class="row plans valign-wrapper transaction-row">
+            <div class="col s2 transaction-date">6/30/15</div>
+            <div class="col s7 transaction-name left-align"><h5 class="truncate">Transaction Name</h5></div>
+            <div class="col s2 transaction-amount"><span class="balance">$15.13</span></div>
+            <div class="col s1 transaction-status"><i class="small material-icons">check</i></div>
+          </li>
+        </a>
+      </ul>
+
+    </div>
+  </div>
+
+
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="js/materialize.js"></script>
+  <script src="js/init.js"></script>
+</body>
+</html>

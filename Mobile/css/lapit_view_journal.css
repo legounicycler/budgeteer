@@ -1,0 +1,16 @@
+.row {
+  margin: 0;
+  text-align: left;
+  vertical-align: middle;
+}
+.waves-effect {
+  width: 100%
+}
+
+h4 {
+  margin-left: 10px;
+}
+
+textarea {
+  border: none;
+}
