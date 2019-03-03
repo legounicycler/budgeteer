@@ -2,7 +2,7 @@ import sqlite3
 import datetime
 
 database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
-conn = sqlite3.connect(database)
+conn = sqlite3.connect(database, check_same_thread=False)
 
 c = conn.cursor()
 
@@ -11,6 +11,9 @@ ENVELOPE_TRANSFER = 1
 ACCOUNT_TRANSFER = 2
 INCOME = 3
 SPLIT_TRANSACTION = 4
+
+note = 'something useful'
+
 
 
 class Transaction:
@@ -83,14 +86,12 @@ def insert_transaction(t):
         (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note))
 
         if (t.type != ENVELOPE_TRANSFER):
-            c.execute("SELECT balance FROM accounts WHERE id=?", (t.account_id,))
-            accountbalance = c.fetchone()[0] - t.amt
-            update_account(t.account_id, accountbalance)
+            newaccountbalance = get_account_balance(t.account_id) - t.amt
+            update_account_balance(t.account_id, newaccountbalance)
 
         if (t.type != ACCOUNT_TRANSFER):
-            c.execute("SELECT balance FROM envelopes WHERE id=?", (t.envelope_id,))
-            envelopebalance = c.fetchone()[0] - t.amt
-            update_envelope_balance(t.envelope_id, envelopebalance)
+            newenvelopebalance = get_envelope_balance(t.envelope_id) - t.amt
+            update_envelope_balance(t.envelope_id, newenvelopebalance)
 
 def get_transaction(id):
     with conn:
@@ -100,13 +101,59 @@ def get_transaction(id):
         t.id = tdata[0]
         return t
 
-def get_transaction_list():
+def get_all_transactions():
     with conn:
-        c.execute("SELECT id FROM transactions")
+        c.execute("SELECT id FROM transactions ORDER by day DESC")
+        ids = c.fetchall()
+        tlist = []
+        split_grouped = []
+        for id in ids:
+            t = get_transaction(id[0])
+            if (t.grouping not in split_grouped or t.grouping == 0):
+                if (t.type == SPLIT_TRANSACTION):
+                    split_grouped.append(t.grouping)
+                t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
+                t.amt = '$%.2f' % (t.amt * -1)
+                t.type = transaction_type(t.type)
+                if not (t.account_id is None):
+                    t.account_id = get_account(t.account_id).name
+                if not (t.envelope_id is None):
+                    t.envelope_id = get_envelope(t.envelope_id).name
+                tlist.append(t)
+        return tlist
+
+def get_envelope_transactions(envelope_id):
+    with conn:
+        c.execute("SELECT id FROM transactions WHERE envelope_id=? ORDER by day DESC", (envelope_id,))
         ids = c.fetchall()
         tlist = []
         for id in ids:
-            tlist.append(get_transaction(id[0]))
+            t = get_transaction(id[0])
+            t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
+            t.amt = '$%.2f' % (t.amt * -1)
+            t.type = transaction_type(t.type)
+            if not (t.account_id is None):
+                t.account_id = get_account(t.account_id).name
+            if not (t.envelope_id is None):
+                t.envelope_id = get_envelope(t.envelope_id).name
+            tlist.append(t)
+        return tlist
+
+def get_account_transactions(account_id):
+    with conn:
+        c.execute("SELECT id FROM transactions WHERE account_id=? ORDER by day DESC", (account_id,))
+        ids = c.fetchall()
+        tlist = []
+        for id in ids:
+            t = get_transaction(id[0])
+            t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
+            t.amt = '$%.2f' % t.amt
+            t.type = transaction_type(t.type)
+            if not (t.account_id is None):
+                t.account_id = get_account(t.account_id).name
+            if not (t.envelope_id is None):
+                t.envelope_id = get_envelope(t.envelope_id).name
+            tlist.append(t)
         return tlist
 
 def delete_transaction(id):
@@ -115,53 +162,35 @@ def delete_transaction(id):
         # get grouping number
         # If grouping == 0, undo transaction and delete
         # Else get ids, undo all transactions, and delete
-
         grouping = get_grouping_from_id(id)
         if (grouping == 0):
-            #undo transaction
-            c.execute("SELECT amount FROM transactions WHERE id=?", (id,))
-            amt = c.fetchone()[0]
-            c.execute("SELECT envelope_id FROM transactions WHERE id=?", (id,))
-            envelope_id = c.fetchone()[0]
-            c.execute("SELECT account_id FROM transactions WHERE id=?", (id,))
-            account_id = c.fetchone()[0]
-            if not (envelope_id is None):
-                update_envelope_balance(envelope_id, get_envelope_balance(envelope_id) + amt)
-            if not (account_id is None):
-                update_account(account_id, get_account_balance(account_id) + amt)
-            #delete transaction
+            t = get_transaction(id)
+            if not (t.envelope_id is None):
+                update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
+            if not (t.account_id is None):
+                update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
             c.execute("DELETE FROM transactions WHERE id=?", (id,))
         elif not (grouping is None):
-            #get array of ids
             ids = get_ids_from_grouping(grouping)
             for i in ids:
-                #undo transaction
-                c.execute("SELECT amount FROM transactions WHERE id=?", (i,))
-                amt = c.fetchone()[0]
-                c.execute("SELECT envelope_id FROM transactions WHERE id=?", (i,))
-                envelope_id = c.fetchone()[0]
-                c.execute("SELECT account_id FROM transactions WHERE id=?", (i,))
-                account_id = c.fetchone()[0]
-                if not (envelope_id is None):
-                    update_envelope_balance(envelope_id, get_envelope_balance(envelope_id) + amt)
-                if not (account_id is None):
-                    update_account(account_id, get_account_balance(account_id) + amt)
-                #delete transaction
+                t = get_transaction(i)
+                if not (t.envelope_id is None):
+                    update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
+                if not (t.account_id is None):
+                    update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
                 c.execute("DELETE FROM transactions WHERE id=?", (i,))
         else:
-            print("that transaction doesn't exist you buffoon")
+            print("that transaction doesn't exist you twit")
 
 
 def update_transaction(id, t):
-    #check for grouping
-    #delete old transactions
-    #add updated transactions
-    with conn:
-        c.execute("SELECT * FROM transactions WHERE id=?",(id,))
-        pass
+    delete_transaction(id)
+    insert_transaction(t)
+    #This will change the transaction id(s), but they shouldn't be referenced anywhere else
+
 
 def new_split_transaction(t):
-    #take arrays of amt and envelope and create individual transactions
+    #takes arrays of amt and envelope_id and creates individual transactions
     grouping = gen_grouping_num()
     amts = t.amt
     envelopes = t.envelope_id
@@ -169,9 +198,6 @@ def new_split_transaction(t):
         new_t = Transaction(SPLIT_TRANSACTION, t.name, amts[i], t.date, envelopes[i], t.account_id, grouping, t.note)
         insert_transaction(new_t)
 
-def retrieve_transaction(id):
-    with conn:
-        c.execute("SELECT * FROM transactions WHERE id=?",(id,))
 
 
 
@@ -194,7 +220,9 @@ def get_account_list():
         ids = c.fetchall()
         alist = []
         for id in ids:
-            alist.append(get_account(id[0]))
+            a= get_account(id[0])
+            a.balance = '$%.2f' % a.balance
+            alist.append(a)
         return alist
 
 def delete_account(id):
@@ -211,21 +239,22 @@ def get_account_balance(id):
     else:
         print("that account doesn't exist you twit.")
 
-def update_account(id, balance):
+def update_account_balance(id, balance):
     with conn:
         c.execute("UPDATE accounts SET balance=? WHERE id=?",(round(balance,2), id))
+        #take/give difference from envelopes?
 
-def new_income(account_id, amount, name, note, envelope_id):
-    with conn:
-        t = Transaction(INCOME, name, -1 * amount, datetime.datetime.today(), envelope_id, account_id, 0, note)
-        insert_transaction(t)
 
-def account_transfer(name, to, From, amount, note):
+def account_transfer(name, amount, date, to_account, from_account, note):
     grouping = gen_grouping_num()
-    fill = Transaction(ACCOUNT_TRANSFER, name, -1 * amount, datetime.datetime.today(), None, to, grouping, note)
+    fill = Transaction(ACCOUNT_TRANSFER, name, -1 * amount, date, None, to_account, grouping, note)
     insert_transaction(fill)
-    empty = Transaction(ACCOUNT_TRANSFER, name, amount, datetime.datetime.today(), None, From, grouping, note)
+    empty = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note)
     insert_transaction(empty)
+
+def update_account_name(id, name):
+    with conn:
+        c.execute("UPDATE accounts SET name=? WHERE id=?", (name, id))
 
 
 
@@ -248,7 +277,10 @@ def get_envelope_list():
         ids = c.fetchall()
         elist = []
         for id in ids:
-            elist.append(get_envelope(id[0]))
+            e = get_envelope(id[0])
+            e.balance = '$%.2f' % e.balance
+            e.budget = '$%.2f' % e.budget
+            elist.append(e)
         return elist
 
 def delete_envelope(id):
@@ -268,16 +300,21 @@ def get_envelope_balance(id):
 def update_envelope_balance(id, balance):
     with conn:
         c.execute("UPDATE envelopes SET balance=? WHERE id=?",(round(balance,2), id))
+        #this isn't possible as a stand alone action
 
 def update_envelope_budget(id, budget):
     with conn:
         c.execute("UPDATE envelopes SET budget=? WHERE id=?",(budget, id))
 
-def envelope_transfer(name, to, From, amount, note):
+def update_envelope_name(id, name):
+    with conn:
+        c.execute("UPDATE envelopes SET name=? WHERE id=?", (name, id))
+
+def envelope_transfer(name, amt, date, to_envelope, from_envelope, note):
     grouping = gen_grouping_num()
-    fill = Transaction(ENVELOPE_TRANSFER, name, -1 * amount, datetime.datetime.today(), to, None, grouping, note)
+    fill = Transaction(ENVELOPE_TRANSFER, name, -1 * amt, date, to_envelope, None, grouping, note)
     insert_transaction(fill)
-    empty = Transaction(ENVELOPE_TRANSFER, name, amount, datetime.datetime.today(), From, None, grouping, note)
+    empty = Transaction(ENVELOPE_TRANSFER, name, amt, date, from_envelope, None, grouping, note)
     insert_transaction(empty)
 
 
@@ -347,85 +384,92 @@ def get_ids_from_grouping(grouping):
                 id_array.append(id)
             return id_array
 
-def main():
+def transaction_type(x):
+    return {
+        0: 'local_atm',
+        1: 'swap_horiz',
+        2: 'swap_vert',
+        3: 'vertical_align_bottom',
+        4: 'call_split',
+    }[x]
+
+
+
+# def main():
 
     #create_db()
 
     #delete previous tests
-    for i in range(40):
-        delete_transaction(i)
-    delete_envelope(1)
-    delete_envelope(2)
-    delete_account(1)
-    delete_account(2)
+    # for i in range(40):
+    #     delete_transaction(i)
+    # delete_envelope(1)
+    # delete_envelope(2)
+    # delete_account(1)
+    # delete_account(2)
 
-    #create new testing envelopes and accounts
-    insert_envelope('Food',10)
-    insert_envelope('Gas',100)
-    insert_account('Checking', 100)
-    insert_account('Savings', 1000)
-    update_envelope_balance(1,500)
-    update_envelope_balance(2,600)
+    # #create new testing envelopes and accounts
+    # insert_envelope('Food',10)
+    # insert_envelope('Gas',100)
+    # insert_account('Checking', 100)
+    # insert_account('Savings', 1000)
+    # update_envelope_balance(1,500)
+    # update_envelope_balance(2,600)
 
-    print_database()
-
-
-    #test basic transaction
-    print("Transactions Test:")
-    t1 = Transaction(BASIC_TRANSACTION,'Target', 1.23, datetime.datetime(1999, 12, 30), 1, 1, 0, '')
-    insert_transaction(t1)
-    t2 = Transaction(BASIC_TRANSACTION,'Walmart', 19.23, datetime.datetime(2000, 8, 13), 2, 2, 0, 'Something cool')
-    insert_transaction(t2)
-    print_database()
-    get_total()
-
-    #test income
-    print("Income Test:")
-    new_income(1, 100000, 'Lottery Money', 'Yay!', 2)
-    print_database()
-
-    #test envelope transfer
-    print("Envelope Transfer Test:")
-    envelope_transfer('Envelope Swapperoo', 1, 2, 0.77, 'Will this work?')
-    envelope_transfer('Envelope Swapperoo too', 1, 2, 1.00, 'Will this work too?')
-    print_database()
-
-    #account transfer test
-    print("Account Transfer Test:")
-    account_transfer("Account Swapperz", 1, 2, 0.77, 'Note goes here')
-    print_database()
+    # print_database()
 
 
-    #delete basic transaction test
-    print("delete basic transaction test")
-    delete_transaction(3)
-    print_database()
+    # #test basic transaction
+    # print("Transactions Test:")
+    # t1 = Transaction(BASIC_TRANSACTION,'Target', 1.23, datetime.datetime(1999, 12, 30), 1, 1, 0, '')
+    # insert_transaction(t1)
+    # t2 = Transaction(BASIC_TRANSACTION,'Walmart', 19.23, datetime.datetime(2000, 8, 13), 2, 2, 0, 'Something cool')
+    # insert_transaction(t2)
+    # print_database()
+    # get_total()
 
-    #delete grouped transaction test
-    print("delete grouped transaction test (envelope swap)")
-    delete_transaction(4)
-    print_database()
-    print("delete grouped transaction test (account swap)")
-    delete_transaction(8)
-    print_database()
+    # #test income
+    # # print("Income Test:")
+    # # new_income(1, 100000, 'Lottery Money', 'Yay!', 2)
+    # # print_database()
 
-    #update envelope budget test
-    update_envelope_budget(1, 10000)
-    print_database()
+    # #test envelope transfer
+    # print("Envelope Transfer Test:")
+    # envelope_transfer('Envelope Swapperoo', 0.77, datetime.datetime(2000, 8, 13), 1, 2, 'Will this work?')
+    # envelope_transfer('Envelope Swapperoo too', 1.00, datetime.datetime(2000, 8, 13), 1, 2, 'Will this work too?')
+    # print_database()
 
-    #split transaction test
-    print("Split transaction test")
-    new_split_transaction(Transaction(SPLIT_TRANSACTION,'Gooten', [10, 5], datetime.datetime(2000, 8, 13), [2, 1], 2, 0, 'Something cool'))
-    print_database()
-    print("Delete split transaction test")
-    delete_transaction(9)
-    print_database()
+    # #account transfer test
+    # print("Account Transfer Test:")
+    # account_transfer("Account Swapperz", 0.77, datetime.datetime(2000, 8, 13), 1, 2, 'Note goes here')
+    # print_database()
 
 
-    print(get_transaction(1))
-    print(get_envelope(1))
-    print(get_account(1))
-    get_transaction_list()
+    # #delete basic transaction test
+    # print("delete basic transaction test")
+    # delete_transaction(3)
+    # print_database()
+
+    # #delete grouped transaction test
+    # print("delete grouped transaction test (envelope swap)")
+    # delete_transaction(4)
+    # print_database()
+    # print("delete grouped transaction test (account swap)")
+    # delete_transaction(8)
+    # print_database()
+
+    # #update envelope budget test
+    # update_envelope_budget(1, 10000)
+    # print_database()
+
+    # #split transaction test
+    # print("Split transaction test")
+    # new_split_transaction(Transaction(SPLIT_TRANSACTION,'Gooten', [10, 5], datetime.datetime(2000, 8, 13), [2, 1], 2, 0, 'Something cool'))
+    # print_database()
+    # print("Delete split transaction test")
+    # delete_transaction(9)
+    # print_database()
+
+
     #update basic transaction test
     #update_transaction(1, Transaction(BASIC_TRANSACTION,'Target', 10.23, datetime.datetime(1999, 12, 30), 'Food', 'Checking', 0, ''))
 

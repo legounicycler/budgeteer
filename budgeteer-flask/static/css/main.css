@@ -15,8 +15,13 @@
   z-index: 1000;
 }
 
-.tiny {
+.no-margin {
   margin: 0;
+}
+
+.tiny {
+  font-size: .75em !important;
+  color: gray;
 }
 
 .transaction-status, .envelope-budget, .transaction-name, .transaction-amount, .envelope-balance, .account-balance, .transaction-type {
@@ -43,6 +48,10 @@ h5 {
 .negative {
   background-color: red !important;
 }
+
+/*.neutral {
+  background-color: black !important;
+}*/
 
 .balance {
   width: min-content;

@@ -18,23 +18,15 @@
 
     $('select').material_select();
 
-  $(document).on('change', '.div-toggle', function() {
-  var target = $(this).data('target');
-  var show = $("option:selected", this).data('show');
-  $(target).children().addClass('hide');
-  $(show).removeClass('hide');
-  });
-  $(document).ready(function(){
-    $('.div-toggle').trigger('change');
-  });
-
-  $('.tabs').tabs();
-  $('.modal-trigger').modal({
-      ready: function () {
-          $('.modal-trigger').click();
-      }
-  });
+    $(document).on('change', '.div-toggle', function() {
+    var target = $(this).data('target');
+    var show = $("option:selected", this).data('show');
+    $(target).children().addClass('hide');
+    $(show).removeClass('hide');
+    });
+    $(document).ready(function(){
+      $('.div-toggle').trigger('change');
+    });
 
   }); // end of document ready
-
 })(jQuery); // end of jQuery name space
