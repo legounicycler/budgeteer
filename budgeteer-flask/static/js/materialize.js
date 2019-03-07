@@ -4760,6 +4760,7 @@ if (jQuery) {
     var element;
     if (typeof(selectorOrEl) === 'string') {
       element = $(selectorOrEl);
+
     } else if (typeof(selectorOrEl) === 'object') {
       element = selectorOrEl;
     } else {
@@ -6230,6 +6231,8 @@ function DatePicker( picker, settings ) {
             })
         }, 1 ).
         on( 'open', function() {
+        	// CHANGED THIS NEXT LINE!!!!
+        	picker.$root.appendTo('body');
             var includeToday = ''
             if ( calendar.disabled( calendar.get('now') ) ) {
                 includeToday = ':not(.' + settings.klass.buttonToday + ')'

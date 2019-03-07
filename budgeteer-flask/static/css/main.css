@@ -45,6 +45,10 @@ h5 {
   font-size: 1.3em;
 }
 
+.modal-content h3{
+  margin-bottom: 0;
+}
+
 .negative {
   background-color: red !important;
 }

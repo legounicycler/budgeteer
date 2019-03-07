@@ -19,18 +19,22 @@
                 </div>
               </div>
               <div class="row">
-                  <div class="input-field col s12">
-                    <select id="envelope_id" name="envelope_id">
-                      <option value="" disabled selected>Choose an Envelope</option>
-                      {% for envelope in envelopes_data %}
-                          <option value="{{ envelope.id }}">{{envelope.name}}</option>
-                      {% endfor %}
-                    </select>
-                    <label>Envelope</label>
-                  </div>
+                <div class="input-field col s6">
+                  <select id="envelope_id" name="envelope_id">
+                    <option value="" disabled selected>Choose an Envelope</option>
+                    {% for envelope in envelopes_data %}
+                        <option value="{{ envelope.id }}">{{envelope.name}}</option>
+                    {% endfor %}
+                  </select>
+                  <label>Envelope</label>
+                </div>
+                <div class="input-field col s6 ">
+                  <input id="amount" type="text" name="amount">
+                  <label for="amount">Amount</label>
+                </div>
               </div>
               <div class="row">
-                <div class="input-field col s12">
+                <div class="input-field col s6">
                   <select id="account_id" name="account_id">
                     <option value="" disabled selected>Choose an Account</option>
                     {% for account in accounts_data %}
@@ -39,15 +43,9 @@
                   </select>
                   <label>Account</label>
                 </div>
-              </div>
-              <div class="row">
-                <div class="input-field col s6 ">
+                <div class="input-field col s ">
                   <input id="transaction-date" type="date" class="datepicker" name="date">
                   <label for="transaction-date">Date</label>
-                </div>
-                <div class="input-field col s6 ">
-                  <input id="amount" type="text" name="amount">
-                  <label for="amount">Amount</label>
                 </div>
               </div>
               <div class="row">
@@ -174,7 +172,7 @@
                     <label for="name">Name</label>
                   </div>
                 </div>
-                <div class="row">
+                <!-- <div class="row">
                   <div class="input-field col s12">
                     <select name="envelope_id">
                       <option value="" disabled selected>Choose an Envelope</option>
@@ -184,7 +182,7 @@
                     </select>
                     <label>Envelope</label>
                   </div>
-                </div>
+                </div> -->
                 <div class="row">
                   <div class="input-field col s12">
                     <select name="account_id">

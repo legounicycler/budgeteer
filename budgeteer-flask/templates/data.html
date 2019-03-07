@@ -38,10 +38,10 @@
 
 {% block transaction_rows %}
     {% for transaction in transactions_data %}
-      <a class="waves-effect collection-item" href="#editor-modal">
+      <a class="waves-effect collection-item transaction" href="#editor-modal" data-id="{{transaction.id}}" data-name="{{transaction.name}}" data-type="{{transaction.type}}" data-date="{{transaction.date}}" data-amt="{{transaction.amt}}" data-account_id="{{transaction.account_id}}" data-envelope_id="{{transaction.envelope_id}}" data-grouping="{{transaction.grouping}}" data-note="{{transaction.note}}">
         <li class="row plans valign-wrapper transaction-row">
           <div class="col s2 transaction-date">{{transaction.date}}</div>
-          <div class="col s1 transaction-type"><i class="material-icons" title="{{t_type_dict[transaction.type]}}">{{transaction.type}}</i></div>
+          <div class="col s1 transaction-type"><i class="material-icons" title="{{t_type_dict[transaction.type]}}">{{t_type_dict2[transaction.type]}}</i></div>
           <div class="col s6 transaction-name left-align">
             <h5 class="truncate no-margin">{{transaction.name}}</h5>
             <i class="no-margin tiny">{{transaction.envelope_id}}</i> / <i class="tiny">{{transaction.account_id}}</i>

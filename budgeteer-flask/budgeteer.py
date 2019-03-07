@@ -17,6 +17,8 @@
   # Form validations
   # Envelope/Account editors
   # Add functionality to transaction editor
+  # Make date formatter more efficient (materialize docs for datepicker?)
+  # add toasts for each submit thingy
 
 from flask import Flask, render_template, url_for, request, redirect
 from database import *
@@ -26,12 +28,20 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'da3e7b955be0f7eb264a9093989e0b46'
 
 t_type_dict = {
-        'local_atm': 'Basic Transaction',
-        'swap_horiz': 'Envelope Transfer',
-        'swap_vert': 'Account Transfer',
-        'vertical_align_bottom': 'Income',
-        'call_split': 'Split Transaction'
+        0: 'Basic Transaction',
+        1: 'Envelope Transfer',
+        2: 'Account Transfer',
+        3: 'Income',
+        4: 'Split Transaction'
     }
+
+t_type_dict2 = {
+    0: 'local_atm',
+    1: 'swap_horiz',
+    2: 'swap_vert',
+    3: 'vertical_align_bottom',
+    4: 'call_split'
+}
 
 @app.route("/")
 @app.route("/home", methods=['GET'])
@@ -41,7 +51,7 @@ def home():
     accounts_data = get_account_list()
     total_funds = '$%.2f' % get_total()
     current_view = 'All transactions'
-    return render_template('data.html', t_type_dict=t_type_dict, envelopes_data=envelopes_data, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
+    return render_template('data.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, envelopes_data=envelopes_data, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
 
 @app.route("/envelope/<envelope_id>", methods=['GET'], )
 def envelope(envelope_id):
@@ -50,7 +60,7 @@ def envelope(envelope_id):
     accounts_data = get_account_list()
     total_funds = '$%.2f' % get_total()
     current_view = get_envelope(envelope_id).name
-    return render_template('data.html', t_type_dict=t_type_dict, envelopes_data=envelopes_data, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
+    return render_template('data.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, envelopes_data=envelopes_data, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
 
 @app.route("/account/<account_id>", methods=['GET'], )
 def account(account_id):
@@ -59,7 +69,7 @@ def account(account_id):
     accounts_data = get_account_list()
     total_funds = '$%.2f' % get_total()
     current_view = get_account(account_id).name
-    return render_template('data.html', t_type_dict=t_type_dict, envelopes_data=envelopes_data, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
+    return render_template('data.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, envelopes_data=envelopes_data, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
 
 @app.route('/new_expense', methods=['POST'])
 def new_expense():
@@ -100,17 +110,24 @@ def new_income():
     name = request.form['name']
     amount = float(request.form['amount'])
     date = datetime.strptime(request.form['date'], '%d %B, %Y')
-    envelope_id = request.form['envelope_id']
+    # envelope_id = request.form['envelope_id']
     account_id = request.form['account_id']
     note = request.form['note']
-    t = Transaction(INCOME, name, -1 * amount, date, envelope_id, account_id, 0, note)
+    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, 0, note)
     insert_transaction(t)
     print_database()
     return redirect(url_for('home'))
 
-@app.route('/edit_transaction', methods=['POST', 'GET'])
+@app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
 
+    return redirect(url_for('home'))
+
+@app.route('/delete_transaction_page', methods=['POST'])
+def delete_transaction_page():
+    id = request.form['delete-id']
+    id = int(id)
+    delete_transaction(id)
     return redirect(url_for('home'))
 
 if __name__ == '__main__':

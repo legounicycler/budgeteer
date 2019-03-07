@@ -77,6 +77,7 @@ def create_db():
             budget REAL NOT NULL DEFAULT 0
             )
         """)
+    insert_envelope('Unallocated', 0)
 
 
 #TRANSACTION FUNCTIONS
@@ -90,8 +91,9 @@ def insert_transaction(t):
             update_account_balance(t.account_id, newaccountbalance)
 
         if (t.type != ACCOUNT_TRANSFER):
-            newenvelopebalance = get_envelope_balance(t.envelope_id) - t.amt
-            update_envelope_balance(t.envelope_id, newenvelopebalance)
+            if not (t.envelope_id is None):
+                newenvelopebalance = get_envelope_balance(t.envelope_id) - t.amt
+                update_envelope_balance(t.envelope_id, newenvelopebalance)
 
 def get_transaction(id):
     with conn:
@@ -114,7 +116,7 @@ def get_all_transactions():
                     split_grouped.append(t.grouping)
                 t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
                 t.amt = '$%.2f' % (t.amt * -1)
-                t.type = transaction_type(t.type)
+                # t.type = type_to_icon(t.type)
                 if not (t.account_id is None):
                     t.account_id = get_account(t.account_id).name
                 if not (t.envelope_id is None):
@@ -131,7 +133,7 @@ def get_envelope_transactions(envelope_id):
             t = get_transaction(id[0])
             t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
             t.amt = '$%.2f' % (t.amt * -1)
-            t.type = transaction_type(t.type)
+            # t.type = type_to_icon(t.type)
             if not (t.account_id is None):
                 t.account_id = get_account(t.account_id).name
             if not (t.envelope_id is None):
@@ -147,8 +149,8 @@ def get_account_transactions(account_id):
         for id in ids:
             t = get_transaction(id[0])
             t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
-            t.amt = '$%.2f' % t.amt
-            t.type = transaction_type(t.type)
+            t.amt = '$%.2f' % (t.amt * -1)
+            # t.type = type_to_icon(t.type)
             if not (t.account_id is None):
                 t.account_id = get_account(t.account_id).name
             if not (t.envelope_id is None):
@@ -204,7 +206,12 @@ def new_split_transaction(t):
 #ACCOUNT FUNCTIONS
 def insert_account(name, balance):
     with conn:
-        c.execute("INSERT INTO accounts (name, balance) VALUES (?, ?)", (name, balance))
+        c.execute("INSERT INTO accounts (name, balance) VALUES (?, ?)", (name, 0))
+        c.execute("SELECT id FROM accounts WHERE name=?", (name,))
+        account_id = c.fetchone()[0]
+        income_name = 'Initial Account Fill: ' + name
+        t = Transaction(INCOME, income_name, -1* balance, datetime.datetime.today(), 1, account_id, 0, '')
+        insert_transaction(t)
 
 def get_account(id):
     with conn:
@@ -216,7 +223,7 @@ def get_account(id):
 
 def get_account_list():
     with conn:
-        c.execute("SELECT id FROM accounts")
+        c.execute("SELECT id FROM accounts ORDER by id ASC")
         ids = c.fetchall()
         alist = []
         for id in ids:
@@ -273,7 +280,7 @@ def get_envelope(id):
 
 def get_envelope_list():
     with conn:
-        c.execute("SELECT id FROM envelopes")
+        c.execute("SELECT id FROM envelopes ORDER by id ASC")
         ids = c.fetchall()
         elist = []
         for id in ids:
@@ -285,8 +292,11 @@ def get_envelope_list():
 
 def delete_envelope(id):
     with conn:
-        c.execute("DELETE FROM envelopes WHERE id=?", (id,))
-        #delete all transactions from that envelope (but what happens if there's a split transaction?)
+        if (id != 1):
+            c.execute("DELETE FROM envelopes WHERE id=?", (id,))
+            #archive it somehow and remove add its balance to the unallocated envelope??? (but what if it's negative tho?)
+        else:
+            print("You can't delete the 'Unallocated' envelope you moron")
 
 def get_envelope_balance(id):
     c.execute("SELECT balance FROM envelopes WHERE id=?", (id,))
@@ -384,7 +394,7 @@ def get_ids_from_grouping(grouping):
                 id_array.append(id)
             return id_array
 
-def transaction_type(x):
+def type_to_icon(x):
     return {
         0: 'local_atm',
         1: 'swap_horiz',
@@ -393,29 +403,36 @@ def transaction_type(x):
         4: 'call_split',
     }[x]
 
+# def icon_to_text(x):
+#     return = {
+#         'local_atm': 'Basic Transaction',
+#         'swap_horiz': 'Envelope Transfer',
+#         'swap_vert': 'Account Transfer',
+#         'vertical_align_bottom': 'Income',
+#         'call_split': 'Split Transaction'
+#     }[x]
 
 
-# def main():
+def main():
 
-    #create_db()
+    # create_db()
 
-    #delete previous tests
+    # delete previous tests
     # for i in range(40):
     #     delete_transaction(i)
     # delete_envelope(1)
     # delete_envelope(2)
+    # delete_envelope(3)
     # delete_account(1)
     # delete_account(2)
 
     # #create new testing envelopes and accounts
-    # insert_envelope('Food',10)
-    # insert_envelope('Gas',100)
     # insert_account('Checking', 100)
     # insert_account('Savings', 1000)
-    # update_envelope_balance(1,500)
-    # update_envelope_balance(2,600)
+    # insert_envelope('Food',10)
+    # insert_envelope('Gas',100)
 
-    # print_database()
+    print_database()
 
 
     # #test basic transaction

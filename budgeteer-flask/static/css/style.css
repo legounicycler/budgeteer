@@ -82,6 +82,11 @@ footer a {
   background-color: #ff8d00 !important;
 }
 
+/*allows modal content to fit within it without scrolling (unless it's a split transaction)*/
+.modal {
+  max-height: 80%;
+}
+
 /*Media queries*/
 
 @media only screen and (min-width: 993px) {
