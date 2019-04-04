@@ -49,11 +49,7 @@
   <!-- Content -->
 
   <!--Transaction Button-->
-  <a class="btn-floating btn-large waves-effect waves-light orange darken-3 modal-trigger floater" href="#modal1"><i class="material-icons">add</i></a>
-
-  <!-- Transaction Creator -->
-
-  {% include 'transaction_builder.html' %}
+  <a class="btn-floating btn-large waves-effect waves-light orange darken-3 modal-trigger floater" href="#transaction-modal"><i class="material-icons">add</i></a>
 
   <div class="row content">
 
@@ -74,13 +70,13 @@
 
       <!--Envelopes-->
       <div id="envelopes" class="col s12">
-        <a href="#" class="btn orange waves-effect" id="edit-envelopes">Edit Envelopes</a>
-        <ul class="collection envelopes-bin">
+        <a href="#envelope-modal" class="btn orange waves-effect modal-trigger" id="edit-envelopes">Edit Envelopes</a>
+        <ul class="collection">
 
-          <li class="row plans valign-wrapper collection-item left-align grey lighten-3">
-            <div class="col s5 offset-s1 left-align">Name</div>
-            <div class="col s3 envelope-budget">Budgeted</div>
-            <div class="col s3 envelope-balance">Balance</div>
+          <li class="row valign-wrapper collection-item left-align grey lighten-3">
+            <div class="col s5 header offset-s1 left-align">Name</div>
+            <div class="col s3 header envelope-budget">Budgeted</div>
+            <div class="col s3 header envelope-balance">Balance</div>
           </li>
 
           {% block envelope_rows %}{% endblock %}
@@ -90,11 +86,11 @@
 
       <!--Accounts-->
       <div id="accounts" class="col s12">
-        <a href="#" class="btn orange waves-effect" id="edit-accounts">Edit Accounts</a>
-        <ul class="collection envelopes-bin">
-          <li class="row plans valign-wrapper collection-item left-align grey lighten-3">
-            <div class="col s8 offset-s1 left-align">Name</div>
-            <div class="col s3 account-balance">Balance</div>
+        <a href="#account-modal" class="btn orange waves-effect modal-trigger" id="edit-accounts">Edit Accounts</a>
+        <ul class="collection">
+          <li class="row valign-wrapper collection-item left-align grey lighten-3">
+            <div class="col s8 header offset-s1 left-align">Name</div>
+            <div class="col s3 header account-balance">Balance</div>
           </li>
           {% block account_rows %}{% endblock %}
         </ul>
@@ -104,30 +100,34 @@
 
     <!--Transactions-->
     <div class="col s12 m12 l8 hide-on-small-only" id="transactions-column">
-      <div class="transaction-header orange">
-        <div class="row left-align valign-wrapper header white-text orange lighten-1"><h4 id="transaction-title">Transactions - {{current_view}}</h4></div>
-        <div class="row orange">
-          <div class="col s2">Date</div>
-          <div class="col s1">Type</div>
-          <div class="col s6">Name</div>
-          <div class="col s2">Amount</div>
-          <div class="col s1">Status</div>
-        </div>
+      <div class="transaction-header valign-wrapper orange lighten-1 white-text">
+        <h4 id="transaction-title">Transactions - {{current_view}}</h4>
       </div>
 
       <ul class="collection" id="transactions-bin">
+        <li class="row valign-wrapper collection-item left-align grey lighten-3">
+          <div class="col s2 header transaction-date">Date</div>
+          <div class="col s1 header transaction-type">Type</div>
+          <div class="col s6 header transaction-name">Name</div>
+          <div class="col s2 header transaction-amount">Amount</div>
+          <div class="col s1 header transaction-status">Status</div>
+        </li>
         {% block transaction_rows %}{% endblock %}
       </ul>
 
     </div>
   </div>
 
+  {% include 'envelope_editor.html' %}
+  {% include 'account_editor.html' %}
+  {% include 'transaction_builder.html' %}
   {% include 'transaction_editor.html' %}
 
 
 
   <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="{{url_for('static', filename='js/jquery-3.3.1.js')}}"></script>
   <script src="{{url_for('static', filename='js/materialize.js')}}"></script>
   <script src="{{url_for('static', filename='js/init.js')}}"></script>
 </body>

@@ -1,0 +1,41 @@
+<div id="account-modal" class="modal">
+  <div class="modal-content">
+    <div class="row">
+
+      <h3>Edit Accounts</h3>
+
+      <form id="account-editor-form" method="post">
+
+        <ul id="account-editor-bin" class="collection">
+          <li class="row collection-item left-align grey lighten-3">
+            <div class="col s8 header offset-s1 left-align">Name</div>
+            <div class="col s2 header account-balance">Balance</div>
+            <div class="col s1 header delete-account">Delete</div>
+          </li>
+
+          {% for id, account in accounts_data.items() %}
+            {% if account.deleted == false%}
+              <li class="row account-row collection-item">
+                <div class="col s1 valign-wrapper account-icon editor-col"><i class="material-icons">account_balance</i></div>
+                <div class="col s8 account-name left-align editor-col"><input id="edit-account-name" type="text" value="{{account.name}}" name="edit-account-name-{{account.id}}"></div>
+                <div class="col s2 account-balance editor-col"><input id="edit-balance" type="text" value={{account.balance[1:]}} name="edit-account-balance-{{account.id}}"></div>
+                <div class="col s1 valign-wrapper delete-account editor-col"><a href="#!" class="delete-account-button"><i class="material-icons red-text">delete_forever</i></a></div>
+              </li>
+            {% endif %}
+          {% endfor %}
+
+        </ul>
+        <div class="row">
+          <div class="col s3 left-align">
+            <a id="new-account-row" href="#!" class="tiny">+ New Account</a>
+          </div>
+          <div class="col s3 push-s6">
+            <button class="btn waves-effect waves-light modal-close yellow darken-4" type="submit" href="#!">Update</button>
+          </div>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>

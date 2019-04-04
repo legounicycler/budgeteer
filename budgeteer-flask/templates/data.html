@@ -1,56 +1,62 @@
 {% extends "layout.html" %}
 {% block envelope_rows %}
-    {% for envelope in envelopes_data %}
+    {% for id, envelope in envelopes_data.items() %}
+      {% if envelope.deleted == false%}
         <a class="waves-effect collection-item" href="/envelope/{{envelope.id}}">
-            <li class="row plans valign-wrapper envelope-row">
-              <i class="col s1 material-icons envelope-icon">mail_outline</i>
+            <li class="row envelope-row">
+              <div class="col s1 valign-wrapper envelope-icon"><i class="material-icons">mail_outline</i></div>
               <div class="col s5 envelope-name left-align"><h5 class="truncate">{{envelope.name}}</h5></div>
-              <div class="col s3 envelope-budget">{{envelope.budget}}</div>
-              <div class="col s3 envelope-balance"><span class="{{'negative' if envelope.balance[1] == '-'}} balance">{{envelope.balance}}</span></div>
+              <div class="col s3 valign-wrapper envelope-budget">{{envelope.budget}}</div>
+              <div class="col s3 valign-wrapper envelope-balance"><span class="{{'negative' if envelope.balance[1] == '-'}} balance">{{envelope.balance}}</span></div>
             </li>
           </a>
+        {% endif %}
     {% endfor %}
 {% endblock envelope_rows %}
 
-{% block envelope_option %}
+
+<!-- {% block envelope_option %}
     {% for envelope in envelopes_data %}
         <option value="{{ envelope.id }}">{{envelope.name}}</option>
     {% endfor %}
-{% endblock envelope_option %}
+{% endblock envelope_option %} -->
 
 {% block account_rows %}
-    {% for account in accounts_data %}
+    {% for id, account in accounts_data.items() %}
+      {% if account.deleted == false%}
         <a class="waves-effect collection-item" href="/account/{{account.id}}">
-            <li class="row plans valign-wrapper envelope-row">
-              <i class="col s1 material-icons account-icon">account_balance</i>
-              <div class="col s8 account-name left-align"><h5 class="truncate">{{account.name}}</h5></div>
-              <div class="col s3 account-balance"><span class="{{'negative' if account.balance[1] == '-'}} balance">{{account.balance}}</span></div>
-            </li>
-          </a>
+          <li class="row envelope-row">
+            <div class="col s1 valign-wrapper account-icon"><i class="material-icons">account_balance</i></div>
+            <div class="col s8 account-name left-align"><h5 class="truncate">{{account.name}}</h5></div>
+            <div class="col s3 valign-wrapper account-balance"><span class="{{'negative' if account.balance[1] == '-'}} balance">{{account.balance}}</span></div>
+          </li>
+        </a>
+      {% endif %}
     {% endfor %}
 {% endblock account_rows %}
 
-{% block account_option %}
-    {% for account in accounts_data %}
+<!-- {% block account_option %}
+    {% for id, account in accounts_data.items() %}
         <option value="{{ account.id }}">{{account.name}}</option>
     {% endfor %}
-{% endblock account_option %}
+{% endblock account_option %} -->
 
 {% block transaction_rows %}
     {% for transaction in transactions_data %}
-      <a class="waves-effect collection-item transaction" href="#editor-modal" data-id="{{transaction.id}}" data-name="{{transaction.name}}" data-type="{{transaction.type}}" data-date="{{transaction.date}}" data-amt="{{transaction.amt}}" data-account_id="{{transaction.account_id}}" data-envelope_id="{{transaction.envelope_id}}" data-grouping="{{transaction.grouping}}" data-note="{{transaction.note}}">
-        <li class="row plans valign-wrapper transaction-row">
-          <div class="col s2 transaction-date">{{transaction.date}}</div>
-          <div class="col s1 transaction-type"><i class="material-icons" title="{{t_type_dict[transaction.type]}}">{{t_type_dict2[transaction.type]}}</i></div>
+      <a class="waves-effect collection-item transaction" href="#editor-modal" data-id="{{transaction.id}}" data-name="{{transaction.name}}" data-type="{{transaction.type}}" data-date="{{transaction.date}}" data-amt="{{transaction.amt}}" data-account_id="{{transaction.account_id}}" data-account_name = "{% if transaction.account_id is not none %}{{ accounts_data[transaction.account_id].name }}{% endif %}" data-envelope_id="{{transaction.envelope_id}}" data-envelope_name = "{% if transaction.envelope_id is not none %}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}" data-grouping="{{transaction.grouping}}" data-note="{{transaction.note}}">
+        <li class="row transaction-row">
+          <div class="col s2 valign-wrapper transaction-date">{{transaction.date}}</div>
+          <div class="col s1 valign-wrapper transaction-type"><i class="material-icons" title="{{t_type_dict[transaction.type]}}">{{t_type_dict2[transaction.type]}}</i></div>
           <div class="col s6 transaction-name left-align">
             <h5 class="truncate no-margin">{{transaction.name}}</h5>
-            <i class="no-margin tiny">{{transaction.envelope_id}}</i> / <i class="tiny">{{transaction.account_id}}</i>
+            <i class="no-margin tiny {% if transaction.envelope_id is not none%}{% if envelopes_data[transaction.envelope_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.envelope_id is not none %}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}</i>{% if transaction.envelope_id is not none and transaction.account_id is not none %} / {% endif %}<i class="tiny {% if transaction.account_id is not none%}{% if accounts_data[transaction.account_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.account_id is not none %}{{ accounts_data[transaction.account_id].name }}{% endif %}</i>
           </div>
-          <div class="col s2 transaction-amount"><span class="{{'negative' if transaction.amt[1] == '-'}}  balance">{{transaction.amt}}</span></div>
-          <div class="col s1 transaction-status"><i class="small material-icons">{{transaction.status}}</i></div>
+          <div class="col s2 valign-wrapper transaction-amount"><span class="{{'negative' if transaction.amt[1] == '-'}}  balance">{{transaction.amt}}</span></div>
+          <div class="col s1 valign-wrapper transaction-status"><i class="small material-icons">{{transaction.status}}</i></div>
         </li>
       </a>
     {% endfor %}
 {% endblock transaction_rows %}
+
 <!-- Neutal tag if I decide to add it back in, would also have to enable in css -->
 <!-- {{'neutral' if transaction.type in [1,2] and current_view == 'All transactions'}} -->

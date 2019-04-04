@@ -24,12 +24,32 @@
   color: gray;
 }
 
-.transaction-status, .envelope-budget, .transaction-name, .transaction-amount, .envelope-balance, .account-balance, .transaction-type {
+.transaction-status, .envelope-budget, .transaction-name, .transaction-amount, .envelope-balance, .account-balance, .transaction-type, .delete-account, .delete-envelope {
   border-left: 1px solid #e0e0e0;
+}
+
+.transaction-date, .transaction-status, .transaction-name, .transaction-amount, .transaction-type{
+  height: 42px;
+}
+
+.transaction-date, .transaction-status, .envelope-budget, .transaction-name, .transaction-amount, .envelope-balance, .account-balance, .transaction-type, .delete-account, .delete-envelope, .account-icon, .envelope-icon {
+  justify-content: center;
+}
+
+.envelope-budget, .envelope-balance, .envelope-name, .envelope-icon, .account-balance, .delete-account, .account-icon, .account-name {
+  height: 36px;
+}
+
+.editor-col {
+  height: 50px;
 }
 
 .transaction-row, .envelope-row, .account-row{
   padding: 0 !important;
+}
+
+.header {
+  height: auto;
 }
 
 .content, .left-content {
@@ -50,7 +70,7 @@ h5 {
 }
 
 .negative {
-  background-color: red !important;
+  background-color: #e60000 !important;
 }
 
 /*.neutral {
@@ -60,11 +80,13 @@ h5 {
 .balance {
   width: min-content;
   color: white;
-  padding: 0 .2em;
+  padding: 0 .15em;
   border-radius: 500px;
   background-color: green;
   font-weight: bold;
 }
+
+
 
 #edit-accounts, #edit-envelopes {
   margin-top: 5px;
@@ -88,6 +110,10 @@ h5 {
 
 .hide {
   display: none;
+}
+
+.strikethrough {
+  text-decoration: line-through;
 }
 
 html, body {
