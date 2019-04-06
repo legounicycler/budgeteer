@@ -19,8 +19,8 @@
               <li class="row envelope-row collection-item">
                 <div class="col s1 valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div>
                 <div class="col s5 envelope-name left-align editor-col"><input id="edit-envelope-name" type="text" value="{{envelope.name}}" name="edit-envelope-name-{{envelope.id}}"></div>
-                <div class="col s2 envelope-budget editor-col"><input id="edit-envelope-budget" type="text" value={{envelope.budget[1:]}} name="edit-envelope-budget-{{envelope.id}}"></div>
-                <div class="col s3 valign-wrapper envelope-balance editor-col"><span class="{{'negative' if envelope.balance[1] == '-'}} balance">{{envelope.balance}}</span></div>
+                <div class="col s2 envelope-budget editor-col"><input id="edit-envelope-budget" type="text" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" name="edit-envelope-budget-{{envelope.id}}"></div>
+                <div class="col s3 valign-wrapper envelope-balance editor-col"><span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span></div>
                 <div class="col s1 valign-wrapper delete-envelope editor-col"><a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a></div>
               </li>
             {% endif %}

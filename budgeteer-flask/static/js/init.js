@@ -143,9 +143,9 @@
       var grouping = $(this).data('grouping');
       var note = $(this).data('note');
       var amt = $(this).data('amt');
-      amt = -1 * parseFloat(amt.slice(1))
-      var to_envelope = null
-      var from_envelope = null
+      amt = -1 * parseFloat(amt.replace("$",""));
+      var to_envelope = null;
+      var from_envelope = null;
 
       //if it's a grouped transaction, use ajax to get data from all grouped transaction
       if (grouping != 0) {

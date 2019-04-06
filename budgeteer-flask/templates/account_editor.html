@@ -18,7 +18,7 @@
               <li class="row account-row collection-item">
                 <div class="col s1 valign-wrapper account-icon editor-col"><i class="material-icons">account_balance</i></div>
                 <div class="col s8 account-name left-align editor-col"><input id="edit-account-name" type="text" value="{{account.name}}" name="edit-account-name-{{account.id}}"></div>
-                <div class="col s2 account-balance editor-col"><input id="edit-balance" type="text" value={{account.balance[1:]}} name="edit-account-balance-{{account.id}}"></div>
+                <div class="col s2 account-balance editor-col"><input id="edit-balance" type="text" value="{% if account.balance[0] == '$' %}{{ account.balance[1:] }}{% else %}-{{ account.balance[2:] }}{% endif %}" name="edit-account-balance-{{account.id}}"></div>
                 <div class="col s1 valign-wrapper delete-account editor-col"><a href="#!" class="delete-account-button"><i class="material-icons red-text">delete_forever</i></a></div>
               </li>
             {% endif %}

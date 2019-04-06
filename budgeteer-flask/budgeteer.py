@@ -6,7 +6,6 @@
   # average spent in each envelope
   # sort transaction lists (multiple ways date, amount, name, etc.)
   # one click reconcile button
-  # temporary envelopes (archive feature)
   # add cash back feature!!!
   #
   #
@@ -15,17 +14,21 @@
   #
   # THINGS TO DO STILL
   #
-  # Form validations
-  # add toasts for each submit function
-  # Envelope/Account editors submit functions
   # Add split transaction functionability
+  # Add placeholder account delete transaction
+  # Form validations
+  # add toasts for each submit function / delete warnings
   # add "You don't have any transactions yet" things
-  # get rid of unallocated envelope in select menus
-  # change name of get_account_dict
+  # add envelope fill function
+  # get rid of unallocated envelope in envelope select menus
   # change get_account_dict to disclude $ and update the rest of the code accordingly
+  # sort transactions by date and id so they show up in the right order
+  # Change update_transaction function to actually use SQLite UPDATE function
+  # Clean up some of the dirty logic and make sure conn.close isn't super important
   # Maybe add neutral class back in with grayed out color for $0.00
   # check one last time if it's possible to include blocks inside of include statments jinja2
-  # sort transactions by date and id so they show up in the right order
+  # Add ajax in so that the site only loads 50 transactions at a time
+  # Fix CSS styling so things scroll correctly
 
 from flask import Flask, render_template, url_for, request, redirect, jsonify
 from database import *

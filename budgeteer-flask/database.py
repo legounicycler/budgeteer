@@ -4,20 +4,18 @@ import json
 
 database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
 conn = sqlite3.connect(database, check_same_thread=False)
-
 c = conn.cursor()
 
 UNALLOCATED = 1
-
 BASIC_TRANSACTION = 0
 ENVELOPE_TRANSFER = 1
 ACCOUNT_TRANSFER = 2
 INCOME = 3
 SPLIT_TRANSACTION = 4
+PLACEHOLDER = 5
 
 
 class Transaction:
-
     def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note):
         self.id = None
         self.type = type
@@ -30,7 +28,6 @@ class Transaction:
         self.note = note
 
 class Account:
-
     def __init__(self, name, balance, deleted):
         self.id = None
         self.name = name
@@ -38,7 +35,6 @@ class Account:
         self.deleted = deleted
 
 class Envelope:
-
     def __init__(self, name, balance, budget, deleted):
         self.id = None
         self.name = name
@@ -84,22 +80,24 @@ def create_db():
     insert_envelope('Unallocated', 0)
 
 
-#TRANSACTION FUNCTIONS
+# ---------------TRANSACTION FUNCTIONS--------------- #
+
 def insert_transaction(t):
+    # Inserts transaction into database, then updates account/envelope balances
     with conn:
         c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note))
 
-        if (t.type != ENVELOPE_TRANSFER):
+        if not (t.account_id is None):
             newaccountbalance = get_account_balance(t.account_id) - t.amt
             update_account_balance(t.account_id, newaccountbalance)
 
-        if (t.type != ACCOUNT_TRANSFER):
-            if not (t.envelope_id is None):
-                newenvelopebalance = get_envelope_balance(t.envelope_id) - t.amt
-                update_envelope_balance(t.envelope_id, newenvelopebalance)
+        if not (t.envelope_id is None):
+            newenvelopebalance = get_envelope_balance(t.envelope_id) - t.amt
+            update_envelope_balance(t.envelope_id, newenvelopebalance)
 
 def get_transaction(id):
+    # Retrieves transaction object from database given its ID
     with conn:
         c.execute("SELECT * FROM transactions WHERE id=?", (id,))
         tdata = c.fetchone()
@@ -108,8 +106,10 @@ def get_transaction(id):
         return t
 
 def get_all_transactions():
+    # returns a list of all transactions
+    # Change later to take 2 inputs, where to start, and how many to fetch
     with conn:
-        c.execute("SELECT id FROM transactions ORDER by day DESC")
+        c.execute("SELECT id FROM transactions ORDER by day DESC, id DESC")
         ids = c.fetchall()
         tlist = []
         split_grouped = []
@@ -119,63 +119,67 @@ def get_all_transactions():
                 if (t.type == SPLIT_TRANSACTION):
                     split_grouped.append(t.grouping)
                 t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
-                t.amt = '$%.2f' % (t.amt * -1)
+                t.amt = stringify(t.amt * -1)
                 tlist.append(t)
         return tlist
 
 def get_envelope_transactions(envelope_id):
+    # returns a list of transactions with certain envelope_id
+    # Change later to take 3 inputs: envelope_id, where to start, and how many to fetch
     with conn:
-        c.execute("SELECT id FROM transactions WHERE envelope_id=? ORDER by day DESC", (envelope_id,))
+        c.execute("SELECT id FROM transactions WHERE envelope_id=? ORDER by day DESC, id DESC", (envelope_id,))
         ids = c.fetchall()
         tlist = []
         for id in ids:
             t = get_transaction(id[0])
             t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
-            t.amt = '$%.2f' % (t.amt * -1)
+            t.amt = stringify(t.amt)
             tlist.append(t)
         return tlist
 
 def get_account_transactions(account_id):
+    # returns a list of transactions with certain account_id
+    # Change later to take 3 inputs: account_id, where to start, and how many to fetch
     with conn:
-        c.execute("SELECT id FROM transactions WHERE account_id=? ORDER by day DESC", (account_id,))
+        c.execute("SELECT id FROM transactions WHERE account_id=? ORDER by day DESC, id DESC", (account_id,))
         ids = c.fetchall()
         tlist = []
         for id in ids:
             t = get_transaction(id[0])
             t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
-            t.amt = '$%.2f' % (t.amt * -1)
+            t.amt = stringify(t.amt)
             tlist.append(t)
         return tlist
 
 def delete_transaction(id):
+    # deletes transaction and all grouped transactions and updates appropriate envelope/account balances
     with conn:
-        # check if transaction exists (if not grouping is None)
-        # get grouping number
-        # If grouping == 0, undo transaction and delete
-        # Else get ids, undo all transactions, and delete
         grouping = get_grouping_from_id(id)
-        if (grouping == 0):
-            t = get_transaction(id)
-            if not (t.envelope_id is None or get_envelope(t.envelope_id).deleted == True):
-                update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
-            if not (t.account_id is None or get_account(t.account_id).deleted == True):
-                update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
-            if get_envelope(t.envelope_id).deleted == True:
-                update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + t.amt)
-            c.execute("DELETE FROM transactions WHERE id=?", (id,))
-        elif not (grouping is None):
+        if not (grouping is None):
             ids = get_ids_from_grouping(grouping)
-            for i in ids:
-                t = get_transaction(i)
-                if not (t.envelope_id is None or get_envelope(t.envelope_id).deleted == True):
-                    update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
-                if not (t.account_id is None or get_account(t.account_id).deleted == True):
-                    update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
-                if get_envelope(t.envelope_id).deleted == True:
-                    update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + t.amt)
-                c.execute("DELETE FROM transactions WHERE id=?", (i,))
+            if ids is None:
+                ids = [id]
+            for id in ids:
+                t = get_transaction(id)
+
+                # Update envelope balance if it references an envelope
+                if not (t.envelope_id is None):
+                    if not (get_envelope(t.envelope_id).deleted == True):
+                        update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
+                    else:
+                        update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + t.amt)
+
+                # Update account balance if it references an account
+                if not (t.account_id is None):
+                    if not (get_account(t.account_id).deleted == True):
+                        update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
+                    else:
+                        update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
+
+                c.execute("DELETE FROM transactions WHERE id=?", (id,))
+
         else:
-            print("that transaction doesn't exist you twit")
+            print("That transaction doesn't exist you twit")
 
 
 def new_split_transaction(t):
@@ -188,20 +192,19 @@ def new_split_transaction(t):
         insert_transaction(new_t)
 
 
+# ---------------ACCOUNT FUNCTIONS--------------- #
 
-
-#ACCOUNT FUNCTIONS
 def insert_account(name, balance):
+    #inserts new account and creates "initial account balance" transaction
     with conn:
-        #inserts new account and creates primary account fill transaction
         c.execute("INSERT INTO accounts (name, balance) VALUES (?, ?)", (name, 0))
-        c.execute("SELECT id FROM accounts WHERE name=?", (name,))
-        account_id = c.fetchone()[0]
-        income_name = 'Initial Account Fill: ' + name
-        t = Transaction(INCOME, income_name, -1* balance, datetime.datetime.today(), 1, account_id, 0, '')
+        account_id = c.lastrowid
+        income_name = 'Initial Account Balance: ' + name
+        t = Transaction(INCOME, income_name, -1 * balance, datetime.date.today(), 1, account_id, 0, '')
         insert_transaction(t)
 
 def get_account(id):
+    # returns account associated with the given id
     with conn:
         c.execute("SELECT * FROM accounts WHERE id=?", (id,))
         adata = c.fetchone()
@@ -209,90 +212,79 @@ def get_account(id):
         a.id = adata[0]
         return a
 
-# def get_account_list():
-#     with conn:
-#         c.execute("SELECT id FROM accounts ORDER by id ASC")
-#         ids = c.fetchall()
-#         alist = []
-#         for id in ids:
-#             a= get_account(id[0])
-#             a.balance = '$%.2f' % a.balance
-#             alist.append(a)
-#         return alist
-
 def get_account_dict():
+    # returns a dictionary with keys of account_id and values of account objects
     with conn:
         c.execute("SELECT id FROM accounts ORDER by id ASC")
         ids = c.fetchall()
         adict = {}
         for id in ids:
             a = get_account(id[0])
-            a.balance = '$%.2f' % a.balance
+            a.balance = stringify(a.balance)
             adict[id[0]] = a
         return adict
 
 def delete_account(account_id):
+    # subtracts balance from unallocated envelope, sets account balance to 0, and sets deleted to true
     with conn:
-        update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + get_envelope_balance(account_id))
+        update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - get_account_balance(account_id))
         c.execute("UPDATE accounts SET deleted=1,balance=0 WHERE id=?", (account_id,))
-        print("account deleted ", account_id)
 
 def get_account_balance(id):
+    # Returns float of account balance
     c.execute("SELECT balance FROM accounts WHERE id=?", (id,))
     balance = c.fetchone()
     if not (balance is None):
         return balance[0]
     else:
-        print("that account doesn't exist you twit.")
+        print("That account doesn't exist you twit.")
 
 def edit_account(id, name, balance):
-    #updates account balalnce, account name, and unallocated balance
-    #This could probably be one query instead of having 3 separate update functions
+    #updates account balalnce and name, then subtracts the change in balance from the unallocated envelope
     current_balance = get_account_balance(id)
     diff = current_balance - balance
     unallocated_balance = get_envelope_balance(1)
     new_unallocated_balance = unallocated_balance - diff
-    update_account_balance(id, balance)
     update_envelope_balance(UNALLOCATED, new_unallocated_balance)
-    update_account_name(id, name)
-
-
-def update_account_name(id, name):
-    with conn:
-        c.execute("UPDATE accounts SET name=? WHERE id=?", (name, id))
+    c.execute("UPDATE accounts SET balance=?, name=? WHERE id=?", (balance, name, id))
 
 
 def update_account_balance(id, balance):
+    # updates balance of account with given id
     with conn:
         c.execute("UPDATE accounts SET balance=? WHERE id=?",(round(balance,2), id))
 
 def edit_accounts(json_data):
+    # Given json data with keys of account_id and value of other account data
+    # update accounts that already exist, add new ones, and delete those that are missing from the json_data
     with conn:
-        c.execute("SELECT id FROM accounts")
-        existing_accounts = c.fetchall()
-        account_ids = []
-        for i in existing_accounts:
-            account_ids.append(i[0])
-        print(account_ids)
+        c.execute("SELECT id FROM accounts WHERE deleted=0")
+        account_ids = c.fetchall()
+        # account_ids = []
+        # for a in existing_accounts:
+        #     if get_account(a[0]).deleted == False:
+        #         account_ids.append(a[0])
 
-    print(json_data)
     form_ids = []
     for x in json_data:
-        id = float(x)
+        account_id = float(x)
         account_name = json_data[x][0]
         account_balance = float(json_data[x][1])
-        if (id % 1) == 0:
-            id = int(id)
-            form_ids.append(id)
-            edit_account(id, account_name, account_balance)
+        # If an id is an int, it already exists, if it's a float, it's a new one
+        if (account_id % 1) == 0:
+            account_id = int(account_id)
+            form_ids.append(account_id)
+            edit_account(account_id, account_name, account_balance)
         else:
             insert_account(account_name, account_balance)
 
-    for x in account_ids:
-        if not (x in form_ids):
-            delete_account(x)
+    for id in account_ids:
+        # if the id from the existing accounts isn't in the json_data, delete the account
+        if not (id[0] in form_ids):
+            delete_account(id[0])
 
 def account_transfer(name, amount, date, to_account, from_account, note):
+    # Creates one transaction draining an account, and one transaction filling another
     grouping = gen_grouping_num()
     fill = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, to_account, grouping, note)
     insert_transaction(fill)
@@ -300,12 +292,15 @@ def account_transfer(name, amount, date, to_account, from_account, note):
     insert_transaction(empty)
 
 
-#ENVELOPE FUNCTIONS
+# ---------------ACCOUNT FUNCTIONS--------------- #
+
 def insert_envelope(name, budget):
+    # Inserts an envelope into the database with givne name and budget and a balnce of 0
     with conn:
         c.execute("INSERT INTO envelopes (name, budget) VALUES (?, ?)", (name,budget))
 
 def get_envelope(id):
+    # returns an envelope object given an envelope_id
     with conn:
         c.execute("SELECT * FROM envelopes WHERE id=?", (id,))
         edata = c.fetchone()
@@ -314,63 +309,60 @@ def get_envelope(id):
         return e
 
 def get_envelope_dict():
+    # returns a dictionary with key of envelope_id and value of an envelope object
     with conn:
         c.execute("SELECT id FROM envelopes ORDER by id ASC")
         ids = c.fetchall()
         edict = {}
         for id in ids:
             e = get_envelope(id[0])
-            e.balance = '$%.2f' % e.balance
-            e.budget = '$%.2f' % e.budget
+            e.balance = stringify(e.balance)
+            e.budget = stringify(e.budget)
             edict[id[0]] = e
         return edict
 
 def delete_envelope(envelope_id):
+    # adds envelope balance to the unallocated envelope, sets balance to 0, and sets deleted to true
     with conn:
-        if (envelope_id != 1):
+        if (envelope_id != UNALLOCATED):
             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + get_envelope_balance(envelope_id))
             c.execute("UPDATE envelopes SET deleted=1,balance=0 WHERE id=?", (envelope_id,))
-            print("Envelope deleted: ", envelope_id)
         else:
             print("You can't delete the 'Unallocated' envelope you moron")
 
 def get_envelope_balance(id):
-    c.execute("SELECT balance FROM envelopes WHERE id=?", (id,))
-    balance = c.fetchone()
-    if not (balance is None):
-        return balance[0]
-    else:
-        print("that envelope doesn't exist you imbicil")
+    # returns float of envelope balance given id
+    with conn:
+        c.execute("SELECT balance FROM envelopes WHERE id=?", (id,))
+        balance = c.fetchone()
+        if not (balance is None):
+            return balance[0]
+        else:
+            print("that envelope doesn't exist you imbicil")
 
 
 def update_envelope_balance(id, balance):
+    # updates envelope balance for given id
     with conn:
         c.execute("UPDATE envelopes SET balance=? WHERE id=?",(round(balance,2), id))
         #this isn't possible as a stand alone action
 
-def update_envelope_budget(id, budget):
-    with conn:
-        c.execute("UPDATE envelopes SET budget=? WHERE id=?",(budget, id))
-
-def update_envelope_name(id, name):
-    with conn:
-        c.execute("UPDATE envelopes SET name=? WHERE id=?", (name, id))
-
 def edit_envelope(id, name, budget):
-    update_envelope_name(id, name)
-    update_envelope_budget(id, budget)
+    # updates the name and budget for given id
+    with conn:
+        c.execute("UPDATE envelopes SET name=?, budget=? WHERE id=?",(name, budget, id))
 
 def edit_envelopes(json_data):
+    #
     with conn:
-        c.execute("SELECT id FROM envelopes")
-        existing_envelopes = c.fetchall()
-        envelope_ids = []
-        for i in existing_envelopes:
-            envelope_ids.append(i[0])
-        envelope_ids.pop() # gets rid of unallocated id (1) in envelope list
-        print(envelope_ids)
+        c.execute("SELECT id FROM envelopes WHERE deleted=0")
+        envelope_ids = c.fetchall()
+        # envelope_ids = []
+        # for e in existing_envelopes:
+        #     if get_envelope(e[0]).deleted == False:
+        #         envelope_ids.append(e[0])
+        envelope_ids.remove((1,)) # gets rid of unallocated id (1) in envelope list
 
-    print(json_data)
     form_ids = []
     for x in json_data:
         id = float(x)
@@ -383,11 +375,12 @@ def edit_envelopes(json_data):
         else:
             insert_envelope(envelope_name, envelope_budget)
 
-    for x in envelope_ids:
-        if not (x in form_ids):
-            delete_envelope(x)
+    for id in envelope_ids:
+        if not (id[0] in form_ids):
+            delete_envelope(id[0])
 
 def envelope_transfer(name, amt, date, to_envelope, from_envelope, note):
+    # Creates a transaction to fill one envelope and another to empty the other
     grouping = gen_grouping_num()
     fill = Transaction(ENVELOPE_TRANSFER, name, amt, date, to_envelope, None, grouping, note)
     insert_transaction(fill)
@@ -422,6 +415,7 @@ def print_database():
 
 
 def get_total():
+    # Sums the account balances to get a total to display
     with conn:
         c.execute("SELECT SUM(balance) FROM accounts")
         total = c.fetchone()[0]
@@ -431,17 +425,18 @@ def get_total():
             return 0
 
 def gen_grouping_num():
+    # Creates a new and unique grouping number
     with conn:
         c.execute("SELECT MAX(grouping) FROM transactions")
-        prenum = c.fetchone()[0]
-        if prenum != 0:
-            newnum = prenum + 1
+        prevnum = c.fetchone()[0]
+        if prevnum != 0 and prevnum is not None:
+            newnum = prevnum + 1
         else:
             newnum = 1
-
         return newnum
 
 def get_grouping_from_id(id):
+    # Gets the grouping number from the given id
     with conn:
         c.execute("SELECT grouping FROM transactions WHERE id=?", (id,))
         grouping_touple = c.fetchone()
@@ -452,19 +447,20 @@ def get_grouping_from_id(id):
             return grouping
 
 def get_ids_from_grouping(grouping):
+    # returns a list of ids associated with a particular grouping number
     with conn:
+        id_array = []
         if (grouping == 0):
-            print("Grouping = 0")
+            print("This is not a grouped transaction")
         else:
             c.execute("SELECT id from transactions WHERE grouping=?", (grouping,))
             id_touple = c.fetchall()
-            id_array = []
             for i in id_touple:
-                id = i[0]
-                id_array.append(id)
+                id_array.append(i[0])
             return id_array
 
 def type_to_icon(x):
+    # given a numeric transaction type, return the string name for the materialize icon
     return {
         0: 'local_atm',
         1: 'swap_horiz',
@@ -474,6 +470,7 @@ def type_to_icon(x):
     }[x]
 
 def get_grouped_json(id):
+    # Given an id, return a json with the transaction data for each grouped transaction
     grouping = get_grouping_from_id(id)
     ids = get_ids_from_grouping(grouping)
     if grouping == 0:
@@ -494,6 +491,15 @@ def get_grouped_json(id):
         })
     return data
 
+def stringify(number):
+    # Formats number into a nice string to display
+    negative = number < 0
+    string = '$%.2f' % abs(number)
+    if negative:
+        string = '-' + string
+    return string
+
+
 def main():
 
     # create_db()
@@ -510,7 +516,6 @@ def main():
     # #create new testing envelopes and accounts
     # insert_account('Checking', 100)
     # insert_account('Savings', 1000)
-    update_envelope_balance(1, 0)
     print_database()
 
 
@@ -571,8 +576,6 @@ def main():
 
     #update transfer transaction test
     #update_transaction(4, Transaction(ENVELOPE_TRANSFER,'Swapperoo noo', 1.77, datetime.datetime(2000, 8, 13), 'Gas', 'Savings', 0, 'Something cool'))
-
-
 
 
     conn.close()
