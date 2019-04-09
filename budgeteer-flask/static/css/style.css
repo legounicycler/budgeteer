@@ -6,64 +6,23 @@
  */
 
 
+/*gets rid of background color on focus*/
+.tabs .tab a:focus, .tabs .tab a:focus.active {
+  background-color: transparent;
+}
 
-nav, footer {
+/*makes the rows thinner for transactions and so they don't overflow their columns*/
+.row {
+  margin: 0 !important;
+  text-align: center;
+}
+
+.waves-effect {
+  width: 100%
+}
+
+nav {
   box-shadow: none;
-}
-
-
-nav i {
-  color: white;
-}
-
-/*sets icon sizes*/
-nav img, footer img {
-  height: 24px;
-  }
-
-
-footer {
-	bottom: 0px;
-	width: 100%;
-	border-top: solid #f1f1f1 2px;
-	position: fixed;
-  z-index: 10000;
-}
-
-footer a:hover{
-	background-color: rgba(0,0,0,.1);
-}
-
-footer .row {
-	margin: 0;
-}
-
-footer li {
-	display: inline-block;
-	padding: 10px 20px;
-}
-
-footer ul {
-	margin: 0;
-	padding: 0;
-}
-
-footer a {
-	display: inline-block;
-}
-
-
-/*makes side nav thinner (originally 300px)*/
-.side-nav {
-  width: auto;
-  z-index: 1000001;
-}
-
-/*special logo icon height*/
-/*margin is to fake a vertical center for the icons*/
-#logo {
-  height: 45px;
-  margin-top: 7px;
 }
 
 .collection .collection-item{
@@ -74,10 +33,13 @@ footer a {
   color: black;
 }
 
+
+/*changes default color of tab text*/
 .tab a {
   color: orange !important;
 }
 
+/*changes default color of tabs indicator bar*/
 .indicator {
   background-color: #ff8d00 !important;
 }

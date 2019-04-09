@@ -4,7 +4,7 @@
 
       <h3>Edit Accounts</h3>
 
-      <form id="account-editor-form" method="post">
+      <form id="account-editor-form" action="{{ url_for('edit_transaction') }}" method="post">
 
         <ul id="account-editor-bin" class="collection">
           <li class="row collection-item left-align grey lighten-3">
@@ -17,9 +17,17 @@
             {% if account.deleted == false%}
               <li class="row account-row collection-item">
                 <div class="col s1 valign-wrapper account-icon editor-col"><i class="material-icons">account_balance</i></div>
-                <div class="col s8 account-name left-align editor-col"><input id="edit-account-name" type="text" value="{{account.name}}" name="edit-account-name-{{account.id}}"></div>
-                <div class="col s2 account-balance editor-col"><input id="edit-balance" type="text" value="{% if account.balance[0] == '$' %}{{ account.balance[1:] }}{% else %}-{{ account.balance[2:] }}{% endif %}" name="edit-account-balance-{{account.id}}"></div>
-                <div class="col s1 valign-wrapper delete-account editor-col"><a href="#!" class="delete-account-button"><i class="material-icons red-text">delete_forever</i></a></div>
+                <div class="col s8 account-name left-align editor-col input-field">
+                  <input id="edit-account-name" class="validate" type="text" value="{{account.name}}" name="edit-account-name-{{account.id}}" required>
+                  <span class="helper-text" data-error="Account name required"></span>
+                </div>
+                <div class="col s2 account-balance editor-col input-field">
+                  <input id="edit-balance" class="validate" type="text" value="{% if account.balance[0] == '$' %}{{ account.balance[1:] }}{% else %}-{{ account.balance[2:] }}{% endif %}" name="edit-account-balance-{{account.id}}" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                  <span class="helper-text" data-error="Please enter a numeric value"></span>
+                </div>
+                <div class="col s1 valign-wrapper delete-account editor-col">
+                  <a href="#!" class="delete-account-button"><i class="material-icons red-text">delete_forever</i></a>
+                </div>
               </li>
             {% endif %}
           {% endfor %}
@@ -30,7 +38,7 @@
             <a id="new-account-row" href="#!" class="tiny">+ New Account</a>
           </div>
           <div class="col s3 push-s6">
-            <button class="btn waves-effect waves-light modal-close yellow darken-4" type="submit" href="#!">Update</button>
+            <button class="btn waves-effect waves-light yellow darken-4" type="submit" href="#!">Update</button>
           </div>
         </div>
 

@@ -18,10 +18,20 @@
             {% if envelope.deleted == false and envelope.id != 1 %}
               <li class="row envelope-row collection-item">
                 <div class="col s1 valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div>
-                <div class="col s5 envelope-name left-align editor-col"><input id="edit-envelope-name" type="text" value="{{envelope.name}}" name="edit-envelope-name-{{envelope.id}}"></div>
-                <div class="col s2 envelope-budget editor-col"><input id="edit-envelope-budget" type="text" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" name="edit-envelope-budget-{{envelope.id}}"></div>
-                <div class="col s3 valign-wrapper envelope-balance editor-col"><span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span></div>
-                <div class="col s1 valign-wrapper delete-envelope editor-col"><a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a></div>
+                <div class="col s5 envelope-name left-align editor-col input-field">
+                  <input id="edit-envelope-name" class="validate" type="text" value="{{envelope.name}}" name="edit-envelope-name-{{envelope.id}}" required>
+                  <span class="helper-text" data-error="Envelope name required"></span>
+                </div>
+                <div class="col s2 envelope-budget editor-col input-field">
+                  <input id="edit-envelope-budget" class="validate" type="text" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" name="edit-envelope-budget-{{envelope.id}}" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                  <span class="helper-text" data-error="Please enter a numeric value"></span>
+                </div>
+                <div class="col s3 valign-wrapper envelope-balance editor-col">
+                  <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>
+                </div>
+                <div class="col s1 valign-wrapper delete-envelope editor-col">
+                  <a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a>
+                </div>
               </li>
             {% endif %}
           {% endfor %}
@@ -32,7 +42,7 @@
             <a id="new-envelope-row" href="#!" class="tiny">+ New envelope</a>
           </div>
           <div class="col s3 push-s6">
-            <button class="btn waves-effect waves-light modal-close yellow darken-4" type="submit" name="action" href="#!">Update</button>
+            <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!">Update</button>
           </div>
         </div>
 

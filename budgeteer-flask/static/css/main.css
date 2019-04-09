@@ -1,18 +1,16 @@
-.row {
-  margin: 0;
-  text-align: center;
-}
-.waves-effect {
-  width: 100%
-}
-
-.floater {
+#new-transaction-button {
   position: fixed;
   width: 60px;
   height: 60px;
   bottom: 40px;
   right: 40px;
   z-index: 1000;
+}
+
+/*special logo height*/
+#logo {
+  height: 45px;
+  margin-top: 7px;
 }
 
 .no-margin {
@@ -52,6 +50,8 @@
   height: auto;
 }
 
+
+/* makes the leftside content reach the bottom of the page*/
 .content, .left-content {
   height: 100%;
 }

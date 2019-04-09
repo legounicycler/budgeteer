@@ -16,7 +16,22 @@
 <body>
 
   <!-- Side Nav -->
-	<ul id="slide-out" class="side-nav">
+  <ul id="slide-out" class="sidenav">
+    <li><div class="user-view">
+      <div class="background">
+        <img src="{{url_for('static', filename='img/user-background.jpg')}}">
+      </div>
+      <a href="#user"><img class="circle" src="{{url_for('static', filename='img/default-user-image.png')}}"></a>
+      <a href="#name"><span class="white-text name">John Doe</span></a>
+      <a href="#email"><span class="white-text email">jdandturk@gmail.com</span></a>
+    </div></li>
+    <li><a href="#" class="waves-effect"><i class="material-icons">assignment_ind</i>Personalize</a></li>
+    <li><a href="#" class="waves-effect"><i class="material-icons">settings</i>Settings</a></li>
+    <li><a href="#" class="waves-effect"><i class="material-icons">live_help</i>Help & Feedback</a></li>
+    <li><a href="#" class="waves-effect"><i class="material-icons">info</i>About Budgeteer</a></li>
+  </ul>
+
+	<!-- <ul id="slide-out" class="sidenav">
 		<li><div class="userView">
 		  <div class="background">
 			<img src="{{url_for('static', filename='img/user-background.jpg')}}">
@@ -29,18 +44,18 @@
 		<li><a href="#" class="waves-effect"><i class="material-icons">settings</i>Settings</a></li>
 		<li><a href="#" class="waves-effect"><i class="material-icons">live_help</i>Help & Feedback</a></li>
 		<li><a href="#" class="waves-effect"><i class="material-icons">info</i>About Budgeteer</a></li>
-	</ul>
+	</ul> -->
 
 	<!-- Main Nav -->
 	<div class="navbar-fixed">
 	  <nav class="yellow darken-4">
 		<div class="nav-wrapper">
       <ul class="left">
-			<li><a href="#" data-activates="slide-out" class="button-collapse"><i class="medium material-icons">menu</i></a></li>
+			<li><a href="#" data-target="slide-out" class="sidenav-trigger"><i class="material-icons">menu</i></a></li>
 		  </ul>
 			<a id="logo-container" href="{{url_for('home')}}" class="brand-logo center"><img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo"></a>
       <ul class="right">
-        <li><a href="#"><i class="material-icons" id="new_plan">add</i></a></li>
+        <li><a href="#"><i class="material-icons white-text" id="new_plan">add</i></a></li>
       </ul>
 		</div>
 	  </nav>
@@ -49,7 +64,7 @@
   <!-- Content -->
 
   <!--Transaction Button-->
-  <a class="btn-floating btn-large waves-effect waves-light orange darken-3 modal-trigger floater" href="#transaction-modal"><i class="material-icons">add</i></a>
+  <a id="new-transaction-button" class="btn-floating btn-large waves-effect waves-light orange darken-3 modal-trigger floater" href="#transaction-modal"><i class="material-icons">add</i></a>
 
   <div class="row content">
 

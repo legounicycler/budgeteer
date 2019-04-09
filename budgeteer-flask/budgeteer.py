@@ -14,21 +14,23 @@
   #
   # THINGS TO DO STILL
   #
-  # Add split transaction functionability
-  # Add placeholder account delete transaction
   # Form validations
   # add toasts for each submit function / delete warnings
   # add "You don't have any transactions yet" things
   # add envelope fill function
   # get rid of unallocated envelope in envelope select menus
-  # change get_account_dict to disclude $ and update the rest of the code accordingly
   # sort transactions by date and id so they show up in the right order
-  # Change update_transaction function to actually use SQLite UPDATE function
+  #     SIMILARLY: Change update_transaction function to actually use SQLite UPDATE function
   # Clean up some of the dirty logic and make sure conn.close isn't super important
-  # Maybe add neutral class back in with grayed out color for $0.00
-  # check one last time if it's possible to include blocks inside of include statments jinja2
   # Add ajax in so that the site only loads 50 transactions at a time
   # Fix CSS styling so things scroll correctly
+  # Fix CSS flash on load of accounts tabs (probabaly visibility: hidden;)
+  # Maybe add neutral class back in with grayed out color for $0.00
+  # check one last time if it's possible to include blocks inside of include statments jinja2
+  # replace ajax account-editor and envelope-editor with a decent flask solution
+  #     Similarly, get rid of hidden inputs on transaction editor for the transaction id and type
+  # Get rid of the active and no-active stuff in js/css and repalce with materialize updateTextField
+  #     Should also fix the weird label click not working stuff on the inputs
 
 from flask import Flask, render_template, url_for, request, redirect, jsonify
 from database import *
@@ -84,13 +86,21 @@ def account(account_id):
 @app.route('/new_expense', methods=['POST'])
 def new_expense():
     name = request.form['name']
-    amount = float(request.form['amount'])
-    date = datetime.strptime(request.form['date'], '%m/%d/%Y')
-    envelope_id = request.form['envelope_id']
+    amounts = request.form.getlist('amount')
+    envelope_ids = request.form.getlist('envelope_id')
     account_id = request.form['account_id']
+    date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
-    t = Transaction(BASIC_TRANSACTION, name, amount, date, envelope_id, account_id, 0, note)
-    insert_transaction(t)
+    for i in range(len(amounts)):
+        amounts[i] = float(amounts[i])
+        envelope_ids[i] = int(envelope_ids[i])
+    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, 0, note)
+    if len(envelope_ids) == 1:
+        t.envelope_id = envelope_ids[0]
+        t.amt = amounts[0]
+        insert_transaction(t)
+    else:
+        new_split_transaction(t)
     return redirect(url_for('home'))
 
 @app.route('/new_transfer', methods=['POST'])
@@ -126,19 +136,22 @@ def new_income():
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
+    # this is sloppy because there's just hidden inputs in the form rather than using data attributes
     id = int(request.form['edit-id'])
     type = int(request.form['type'])
     delete_transaction(id)
     if (type == BASIC_TRANSACTION):
         new_expense()
-    elif (type == 1 or type == 2):
+    elif (type == ENVELOPE_TRANSFER or type == ACCOUNT_TRANSFER):
         new_transfer()
-    elif (type == 3):
+    elif (type == INCOME):
         new_income()
+    elif (type == SPLIT_TRANSACTION):
+        new_expense()
     return redirect(url_for('home'))
 
-
 @app.route('/delete_transaction_page', methods=['POST'])
+# Change this to use an <id> in the URL instead of using the hidden form thing
 def delete_transaction_page():
     id = int(request.form['delete-id'])
     delete_transaction(id)
