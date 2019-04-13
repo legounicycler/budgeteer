@@ -14,7 +14,9 @@
   #
   # THINGS TO DO STILL
   #
-  # Form validations
+  # Form validations server-side?
+  # only need with conn: when you're modifying data, not when you're selecting
+  # use join clause on get_all_trasactions()
   # add toasts for each submit function / delete warnings
   # add "You don't have any transactions yet" things
   # add envelope fill function
@@ -24,13 +26,11 @@
   # Clean up some of the dirty logic and make sure conn.close isn't super important
   # Add ajax in so that the site only loads 50 transactions at a time
   # Fix CSS styling so things scroll correctly
-  # Fix CSS flash on load of accounts tabs (probabaly visibility: hidden;)
-  # Maybe add neutral class back in with grayed out color for $0.00
+  # Maybe add neutral class back in with grayed out color for $0.00???
   # check one last time if it's possible to include blocks inside of include statments jinja2
   # replace ajax account-editor and envelope-editor with a decent flask solution
   #     Similarly, get rid of hidden inputs on transaction editor for the transaction id and type
   # Get rid of the active and no-active stuff in js/css and repalce with materialize updateTextField
-  #     Should also fix the weird label click not working stuff on the inputs
 
 from flask import Flask, render_template, url_for, request, redirect, jsonify
 from database import *
@@ -59,29 +59,30 @@ t_type_dict2 = {
 @app.route("/home", methods=['GET'])
 def home():
     transactions_data = get_all_transactions()
-    envelopes_data = get_envelope_dict()
-    accounts_data = get_account_dict()
-    total_funds = '$%.2f' % get_total()
+    print(transactions_data)
+    (active_envelopes, envelopes_data) = get_envelope_dict()
+    (active_accounts, accounts_data) = get_account_dict()
+    total_funds = get_total()
     current_view = 'All transactions'
-    return render_template('data.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, envelopes_data=envelopes_data, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
+    return render_template('data.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
 
 @app.route("/envelope/<envelope_id>", methods=['GET'], )
 def envelope(envelope_id):
-    transactions_data = get_envelope_transactions(envelope_id)
-    envelopes_data = get_envelope_dict()
-    accounts_data = get_account_dict()
-    total_funds = '$%.2f' % get_total()
+    transactions_data = get_all_transactions()
+    (active_envelopes, envelopes_data) = get_envelope_dict()
+    (active_accounts, accounts_data) = get_account_dict()
+    total_funds = get_total()
     current_view = get_envelope(envelope_id).name
-    return render_template('data.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, envelopes_data=envelopes_data, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
+    return render_template('data.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
 
 @app.route("/account/<account_id>", methods=['GET'], )
 def account(account_id):
-    transactions_data = get_account_transactions(account_id)
-    envelopes_data = get_envelope_dict()
-    accounts_data = get_account_dict()
-    total_funds = '$%.2f' % get_total()
+    transactions_data = get_all_transactions()
+    (active_envelopes, envelopes_data) = get_envelope_dict()
+    (active_accounts, accounts_data) = get_account_dict()
+    total_funds = get_total()
     current_view = get_account(account_id).name
-    return render_template('data.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, envelopes_data=envelopes_data, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
+    return render_template('data.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
 
 @app.route('/new_expense', methods=['POST'])
 def new_expense():
@@ -101,7 +102,7 @@ def new_expense():
         insert_transaction(t)
     else:
         new_split_transaction(t)
-    return redirect(url_for('home'))
+    return redirect('/api/transactions')
 
 @app.route('/new_transfer', methods=['POST'])
 def new_transfer():
@@ -165,13 +166,35 @@ def get_json(id):
 def edit_account():
     formValues = request.get_json()
     edit_accounts(formValues)
-    return jsonify(formValues)
+    return redirect('/api/transactions')
 
 @app.route('/api/edit-envelopes', methods=['POST'])
 def edit_envelope():
     formValues = request.get_json()
     edit_envelopes(formValues)
     return jsonify(formValues)
+
+@app.route('/api/transactions', methods=['GET'])
+def transactions_function():
+    transactions_data = get_all_transactions()
+    (active_envelopes, envelopes_data) = get_envelope_dict()
+    (active_accounts, accounts_data) = get_account_dict()
+    return render_template('transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data)
+
+@app.route('/api/accounts', methods=['GET'])
+def accounts_function():
+    (active_accounts, accounts_data) = get_account_dict()
+    return render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
+
+@app.route('/api/envelopes', methods=['GET'])
+def envelopes_function():
+    (active_envelopes, envelopes_data) = get_envelope_dict()
+    return render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
+
+@app.route('/api/total', methods=['GET'])
+def total_function():
+    total_funds = get_total()
+    return total_funds
 
 if __name__ == '__main__':
     app.run(debug=True)

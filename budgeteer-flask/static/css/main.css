@@ -15,6 +15,17 @@
 
 .no-margin {
   margin: 0;
+  overflow: visible;
+}
+
+.empty-img {
+  height: auto;
+  max-width: 50%;
+  margin-top: 1em;
+}
+
+.input-field label {
+  pointer-events: none !important;
 }
 
 .tiny {

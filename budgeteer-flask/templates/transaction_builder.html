@@ -11,7 +11,7 @@
       <div id="expense" class="col s12">
         <h3>Expense</h3>
         <div class="row">
-          <form id="new-expense" class="col s12" action="{{ url_for('new_expense') }}" method="post">
+          <form class="col s12" id="new-expense-form" action="{{ url_for('new_expense') }}" method="post">
             <div class="row">
               <div class="input-field col s12">
                 <input id="name" class="validate" type="text" name="name" required>
@@ -176,7 +176,7 @@
               </div>
             </div>
 
-            <button class="btn waves-effect waves-light modal-close yellow darken-4" type="submit" name="action" href="#!">Submit</button>
+            <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!">Submit</button>
 
           </form>
 
@@ -228,7 +228,7 @@
                 <label for="note">Note</label>
               </div>
             </div>
-            <button class="btn waves-effect waves-light modal-close yellow darken-4" type="submit" name="action" href="#!">Submit</button>
+            <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!">Submit</button>
           </form>
         </div>
       </div>

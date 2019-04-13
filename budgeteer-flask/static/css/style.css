@@ -11,6 +11,8 @@
   background-color: transparent;
 }
 
+.form-error{color: #D8000C;}
+
 /*makes the rows thinner for transactions and so they don't overflow their columns*/
 .row {
   margin: 0 !important;
@@ -49,11 +51,7 @@ nav {
   max-height: 80%;
 }
 
-/*Media queries*/
-
-@media only screen and (min-width: 993px) {
-  /*cheats the materialize css to keep the hamburger menu on screen*/
-  nav a.button-collapse {
-    display: inline;
-  }
+/* makes the hamburger menu always show up, even on large screens*/
+nav a.sidenav-trigger {
+  display: inline;
 }

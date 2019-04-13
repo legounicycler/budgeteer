@@ -1,0 +1,24 @@
+{% if active_envelopes == false %}
+  <img class="empty-img" src="{{url_for('static', filename='img/Budgeteer_White_And_Red.png')}}">
+  <h5 class="white-text">You don't have any envelopes yet!</h5>
+{% else %}
+  <ul class="collection" id="envelopes-bin">
+    <li class="row valign-wrapper collection-item left-align grey lighten-3">
+      <div class="col s5 header offset-s1 left-align">Name</div>
+      <div class="col s3 header envelope-budget">Budgeted</div>
+      <div class="col s3 header envelope-balance">Balance</div>
+    </li>
+  {% for id, envelope in envelopes_data.items() %}
+    {% if envelope.deleted == false%}
+      <a class="waves-effect collection-item" href="/envelope/{{envelope.id}}">
+          <li class="row envelope-row">
+            <div class="col s1 valign-wrapper envelope-icon"><i class="material-icons">mail_outline</i></div>
+            <div class="col s5 envelope-name left-align valign-wrapper"><h5 class="truncate no-margin">{{envelope.name}}</h5></div>
+            <div class="col s3 valign-wrapper envelope-budget">{{envelope.budget}}</div>
+            <div class="col s3 valign-wrapper envelope-balance"><span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span></div>
+          </li>
+        </a>
+      {% endif %}
+  {% endfor %}
+  </ul>
+{% endif %}

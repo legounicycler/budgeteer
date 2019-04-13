@@ -4,7 +4,6 @@ import json
 
 database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
 conn = sqlite3.connect(database, check_same_thread=False)
-c = conn.cursor()
 
 UNALLOCATED = 1
 BASIC_TRANSACTION = 0
@@ -44,6 +43,7 @@ class Envelope:
 
 
 def create_db():
+    c = conn.cursor()
     c.execute("""
         CREATE TABLE transactions (
             id INTEGER PRIMARY KEY,
@@ -84,6 +84,7 @@ def create_db():
 
 def insert_transaction(t):
     # Inserts transaction into database, then updates account/envelope balances
+    c = conn.cursor()
     with conn:
         c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note))
@@ -98,6 +99,7 @@ def insert_transaction(t):
 
 def get_transaction(id):
     # Retrieves transaction object from database given its ID
+    c = conn.cursor()
     with conn:
         c.execute("SELECT * FROM transactions WHERE id=?", (id,))
         tdata = c.fetchone()
@@ -108,6 +110,7 @@ def get_transaction(id):
 def get_all_transactions():
     # returns a list of all transactions with split transactions merged into one
     # Change later to take 2 inputs, where to start, and how many to fetch
+    c = conn.cursor()
     with conn:
         c.execute("SELECT id FROM transactions ORDER by day DESC, id DESC")
         ids = c.fetchall()
@@ -128,6 +131,7 @@ def get_all_transactions():
 def get_envelope_transactions(envelope_id):
     # returns a list of transactions with certain envelope_id
     # Change later to take 3 inputs: envelope_id, where to start, and how many to fetch
+    c = conn.cursor()
     with conn:
         c.execute("SELECT id FROM transactions WHERE envelope_id=? ORDER by day DESC, id DESC", (envelope_id,))
         ids = c.fetchall()
@@ -142,6 +146,7 @@ def get_envelope_transactions(envelope_id):
 def get_account_transactions(account_id):
     # returns a list of transactions with certain account_id
     # Change later to take 3 inputs: account_id, where to start, and how many to fetch
+    c = conn.cursor()
     with conn:
         c.execute("SELECT id FROM transactions WHERE account_id=? ORDER by day DESC, id DESC", (account_id,))
         ids = c.fetchall()
@@ -155,6 +160,7 @@ def get_account_transactions(account_id):
 
 def delete_transaction(id):
     # deletes transaction and all grouped transactions and updates appropriate envelope/account balances
+    c = conn.cursor()
     with conn:
         grouping = get_grouping_from_id(id)
         if not (grouping is None):
@@ -199,6 +205,7 @@ def new_split_transaction(t):
 
 def insert_account(name, balance):
     #inserts new account and creates "initial account balance" transaction
+    c = conn.cursor()
     with conn:
         c.execute("INSERT INTO accounts (name, balance) VALUES (?, ?)", (name, 0))
         account_id = c.lastrowid
@@ -208,6 +215,7 @@ def insert_account(name, balance):
 
 def get_account(id):
     # returns account associated with the given id
+    c = conn.cursor()
     with conn:
         c.execute("SELECT * FROM accounts WHERE id=?", (id,))
         adata = c.fetchone()
@@ -216,50 +224,62 @@ def get_account(id):
         return a
 
 def get_account_dict():
-    # returns a dictionary with keys of account_id and values of account objects
+    # returns a tuple with a dictionary with keys of account_id and values of account objects
+    # and a boolean that says whether there are accounts to render
+    c = conn.cursor()
     with conn:
         c.execute("SELECT id FROM accounts ORDER by id ASC")
         ids = c.fetchall()
         adict = {}
+        active_accounts = False
         for id in ids:
             a = get_account(id[0])
             a.balance = stringify(a.balance)
             adict[id[0]] = a
-        return adict
+            if a.deleted == 0:
+                active_accounts = True
+        return (active_accounts, adict)
 
 def delete_account(account_id):
     # subtracts balance from unallocated envelope, sets account balance to 0, and sets deleted to true
+    c = conn.cursor()
     with conn:
         update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - get_account_balance(account_id))
         c.execute("UPDATE accounts SET deleted=1,balance=0 WHERE id=?", (account_id,))
 
 def get_account_balance(id):
     # Returns float of account balance
-    c.execute("SELECT balance FROM accounts WHERE id=?", (id,))
-    balance = c.fetchone()
-    if not (balance is None):
-        return balance[0]
-    else:
-        print("That account doesn't exist you twit.")
+    c = conn.cursor()
+    with conn:
+        c.execute("SELECT balance FROM accounts WHERE id=?", (id,))
+        balance = c.fetchone()
+        if not (balance is None):
+            return balance[0]
+        else:
+            print("That account doesn't exist you twit.")
 
 def edit_account(id, name, balance):
     #updates account balalnce and name, then subtracts the change in balance from the unallocated envelope
-    current_balance = get_account_balance(id)
-    diff = current_balance - balance
-    unallocated_balance = get_envelope_balance(1)
-    new_unallocated_balance = unallocated_balance - diff
-    update_envelope_balance(UNALLOCATED, new_unallocated_balance)
-    c.execute("UPDATE accounts SET balance=?, name=? WHERE id=?", (balance, name, id))
+    c = conn.cursor()
+    with conn:
+        current_balance = get_account_balance(id)
+        diff = current_balance - balance
+        unallocated_balance = get_envelope_balance(1)
+        new_unallocated_balance = unallocated_balance - diff
+        update_envelope_balance(UNALLOCATED, new_unallocated_balance)
+        c.execute("UPDATE accounts SET balance=?, name=? WHERE id=?", (balance, name, id))
 
 
 def update_account_balance(id, balance):
     # updates balance of account with given id
+    c = conn.cursor()
     with conn:
         c.execute("UPDATE accounts SET balance=? WHERE id=?",(round(balance,2), id))
 
 def edit_accounts(json_data):
     # Given json data with keys of account_id and value of other account data
     # update accounts that already exist, add new ones, and delete those that are missing from the json_data
+    c = conn.cursor()
     with conn:
         c.execute("SELECT id FROM accounts WHERE deleted=0")
         account_ids = c.fetchall()
@@ -296,11 +316,13 @@ def account_transfer(name, amount, date, to_account, from_account, note):
 
 def insert_envelope(name, budget):
     # Inserts an envelope into the database with givne name and budget and a balnce of 0
+    c = conn.cursor()
     with conn:
         c.execute("INSERT INTO envelopes (name, budget) VALUES (?, ?)", (name,budget))
 
 def get_envelope(id):
     # returns an envelope object given an envelope_id
+    c = conn.cursor()
     with conn:
         c.execute("SELECT * FROM envelopes WHERE id=?", (id,))
         edata = c.fetchone()
@@ -310,19 +332,24 @@ def get_envelope(id):
 
 def get_envelope_dict():
     # returns a dictionary with key of envelope_id and value of an envelope object
+    c = conn.cursor()
     with conn:
         c.execute("SELECT id FROM envelopes ORDER by id ASC")
         ids = c.fetchall()
         edict = {}
+        active_envelopes = False
         for id in ids:
             e = get_envelope(id[0])
             e.balance = stringify(e.balance)
             e.budget = stringify(e.budget)
             edict[id[0]] = e
-        return edict
+            if e.deleted == 0:
+                active_envelopes = True
+        return (active_envelopes, edict)
 
 def delete_envelope(envelope_id):
     # adds envelope balance to the unallocated envelope, sets balance to 0, and sets deleted to true
+    c = conn.cursor()
     with conn:
         if (envelope_id != UNALLOCATED):
             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + get_envelope_balance(envelope_id))
@@ -332,6 +359,7 @@ def delete_envelope(envelope_id):
 
 def get_envelope_balance(id):
     # returns float of envelope balance given id
+    c = conn.cursor()
     with conn:
         c.execute("SELECT balance FROM envelopes WHERE id=?", (id,))
         balance = c.fetchone()
@@ -343,17 +371,20 @@ def get_envelope_balance(id):
 
 def update_envelope_balance(id, balance):
     # updates envelope balance for given id
+    c = conn.cursor()
     with conn:
         c.execute("UPDATE envelopes SET balance=? WHERE id=?",(round(balance,2), id))
         #this isn't possible as a stand alone action
 
 def edit_envelope(id, name, budget):
     # updates the name and budget for given id
+    c = conn.cursor()
     with conn:
         c.execute("UPDATE envelopes SET name=?, budget=? WHERE id=?",(name, budget, id))
 
 def edit_envelopes(json_data):
     #takes a json file with keys of envelope id and values of envelope data and processes it
+    c = conn.cursor()
     with conn:
         c.execute("SELECT id FROM envelopes WHERE deleted=0")
         envelope_ids = c.fetchall()
@@ -386,42 +417,46 @@ def envelope_transfer(name, amt, date, to_envelope, from_envelope, note):
 
 #OTHER FUNCTIONS
 def print_database():
-    print()
-    print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
-    c.execute("SELECT * FROM transactions")
-    print("Transactions:")
-    for row in c:
-        print(row)
-    print()
+    c = conn.cursor()
+    with conn:
+        print()
+        print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+        c.execute("SELECT * FROM transactions")
+        print("Transactions:")
+        for row in c:
+            print(row)
+        print()
 
-    print('Accounts:')
-    c.execute("SELECT * FROM accounts")
-    for row in c:
-        print(row)
-    print()
+        print('Accounts:')
+        c.execute("SELECT * FROM accounts")
+        for row in c:
+            print(row)
+        print()
 
-    print('Envelopes:')
-    c.execute("SELECT * FROM envelopes")
-    for row in c:
-        print(row)
-    print()
-    print("TOTAL FUNDS: ", round(get_total(),2))
-    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-    print()
+        print('Envelopes:')
+        c.execute("SELECT * FROM envelopes")
+        for row in c:
+            print(row)
+        print()
+        print("TOTAL FUNDS: ", round(get_total(),2))
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+        print()
 
 
 def get_total():
     # Sums the account balances to get a total to display
+    c = conn.cursor()
     with conn:
         c.execute("SELECT SUM(balance) FROM accounts")
         total = c.fetchone()[0]
         if not total is None:
-            return total
+            return stringify(total)
         else:
             return 0
 
 def gen_grouping_num():
     # Creates a new and unique grouping number
+    c = conn.cursor()
     with conn:
         c.execute("SELECT MAX(grouping) FROM transactions")
         prevnum = c.fetchone()[0]
@@ -433,6 +468,7 @@ def gen_grouping_num():
 
 def get_grouping_from_id(id):
     # Gets the grouping number from the given id
+    c = conn.cursor()
     with conn:
         c.execute("SELECT grouping FROM transactions WHERE id=?", (id,))
         grouping_touple = c.fetchone()
@@ -444,6 +480,7 @@ def get_grouping_from_id(id):
 
 def get_ids_from_grouping(grouping):
     # returns a list of ids associated with a particular grouping number
+    c = conn.cursor()
     with conn:
         id_array = []
         if (grouping == 0):

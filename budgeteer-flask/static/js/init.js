@@ -4,7 +4,15 @@
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
 
-      $('.modal').modal();
+      // Prevents tabs flashing content for a second on document reload
+      $('#envelopes, #accounts').removeClass('hide');
+
+      // Initializes tabs indicator on modal open
+      $('.modal').modal({
+        onOpenEnd: function () {
+            $('.modal').find('.tabs').tabs();
+          }
+      });
 
       $('.sidenav').sidenav({
         onOpenStart: function() {$('#new-transaction-button').hide()},
@@ -20,6 +28,7 @@
         format: 'mm/dd/yyyy'
       });
 
+      // Removes user-added rows in editor when the modal is closed
       $('#editor-modal').modal({
         onCloseEnd: function() { // Callback for Modal close
           $(".new-envelope-row").remove()
@@ -27,11 +36,53 @@
       });
 
       $('.div-toggle').trigger('change');
+
+      $('.button-collapse').sidenav();
+
     });
 
-    $('.button-collapse').sidenav();
 
     //-------------OTHER FUNCTIONS-------------//
+
+
+    function data_reload() {
+      $.ajax({
+        type: "GET",
+        url: "/api/transactions",
+      }).done(function( o ) {
+        $('#transactions-bin').replaceWith(o);
+         M.toast({html: 'Reloaded transactions!'})
+      });
+
+      $.ajax({
+        type: "GET",
+        url: "/api/accounts",
+      }).done(function( o ) {
+        $('#accounts-bin').replaceWith(o);
+        M.toast({html: 'Reloaded accounts!'})
+      });
+
+      $.ajax({
+        type: "GET",
+        url: "/api/envelopes",
+      }).done(function( o ) {
+        $('#envelopes-bin').replaceWith(o);
+         M.toast({html: 'Reloaded envelopes!'})
+      });
+
+      $.ajax({
+        type: "GET",
+        url: "/api/total",
+      }).done(function( o ) {
+        $('#total span').text(o);
+         if (o[0] == '-') {
+          $('#total span').addClass('negative')
+         } else {
+          $('#total span').removeClass('negative')
+         };
+         M.toast({html: 'Reloaded total!'})
+      });
+    }
 
     //TOGGLER CODE for transfer tab of transaction creator
     $(document).on('change', '.div-toggle', function() {
@@ -41,6 +92,19 @@
       $(show).removeClass('hide');
     });
 
+    $('#new-expense-form').submit(function(e) {
+      e.preventDefault()
+      var url = $(this).attr('action');
+      var method = $(this).attr('method');
+
+      $.ajax({
+        type: method,
+        url: url,
+        data: $(this).serialize(),
+      }).done(function( o ) {
+        data_reload();
+      });
+    });
 
     //ACCOUNT/ENVELOPE EDITOR code
     $("#new-account-row").click(function() {
@@ -107,6 +171,7 @@
         contentType: 'application/json'
       }).done(function( o ) {
          location.reload()
+         M.toast({html: 'I am a toast!'})
       });
     });
 
@@ -137,7 +202,8 @@
         data: JSON.stringify(envelopes),
         contentType: 'application/json'
       }).done(function( o ) {
-         location.reload()
+        M.toast({html: 'I am a toast!'})
+        location.reload()
       });
     });
 
