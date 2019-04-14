@@ -5,21 +5,9 @@
 {% endblock envelope_rows %}
 
 
-<!-- {% block envelope_option %}
-    {% for envelope in envelopes_data %}
-        <option value="{{ envelope.id }}">{{envelope.name}}</option>
-    {% endfor %}
-{% endblock envelope_option %} -->
-
 {% block account_rows %}
     {% include 'accounts.html'%}
 {% endblock account_rows %}
-
-<!-- {% block account_option %}
-    {% for id, account in accounts_data.items() %}
-        <option value="{{ account.id }}">{{account.name}}</option>
-    {% endfor %}
-{% endblock account_option %} -->
 
 {% block transaction_rows %}
   {% include 'transactions.html' %}

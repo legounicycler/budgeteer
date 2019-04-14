@@ -71,7 +71,7 @@
               </div>
             </div>
 
-            <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!">Submit</button>
+            <button class="btn waves-effect waves-light yellow darken-4 modal-close" type="submit" name="action" href="#!">Submit</button>
 
           </form>
         </div>
@@ -82,7 +82,7 @@
         <h3>Transfer</h3>
         <div class="row">
 
-          <form class="col s12" action="{{ url_for('new_transfer') }}" method="post">
+          <form class="col s12" id="new-transfer-form" action="{{ url_for('new_transfer') }}" method="post">
 
             <div class="row">
               <div class="input-field col s12">
@@ -176,7 +176,7 @@
               </div>
             </div>
 
-            <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!">Submit</button>
+            <button class="btn waves-effect waves-light yellow darken-4 modal-close" type="submit" name="action" href="#!">Submit</button>
 
           </form>
 
@@ -188,7 +188,7 @@
         <h3>Income</h3>
 
         <div class="row">
-          <form class="col s12" action="{{ url_for('new_income') }}" method="post">
+          <form class="col s12" id="new-income-form" action="{{ url_for('new_income') }}" method="post">
             <div class="row">
               <div class="input-field col s12">
                 <input id="name" class="validate" type="text" name="name" required>
@@ -228,7 +228,7 @@
                 <label for="note">Note</label>
               </div>
             </div>
-            <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!">Submit</button>
+            <button class="btn waves-effect waves-light yellow darken-4 modal-close" type="submit" name="action" href="#!">Submit</button>
           </form>
         </div>
       </div>

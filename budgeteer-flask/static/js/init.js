@@ -41,60 +41,88 @@
 
     });
 
+    // binds click event for each transaction that opens editor modal
+    transaction_bind()
 
     //-------------OTHER FUNCTIONS-------------//
 
 
-    function data_reload() {
+    function data_reload(current_url) {
+      //Retrieves updated data from database and updates the necessary html
       $.ajax({
-        type: "GET",
-        url: "/api/transactions",
+        type: "POST",
+        url: "/api/data-reload",
+        data: JSON.stringify({"url": current_url}),
+        contentType: 'application/json'
       }).done(function( o ) {
-        $('#transactions-bin').replaceWith(o);
-         M.toast({html: 'Reloaded transactions!'})
+        $('#transactions-bin').replaceWith(o['transactions_html']);
+        $('#accounts-bin').replaceWith(o['accounts_html']);
+        $('#envelopes-bin').replaceWith(o['envelopes_html']);
+        $('#total span').text(o['total']);
+        if (o['total'][0] == '-') {
+          $('#total span').addClass('negative');
+        } else {
+          $('#total span').removeClass('negative');
+        };
+        // rebinds the click events on the new transactions html
+        transaction_bind()
+        console.log("Data successfully reloaded!")
       });
-
-      $.ajax({
-        type: "GET",
-        url: "/api/accounts",
-      }).done(function( o ) {
-        $('#accounts-bin').replaceWith(o);
-        M.toast({html: 'Reloaded accounts!'})
-      });
-
-      $.ajax({
-        type: "GET",
-        url: "/api/envelopes",
-      }).done(function( o ) {
-        $('#envelopes-bin').replaceWith(o);
-         M.toast({html: 'Reloaded envelopes!'})
-      });
-
-      $.ajax({
-        type: "GET",
-        url: "/api/total",
-      }).done(function( o ) {
-        $('#total span').text(o);
-         if (o[0] == '-') {
-          $('#total span').addClass('negative')
-         } else {
-          $('#total span').removeClass('negative')
-         };
-         M.toast({html: 'Reloaded total!'})
-      });
-    }
+    };
 
     //TOGGLER CODE for transfer tab of transaction creator
     $(document).on('change', '.div-toggle', function() {
       var target = $(this).data('target');
       var show = $("option:selected", this).data('show');
       $(target).children().addClass('hide');
-      $(show).removeClass('hide');
+      $(target).find('select').removeAttr('required');
+      $(show).removeClass('hide').attr('required');
     });
 
-    $('#new-expense-form').submit(function(e) {
+    $('#transaction-modal form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
+      var current_url = $(location).attr("href");
+      console.log("Current url:" + current_url)
+      var method = $(this).attr('method');
+      var id = '#' + $(this).attr('id');
+
+      $.ajax({
+        type: method,
+        url: url,
+        data: $(this).serialize(),
+      }).done(function( o ) {
+        $(id + ' .new-envelope-row').remove()
+        $(id)[0].reset();
+        M.updateTextFields();
+        data_reload(current_url);
+        M.toast({html: 'Transaction succesfully created!'})
+      });
+    });
+
+    $('#edit-expense, #edit-transfer, #edit-income').submit(function(e) {
+      e.preventDefault()
+      var url = $(this).attr('action');
+      var current_url = $(location).attr("href");
+      var method = $(this).attr('method');
+      var id = '#' + $(this).attr('id');
+
+      $.ajax({
+        type: method,
+        url: url,
+        data: $(this).serialize(),
+      }).done(function( o ) {
+        $(id)[0].reset();
+        M.updateTextFields();
+        data_reload(current_url);
+        M.toast({html: 'Transaction succesfully updated!'})
+      });
+    });
+
+    $('.deleter-form').submit(function(e) {
+      e.preventDefault()
+      var url = $(this).attr('action');
+      var current_url = $(location).attr("href");
       var method = $(this).attr('method');
 
       $.ajax({
@@ -102,7 +130,8 @@
         url: url,
         data: $(this).serialize(),
       }).done(function( o ) {
-        data_reload();
+        data_reload(current_url);
+        M.toast({html: 'Transaction succesfully deleted!'})
       });
     });
 
@@ -129,7 +158,7 @@
 
     $("#add-envelope").click(function() {
       var $envelope_selector = $('#envelope-selector-row').find('#envelope_id').clone();
-      $('#envelopes-and-amounts').append('<div class="row"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount-">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
+      $('#envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount-">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
       $(".aclass").last().prepend($envelope_selector).find("select").last().formSelect();
     });
 
@@ -148,6 +177,7 @@
     $('#account-editor-form').submit(function(e) {
       //make sure there exists at least one account at all times
       e.preventDefault()
+      var current_url = $(location).attr("href");
       // get all the inputs into an array.
       var $inputs = $('#account-editor-form :input').not(':input[type=button], :input[type=submit], :input[type=reset]');
       var accounts = {};
@@ -170,8 +200,8 @@
         data: JSON.stringify(accounts),
         contentType: 'application/json'
       }).done(function( o ) {
-         location.reload()
-         M.toast({html: 'I am a toast!'})
+         data_reload(current_url)
+         M.toast({html: 'Accounts successfully updated!'})
       });
     });
 
@@ -179,6 +209,7 @@
     $('#envelope-editor-form').submit(function(e) {
       //make sure there exists at least one account at all times
       e.preventDefault()
+      var current_url = $(location).attr("href");
       // get all the inputs into an array.
       var $inputs = $('#envelope-editor-form :input').not(':input[type=button], :input[type=submit], :input[type=reset]');
       var envelopes = {};
@@ -191,7 +222,6 @@
       for (i=0 ; i<envelopes_temp.length ; i+=4) {
         var id = envelopes_temp[i].slice(19);
         var name = envelopes_temp[i+1];
-        console.log(name)
         var budget= parseFloat(envelopes_temp[i+3]);
         envelopes[id] = [name, budget];
       }
@@ -202,189 +232,138 @@
         data: JSON.stringify(envelopes),
         contentType: 'application/json'
       }).done(function( o ) {
-        M.toast({html: 'I am a toast!'})
-        location.reload()
+        data_reload(current_url)
+        M.toast({html: 'Envelopes successfully updated!'})
       });
     });
 
-    // $('#new-expense, #edit-expense').submit(function(e) {
-    //   e.preventDefault()
-    //   if (event.target.id == 'new-expense') {
-    //     console.log("new expense clicked")
-    //     var $inputs = $('#new-expense :input').not($('.datepicker-modal :input')).not(':input[type=button], :input[type=submit], :input[type=reset]');
-    //   } else if (event.target.id == 'edit-expense') {
-    //     console.log("edit expense clicked")
-    //     var $inputs = $('#edit-expense :input').not($('.datepicker-modal :input')).not($('.button-row :input')).not(':input[type=button], :input[type=submit], :input[type=reset]');
-    //   }
-    //   var fields = {};
-    //   var temp = [];
-    //   var envelope_ids = [];
-    //   var amounts = [];
-    //   $inputs.each(function() {
-    //       temp.push($(this).val());
-    //   });
-    //   console.log(temp)
-    //   var name = temp.shift();
-    //   var note = temp.pop();
-    //   var date = temp.pop();
-    //   var account_id = temp.pop();
-    //   temp.pop();
-    //   for (i=0 ; i<temp.length ; i+=3) {
-    //     envelope_ids.push(parseInt(temp[i+1]));
-    //     amounts.push(parseFloat(temp[i+2]));
-    //   };
-    //   fields['name'] = name;
-    //   fields['note'] = note;
-    //   fields['date'] = date;
-    //   fields['account_id'] = account_id;
-    //   fields['envelope_ids'] = envelope_ids;
-    //   fields['amounts'] = amounts;
-    //   console.log(fields)
-
-    //   if (event.target.id == 'new-expense') {
-    //     $.ajax({
-    //       type: "POST",
-    //       url: "/new_expense",
-    //       data: JSON.stringify(fields),
-    //       contentType: 'application/json'
-    //     }).done(function( o ) {
-    //        location.reload()
-    //     });
-    //   } else if (event.target.id == 'edit-expense') {
-    //     $.ajax({
-    //       type: "POST",
-    //       url: "/edit_expense",
-    //       data: JSON.stringify(fields),
-    //       contentType: 'application/json'
-    //     }).done(function( o ) {
-    //     });
-    //   }
-    // });
 
     //TRANSACTION EDITOR functions and variables
     var transaction_editor = $("#edit-transaction").detach()
     var transfer_editor = $("#edit-transfer").detach()
     var income_editor = $("#edit-income").detach()
 
-    $(".transaction").on('click',function() {
-      // get and format data from html data tags
-      var id = $(this).data('id');
-      var name = $(this).data('name');
-      var type = $(this).data('type');
-      var date = $(this).data('date');
-      var envelope_name = $(this).data('envelope_name');
-      var envelope_id = $(this).data('envelope_id');
-      var account_name = $(this).data('account_name');
-      var account_id = $(this).data('account_id');
-      var grouping = $(this).data('grouping');
-      var note = $(this).data('note');
-      var amt = $(this).data('amt');
-      amt = -1 * parseFloat(amt.replace("$",""));
-      var to_envelope = null;
-      var from_envelope = null;
+    function transaction_bind() {
+      $(".transaction").on('click',function() {
+        // get and format data from html data tags
+        var id = $(this).data('id');
+        var name = $(this).data('name');
+        var type = $(this).data('type');
+        var date = $(this).data('date');
+        var envelope_name = $(this).data('envelope_name');
+        var envelope_id = $(this).data('envelope_id');
+        var account_name = $(this).data('account_name');
+        var account_id = $(this).data('account_id');
+        var grouping = $(this).data('grouping');
+        var note = $(this).data('note');
+        var amt = $(this).data('amt');
+        amt = -1 * parseFloat(amt.replace("$",""));
+        var to_envelope = null;
+        var from_envelope = null;
 
-      //if it's a grouped transaction, use ajax to get data from all grouped transaction
-      if (grouping != 0) {
-        $.ajax({
-          async: false,
-          type: "GET",
-          url: "/api/transaction/" + id + "/group",
-        }).done(function( o ) {
-          var t_data = o["transactions"];
-          if (type == 1) {
-            var t1 = t_data[0];
-            var t2 = t_data[1];
-            if (t1["amt"] > 0) {
-              to_envelope = t1["envelope_id"];
-              from_envelope = t2["envelope_id"];
-            } else {
-              to_envelope = t2["envelope_id"];
-              from_envelope = t1["envelope_id"];
+        //if it's a grouped transaction, use ajax to get data from all grouped transaction
+        if (grouping != 0) {
+          $.ajax({
+            async: false,
+            type: "GET",
+            url: "/api/transaction/" + id + "/group",
+          }).done(function( o ) {
+            var t_data = o["transactions"];
+            if (type == 1) {
+              var t1 = t_data[0];
+              var t2 = t_data[1];
+              if (t1["amt"] > 0) {
+                to_envelope = t1["envelope_id"];
+                from_envelope = t2["envelope_id"];
+              } else {
+                to_envelope = t2["envelope_id"];
+                from_envelope = t1["envelope_id"];
+              }
+            } else if (type == 2) {
+              var t1 = t_data[0];
+              var t2 = t_data[1];
+              if (t1["amt"] > 0) {
+                to_account = t1["account_id"];
+                from_account = t2["account_id"];
+              } else {
+                to_account = t2["account_id"];
+                from_account = t1["account_id"];
+              }
+            } else if (type == 4) {
+              envelope_ids = [];
+              amounts = [];
+              $.each(t_data, function(key, t) {
+                  envelope_ids.push(t['envelope_id']);
+                  amounts.push(t['amt']);
+              });
+              amt = amounts[0];
+              envelope_id = envelope_ids[0];
             }
-          } else if (type == 2) {
-            var t1 = t_data[0];
-            var t2 = t_data[1];
-            if (t1["amt"] > 0) {
-              to_account = t1["account_id"];
-              from_account = t2["account_id"];
-            } else {
-              to_account = t2["account_id"];
-              from_account = t1["account_id"];
-            }
-          } else if (type == 4) {
-            envelope_ids = [];
-            amounts = [];
-            $.each(t_data, function(key, t) {
-                envelope_ids.push(t['envelope_id']);
-                amounts.push(t['amt']);
-            });
-            amt = amounts[0];
-            envelope_id = envelope_ids[0];
-          }
-        });
-      }
-
-      // Check which editor to show, detatch the others, and update the special fields
-      if (type == 0) {
-        transaction_editor.appendTo('#editor-row');
-        $("#edit-transfer").detach();
-        $("#edit-income").detach();
-      } else if (type == 1 || type == 2) {
-        transfer_editor.appendTo('#editor-row');
-        $("#edit-transaction").detach();
-        $("#edit-income").detach();
-        $('#edit-transfer_type').val(type);
-        $('#edit-transfer_type').formSelect();
-        if (type == 1) {
-          $('.account-transfer').addClass('hide');
-          $('.envelope-transfer').removeClass('hide');
-          $('#edit-from_envelope').val(from_envelope);
-          $('#edit-from_envelope').formSelect();
-          $('#edit-to_envelope').val(to_envelope);
-          $('#edit-to_envelope').formSelect();
-        } else if (type == 2) {
-          $('.envelope-transfer').addClass('hide');
-          $('.account-transfer').removeClass('hide');
-          $('#edit-to_account').val(to_account);
-          $('#edit-to_account').formSelect();
-          $('#edit-from_account').val(from_account);
-          $('#edit-from_account').formSelect();
+          });
         }
-        amt = Math.abs(amt);
-      } else if (type == 3) {
-        income_editor.appendTo('#editor-row');
-        $("#edit-transaction").detach();
-        $("#edit-transfer").detach();
-        amt = amt * -1;
-      } else if (type == 4) {
-        transaction_editor.appendTo('#editor-row');
-        $("#edit-transfer").detach();
-        $("#edit-income").detach();
-        for (i=1 ; i<envelope_ids.length ; i++) {
-          var $envelope_selector = $('#edit-envelope-selector-row').find('#edit-envelope_id').clone();
-          $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 aclass"><label class="no-active">Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
-          $(".aclass").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect();
-        };
-      };
 
-      // update the rest of the general fields
-      $("#editor-modal label").addClass("active");
-      $(".no-active").removeClass("active");
-      $("#edit-amount").val(amt.toFixed(2));
-      $("#edit-date").val(date).datepicker({
-        autoClose: true,
-        format: 'mm/dd/yyyy'
+        // Check which editor to show, detatch the others, and update the special fields
+        if (type == 0) {
+          transaction_editor.appendTo('#editor-row');
+          $("#edit-transfer").detach();
+          $("#edit-income").detach();
+        } else if (type == 1 || type == 2) {
+          transfer_editor.appendTo('#editor-row');
+          $("#edit-transaction").detach();
+          $("#edit-income").detach();
+          $('#edit-transfer_type').val(type);
+          $('#edit-transfer_type').formSelect();
+          if (type == 1) {
+            $('.account-transfer').addClass('hide');
+            $('.envelope-transfer').removeClass('hide');
+            $('#edit-from_envelope').val(from_envelope);
+            $('#edit-from_envelope').formSelect();
+            $('#edit-to_envelope').val(to_envelope);
+            $('#edit-to_envelope').formSelect();
+          } else if (type == 2) {
+            $('.envelope-transfer').addClass('hide');
+            $('.account-transfer').removeClass('hide');
+            $('#edit-to_account').val(to_account);
+            $('#edit-to_account').formSelect();
+            $('#edit-from_account').val(from_account);
+            $('#edit-from_account').formSelect();
+          }
+          amt = Math.abs(amt);
+        } else if (type == 3) {
+          income_editor.appendTo('#editor-row');
+          $("#edit-transaction").detach();
+          $("#edit-transfer").detach();
+          amt = amt * -1;
+        } else if (type == 4) {
+          transaction_editor.appendTo('#editor-row');
+          $("#edit-transfer").detach();
+          $("#edit-income").detach();
+          for (i=1 ; i<envelope_ids.length ; i++) {
+            var $envelope_selector = $('#edit-envelope-selector-row').find('#edit-envelope_id').clone();
+            $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 aclass"><label class="no-active">Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
+            $(".aclass").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect();
+          };
+        };
+
+        // update the rest of the general fields
+        $("#editor-modal label").addClass("active");
+        $(".no-active").removeClass("active");
+        $("#edit-amount").val(amt.toFixed(2));
+        $("#edit-date").val(date).datepicker({
+          autoClose: true,
+          format: 'mm/dd/yyyy'
+        });
+        $("#edit-name").val(name);
+        $("#edit-note").val(note);
+        $('#edit-envelope_id').val(envelope_id);
+        $('#edit-envelope_id').formSelect();
+        $('#edit-account_id').val(account_id);
+        $('#edit-account_id').formSelect();
+        $('#dtid').attr('value', id);
+        $('#edit-id').attr('value', id);
+        $('#type').attr('value', type);
       });
-      $("#edit-name").val(name);
-      $("#edit-note").val(note);
-      $('#edit-envelope_id').val(envelope_id);
-      $('#edit-envelope_id').formSelect();
-      $('#edit-account_id').val(account_id);
-      $('#edit-account_id').formSelect();
-      $('#dtid').attr('value', id);
-      $('#edit-id').attr('value', id);
-      $('#type').attr('value', type);
-    });
+    }
 
   }); // end of document ready
 })(jQuery); // end of jQuery name space

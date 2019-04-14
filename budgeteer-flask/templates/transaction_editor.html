@@ -71,14 +71,14 @@
               <div class="col s6">
                 <input id="edit-id" name="edit-id" class="hide" type="numeric" required>
                 <input id="type" name="type" class="hide" type="numeric" required>
-                <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!">Update</button>
+                <button class="btn waves-effect waves-light yellow darken-4 modal-close" type="submit" name="action" href="#!">Update</button>
               </div>
             </form>
 
-            <form action="{{ url_for('delete_transaction_page') }}" method="post">
+            <form action="{{ url_for('delete_transaction_page') }}" class="deleter-form" method="post">
               <div class="col s6">
                 <input id="dtid" name="delete-id" class="hide" type="numeric" required>
-                <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light modal-close red darken-3">DELETE</button>
+                <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light modal-close red darken-3 modal-close">DELETE</button>
               </div>
             </form>
           </div>
@@ -189,15 +189,15 @@
               <div class="col s6">
                 <input id="edit-id" name="edit-id" class="hide" type="numeric" required>
                 <input id="type" name="type" class="hide" type="numeric" required>
-                <button id="editor-submit-button" class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!">Update</button>
+                <button id="editor-submit-button" class="btn waves-effect waves-light yellow darken-4 modal-close" type="submit" name="action" href="#!">Update</button>
               </div>
 
             </form>
 
-            <form action="{{ url_for('delete_transaction_page') }}" method="post">
+            <form action="{{ url_for('delete_transaction_page') }}" class="deleter-form" method="post">
               <div class="col s6">
                 <input id="dtid" name="delete-id" class="hide" type="numeric" required>
-                <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light modal-close red darken-3">DELETE</button>
+                <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light modal-close red darken-3 modal-close">DELETE</button>
               </div>
             </form>
           </div>
@@ -256,15 +256,15 @@
               <div class="col s6">
                 <input id="edit-id" name="edit-id" class="hide" type="numeric" required>
                 <input id="type" name="type" class="hide" type="numeric" required>
-                <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!">Update</button>
+                <button class="btn waves-effect waves-light yellow darken-4 modal-close" type="submit" name="action" href="#!">Update</button>
               </div>
 
             </form>
 
-            <form action="{{ url_for('delete_transaction_page') }}" method="post">
+            <form action="{{ url_for('delete_transaction_page') }}" class="deleter-form" method="post">
               <div class="col s6">
                 <input id="dtid" name="delete-id" class="hide" type="numeric" required>
-                <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light modal-close red darken-3">DELETE</button>
+                <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light modal-close red darken-3 modal-close">DELETE</button>
               </div>
             </form>
           </div>

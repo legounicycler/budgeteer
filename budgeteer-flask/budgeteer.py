@@ -14,27 +14,29 @@
   #
   # THINGS TO DO STILL
   #
-  # Form validations server-side?
+  # add delete warnings for account/envelope editors
   # only need with conn: when you're modifying data, not when you're selecting
-  # use join clause on get_all_trasactions()
-  # add toasts for each submit function / delete warnings
-  # add "You don't have any transactions yet" things
+  # use join clause on get_all_trasactions() to get account name and envelope name
   # add envelope fill function
   # get rid of unallocated envelope in envelope select menus
-  # sort transactions by date and id so they show up in the right order
-  #     SIMILARLY: Change update_transaction function to actually use SQLite UPDATE function
+  # Change ajax in so that the site only loads 50 transactions at a time
   # Clean up some of the dirty logic and make sure conn.close isn't super important
-  # Add ajax in so that the site only loads 50 transactions at a time
   # Fix CSS styling so things scroll correctly
-  # Maybe add neutral class back in with grayed out color for $0.00???
-  # check one last time if it's possible to include blocks inside of include statments jinja2
   # replace ajax account-editor and envelope-editor with a decent flask solution
   #     Similarly, get rid of hidden inputs on transaction editor for the transaction id and type
   # Get rid of the active and no-active stuff in js/css and repalce with materialize updateTextField
+  # make sure the balance/amount is int (amount*100) and not float
+  #
+  # THINGS TO MAYBE DO:
+  #
+  # Change update_transaction function to actually use SQLite UPDATE function
+  # check one last time if it's possible to include blocks inside of include statments jinja2
+  # Maybe add neutral class back in with grayed out color for $0.00???
 
 from flask import Flask, render_template, url_for, request, redirect, jsonify
 from database import *
 from datetime import datetime
+import re
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'da3e7b955be0f7eb264a9093989e0b46'
@@ -59,7 +61,6 @@ t_type_dict2 = {
 @app.route("/home", methods=['GET'])
 def home():
     transactions_data = get_all_transactions()
-    print(transactions_data)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total()
@@ -68,7 +69,7 @@ def home():
 
 @app.route("/envelope/<envelope_id>", methods=['GET'], )
 def envelope(envelope_id):
-    transactions_data = get_all_transactions()
+    transactions_data = get_envelope_transactions(envelope_id)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total()
@@ -77,7 +78,7 @@ def envelope(envelope_id):
 
 @app.route("/account/<account_id>", methods=['GET'], )
 def account(account_id):
-    transactions_data = get_all_transactions()
+    transactions_data = get_account_transactions(account_id)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total()
@@ -102,7 +103,7 @@ def new_expense():
         insert_transaction(t)
     else:
         new_split_transaction(t)
-    return redirect('/api/transactions')
+    return 'Successfully added new expense'
 
 @app.route('/new_transfer', methods=['POST'])
 def new_transfer():
@@ -121,7 +122,7 @@ def new_transfer():
         envelope_transfer(name, amount, date, to_envelope, from_envelope, note)
     else:
         print('What the heck are you even trying to do you twit?')
-    return redirect(url_for('home'))
+    return 'Successfully added new transfer'
 
 
 @app.route('/new_income', methods=['POST'])
@@ -133,7 +134,7 @@ def new_income():
     note = request.form['note']
     t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, 0, note)
     insert_transaction(t)
-    return redirect(url_for('home'))
+    return 'Successfully added new income'
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
@@ -149,14 +150,14 @@ def edit_transaction():
         new_income()
     elif (type == SPLIT_TRANSACTION):
         new_expense()
-    return redirect(url_for('home'))
+    return 'Transaction successfully edited'
 
 @app.route('/delete_transaction_page', methods=['POST'])
 # Change this to use an <id> in the URL instead of using the hidden form thing
 def delete_transaction_page():
     id = int(request.form['delete-id'])
     delete_transaction(id)
-    return redirect(url_for('home'))
+    return 'Transaction successfully deleted'
 
 @app.route('/api/transaction/<id>/group', methods=['GET'])
 def get_json(id):
@@ -166,35 +167,38 @@ def get_json(id):
 def edit_account():
     formValues = request.get_json()
     edit_accounts(formValues)
-    return redirect('/api/transactions')
+    return 'Accounts successfully updated'
 
 @app.route('/api/edit-envelopes', methods=['POST'])
 def edit_envelope():
     formValues = request.get_json()
     edit_envelopes(formValues)
-    return jsonify(formValues)
+    return 'Envelopes successfully updated'
 
-@app.route('/api/transactions', methods=['GET'])
+@app.route('/api/data-reload', methods=['POST'])
 def transactions_function():
-    transactions_data = get_all_transactions()
+    # needs to change based on what page you're on
+    url = request.get_json()['url']
+    print(url)
+    if 'account/' in url:
+        regex = re.compile('account/(\d+)')
+        account_id = int(regex.findall(url)[0])
+        transactions_data = get_account_transactions(account_id)
+    elif 'envelope/' in url:
+        regex = re.compile('envelope/(\d+)')
+        envelope_id = int(regex.findall(url)[0])
+        transactions_data = get_envelope_transactions(envelope_id)
+    else:
+        transactions_data = get_all_transactions()
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
-    return render_template('transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data)
+    data = {}
+    data['total'] = get_total()
+    data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data)
+    data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
+    data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
+    return jsonify(data)
 
-@app.route('/api/accounts', methods=['GET'])
-def accounts_function():
-    (active_accounts, accounts_data) = get_account_dict()
-    return render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
-
-@app.route('/api/envelopes', methods=['GET'])
-def envelopes_function():
-    (active_envelopes, envelopes_data) = get_envelope_dict()
-    return render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
-
-@app.route('/api/total', methods=['GET'])
-def total_function():
-    total_funds = get_total()
-    return total_funds
 
 if __name__ == '__main__':
     app.run(debug=True)

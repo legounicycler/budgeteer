@@ -185,7 +185,6 @@ def delete_transaction(id):
                         update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
 
                 c.execute("DELETE FROM transactions WHERE id=?", (id,))
-            print("Transaction deleted: ", id)
         else:
             print("That transaction doesn't exist you twit")
 
@@ -483,9 +482,7 @@ def get_ids_from_grouping(grouping):
     c = conn.cursor()
     with conn:
         id_array = []
-        if (grouping == 0):
-            print("This is not a grouped transaction")
-        else:
+        if (grouping != 0):
             c.execute("SELECT id from transactions WHERE grouping=?", (grouping,))
             id_touple = c.fetchall()
             for i in id_touple:
