@@ -1,0 +1,8 @@
+<select id="envelope_id" class="envelope-selector" name="envelope_id" required>
+  <option value="" disabled selected>Choose an Envelope</option>
+  {% for id, envelope in envelopes_data.items() %}
+    {% if envelope.deleted == false and envelope.id != 1 %}
+      <option value="{{envelope.id}}">{{envelope.name}}</option>
+    {% endif %}
+  {% endfor %}
+</select>

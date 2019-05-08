@@ -11,7 +11,16 @@
   background-color: transparent;
 }
 
-.form-error{color: #D8000C;}
+.form-error{
+  color: #D8000C;
+}
+
+/*gets rid of green on verified text input*/
+input.valid[type=text]:not(.browser-default) {
+  border-bottom: 1px solid #9e9e9e;
+  webkit-box-shadow: none;
+  box-shadow: none;
+}
 
 /*makes the rows thinner for transactions and so they don't overflow their columns*/
 .row {

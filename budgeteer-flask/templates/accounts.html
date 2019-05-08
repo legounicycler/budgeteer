@@ -1,22 +1,26 @@
-{% if active_accounts == false %}
-  <img class="empty-img" src="{{url_for('static', filename='img/Budgeteer_White_And_Red.png')}}">
-  <h5 class="white-text">You don't have any accounts yet!</h5>
-{% else %}
-  <ul class="collection" id="accounts-bin">
-    <li class="row valign-wrapper collection-item left-align grey lighten-3">
-      <div class="col s8 header offset-s1 left-align">Name</div>
-      <div class="col s3 header account-balance">Balance</div>
-    </li>
-  {% for id, account in accounts_data.items() %}
-    {% if account.deleted == false%}
-      <a class="waves-effect collection-item" href="/account/{{account.id}}">
-        <li class="row envelope-row">
-          <div class="col s1 valign-wrapper account-icon"><i class="material-icons">account_balance</i></div>
-          <div class="col s8 account-name left-align valign-wrapper"><h5 class="truncate no-margin">{{account.name}}</h5></div>
-          <div class="col s3 valign-wrapper account-balance"><span class="{{'negative' if account.balance[0] == '-'}} balance">{{account.balance}}</span></div>
-        </li>
-      </a>
-    {% endif %}
-  {% endfor %}
-  </ul>
-{% endif %}
+<div id="accounts-bin">
+  {% if active_accounts == false %}
+    <img class="empty-img" src="{{url_for('static', filename='img/Budgeteer_White_And_Red.png')}}">
+    <h5 class="empty-text white-text">You don't have any accounts yet!</h5>
+  {% else %}
+    <ul class="collection">
+      <li class="row valign-wrapper collection-item left-align grey lighten-3">
+        <div class="col s8 header offset-s1 left-align">Name</div>
+        <div class="col s3 header account-balance">Balance</div>
+      </li>
+      <div class="scroller">
+        {% for id, account in accounts_data.items() %}
+          {% if account.deleted == false%}
+            <a class="waves-effect collection-item" href="/account/{{account.id}}">
+              <li class="row envelope-row">
+                <div class="col s1 valign-wrapper account-icon"><i class="material-icons">account_balance</i></div>
+                <div class="col s8 account-name left-align valign-wrapper"><h5 class="truncate no-margin">{{account.name}}</h5></div>
+                <div class="col s3 valign-wrapper account-balance"><span class="{{'negative' if account.balance[0] == '-'}} balance">{{account.balance}}</span></div>
+              </li>
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </ul>
+  {% endif %}
+</div>

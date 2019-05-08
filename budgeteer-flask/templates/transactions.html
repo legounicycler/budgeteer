@@ -1,28 +1,30 @@
-{% if transactions_data is not defined %}
-  <img class="empty-img" src="{{url_for('static', filename='img/Budgeteer.png')}}">
-  <h5>You don't have any transactions yet!</h5>
-{% else %}
-  <ul class="collection" id="transactions-bin">
+<ul class="collection" id="transactions-bin">
+  {% if transactions_data is not defined %}
+    <img class="empty-img" src="{{url_for('static', filename='img/Budgeteer.png')}}">
+    <h5>You don't have any transactions yet!</h5>
+  {% else %}
     <li class="row valign-wrapper collection-item left-align grey lighten-3">
       <div class="col s2 header transaction-date">Date</div>
       <div class="col s1 header transaction-type">Type</div>
-      <div class="col s6 header transaction-name">Name</div>
+      <div class="col s7 header transaction-name">Name</div>
       <div class="col s2 header transaction-amount">Amount</div>
-      <div class="col s1 header transaction-status">Status</div>
+      <!-- <div class="col s1 header transaction-status">Status</div> -->
     </li>
-    {% for transaction in transactions_data %}
-      <a class="waves-effect collection-item transaction modal-trigger" href="#editor-modal" data-id="{{transaction.id}}" data-name="{{transaction.name}}" data-type="{{transaction.type}}" data-date="{{transaction.date}}" data-amt="{{transaction.amt}}" data-account_id="{{transaction.account_id}}" data-account_name = "{% if transaction.account_id is not none %}{{ accounts_data[transaction.account_id].name }}{% endif %}" data-envelope_id="{{transaction.envelope_id}}" data-envelope_name = "{% if transaction.envelope_id is not none %}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}" data-grouping="{{transaction.grouping}}" data-note="{{transaction.note}}">
-        <li class="row transaction-row">
-          <div class="col s2 valign-wrapper transaction-date">{{transaction.date}}</div>
-          <div class="col s1 valign-wrapper transaction-type"><i class="material-icons" title="{{t_type_dict[transaction.type]}}">{{t_type_dict2[transaction.type]}}</i></div>
-          <div class="col s6 transaction-name left-align">
-            <h5 class="truncate no-margin">{{transaction.name}}</h5>
-            <i class="no-margin tiny {% if transaction.envelope_id is not none%}{% if envelopes_data[transaction.envelope_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.envelope_id is not none and transaction.type != 4 %}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}{% if transaction.type == 4 %}Multiple{% endif %}</i>{% if transaction.envelope_id is not none and transaction.account_id is not none %} / {% endif %}<i class="tiny {% if transaction.account_id is not none%}{% if accounts_data[transaction.account_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.account_id is not none %}{{ accounts_data[transaction.account_id].name }}{% endif %}</i>
-          </div>
-          <div class="col s2 valign-wrapper transaction-amount"><span class="{{'negative' if transaction.amt[0] == '-'}}  balance">{{transaction.amt}}</span></div>
-          <div class="col s1 valign-wrapper transaction-status"><i class="small material-icons">{{transaction.status}}</i></div>
-        </li>
-      </a>
-    {% endfor %}
-  </ul>
-{% endif %}
+    <div class="scroller">
+      {% for transaction in transactions_data %}
+        <a class="waves-effect collection-item transaction modal-trigger" href="#editor-modal" data-id="{{transaction.id}}" data-name="{{transaction.name}}" data-type="{{transaction.type}}" data-date="{{transaction.date}}" data-amt="{{transaction.amt}}" data-account_id="{{transaction.account_id}}" data-account_name = "{% if transaction.account_id is not none %}{{ accounts_data[transaction.account_id].name }}{% endif %}" data-envelope_id="{{transaction.envelope_id}}" data-envelope_name = "{% if transaction.envelope_id is not none %}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}" data-grouping="{{transaction.grouping}}" data-note="{{transaction.note}}">
+          <li class="row transaction-row">
+            <div class="col s2 valign-wrapper transaction-date">{{transaction.date}}</div>
+            <div class="col s1 valign-wrapper transaction-type"><i class="material-icons" title="{{t_type_dict[transaction.type]}}">{{t_type_dict2[transaction.type]}}</i></div>
+            <div class="col s7 transaction-name left-align">
+              <h5 class="truncate no-margin">{{transaction.name}}</h5>
+              <i class="no-margin tiny {% if transaction.envelope_id is not none and transaction.type != 4 and transaction.type !=5 %}{% if envelopes_data[transaction.envelope_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.envelope_id is not none and transaction.type != 4 and transaction.type != 5%}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}{% if transaction.type == 4 %}Multiple{% elif transaction.type == 5%}Unallocated distribution{% endif %}</i>{% if transaction.envelope_id is not none and transaction.account_id is not none %} / {% endif %}<i class="tiny {% if transaction.account_id is not none%}{% if accounts_data[transaction.account_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.account_id is not none %}{{ accounts_data[transaction.account_id].name }}{% endif %}</i>
+            </div>
+            <div class="col s2 valign-wrapper transaction-amount"><span class="{{'negative' if transaction.amt[0] == '-'}}  balance">{{transaction.amt}}</span></div>
+            <!-- <div class="col s1 valign-wrapper transaction-status"><i class="small material-icons">{{transaction.status}}</i></div> -->
+          </li>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+</ul>

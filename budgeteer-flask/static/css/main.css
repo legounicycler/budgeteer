@@ -1,4 +1,4 @@
-#new-transaction-button {
+.fixed-action-btn {
   position: fixed;
   width: 60px;
   height: 60px;
@@ -7,19 +7,78 @@
   z-index: 1000;
 }
 
+#bin {
+  position: sticky;
+  height: calc(100% - 164px);
+  top: 154px;
+}
+
+#total h4, #unallocated h4 {
+  margin: .25em 0;
+}
+
+#no-accounts, #no-envelopes {
+  padding: 5px;
+}
+
+#envelopes-bin, #accounts-bin {
+  height: calc(100% - 56px);
+}
+
+#envelopes, #accounts {
+  height: calc(100% - 64px - 90px - 48px);
+}
+
+#envelopes-bin .collection, #accounts-bin .collection, #transactions-bin {
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.scroller {
+  overflow-y: scroll;
+  overflow: overlay;
+  max-height: calc(100% - 22px);
+}
+
+#left-header, #transaction-header {
+  height: 90px;
+  overflow: hidden;
+}
+
+#transaction-header {
+  position: sticky;
+  top: 64px;
+}
+
+#transactions-bin {
+  margin: 5px 10px;
+}
+
 /*special logo height*/
 #logo {
   height: 45px;
   margin-top: 7px;
 }
 
+#delete-modal {
+  max-width: 30%;
+  margin-top: 2em;
+}
+
 .no-margin {
   margin: 0;
+  padding-bottom: .1em; /* so the headers don't clip in the y-direction */
 }
 
 .empty-img {
   height: auto;
   max-width: 50%;
+  max-height: 350px;
+  margin-top: 1em;
+}
+
+.empty-text {
+  margin-bottom: 2em;
   margin-top: 1em;
 }
 
@@ -62,8 +121,13 @@
 
 
 /* makes the leftside content reach the bottom of the page*/
-.content, .left-content {
+html, body, .content, .left-content {
   height: 100%;
+}
+
+.content {
+  position: fixed;
+  width: 100%;
 }
 
 .left-content {
@@ -96,8 +160,6 @@ h5 {
   font-weight: bold;
 }
 
-
-
 #edit-accounts, #edit-envelopes {
   margin-top: 5px;
 }
@@ -108,14 +170,11 @@ h5 {
 
 #transactions-column {
   padding: 0 !important;
+  height: 100%;
 }
 
-#transactions-bin {
+#transactions-list {
   margin: 10px;
-}
-
-.transaction-header, #total {
-  height: 90px;
 }
 
 .hide {
@@ -126,14 +185,20 @@ h5 {
   text-decoration: line-through;
 }
 
-html, body {
-  height: 100%;
-}
 
 @media only screen and (max-width: 992px) {
   .left-content {
     height: auto;
   }
+
+  .content {
+    position: relative;
+  }
+
+  #transactions-bin {
+    top: 5px;
+  }
+
 }
 
 @media only screen and (max-width: 600px) {

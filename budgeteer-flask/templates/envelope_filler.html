@@ -1,0 +1,69 @@
+<div id="envelope-fill-modal" class="modal">
+  <div class="modal-content">
+    <div class="row">
+
+      <h3>Fill Envelopes</h3>
+
+      <form id="envelope-fill-form" action="{{ url_for('fill_envelopes') }}" method="post">
+
+        <div class="row">
+          <div class="input-field col s6">
+            <input id="name" class="validate" type="text" name="name" required>
+            <label for="name">Name</label>
+            <span class="helper-text" data-error="Transaction name required"></span>
+          </div>
+          <div class="input-field col s6">
+            <input id="transaction-date" type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
+            <label for="transaction-date">Date</label>
+            <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
+          </div>
+        </div>
+
+        <div class="row">
+          <ul id="envelope-editor-bin" class="collection">
+            <li class="row collection-item left-align grey lighten-3">
+              <div class="col s5 header offset-s1 left-align">Name</div>
+              <div class="col s3 header envelope-budget">Amount</div>
+              <div class="col s3 header envelope-balance">Balance</div>
+            </li>
+
+            {% for id, envelope in envelopes_data.items() %}
+              {% if envelope.deleted == false and envelope.id != 1 %}
+                <li class="row envelope-row collection-item">
+                  <div class="col s1 valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div>
+                  <div class="col s5 envelope-name left-align editor-col input-field">
+                    <h5 class="truncate no-margin">{{envelope.name}}</h5>
+                    <input type="hidden" value={{envelope.id}} name="envelope_id">
+                  </div>
+                  <div class="col s3 envelope-budget editor-col input-field">
+                    <input class="validate" type="text" value="0.00" name="fill-amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                    <span class="helper-text" data-error="Please enter a numeric value"></span>
+                  </div>
+                  <div class="col s3 valign-wrapper envelope-balance editor-col">
+                    <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>
+                  </div>
+                </li>
+              {% endif %}
+            {% endfor %}
+
+          </ul>
+        </div>
+
+        <div class="row">
+          <div class="input-field col s12">
+            <input id="note" type="text" placeholder="(Optional)" name="note">
+            <label for="note">Note</label>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col s3 push-s6">
+            <button class="btn waves-effect waves-light yellow darken-4" name="action" type="submit" href="#!">Submit</button>
+          </div>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
