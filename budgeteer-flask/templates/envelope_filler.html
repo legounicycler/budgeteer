@@ -29,9 +29,9 @@
 
             {% for id, envelope in envelopes_data.items() %}
               {% if envelope.deleted == false and envelope.id != 1 %}
-                <li class="row envelope-row collection-item">
+                <li class="row envelope-row collection-item flex">
                   <div class="col s1 valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div>
-                  <div class="col s5 envelope-name left-align editor-col input-field">
+                  <div class="col s5 valign-wrapper envelope-name left-align editor-col input-field">
                     <h5 class="truncate no-margin">{{envelope.name}}</h5>
                     <input type="hidden" value={{envelope.id}} name="envelope_id">
                   </div>

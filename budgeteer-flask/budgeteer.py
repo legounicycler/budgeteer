@@ -7,6 +7,7 @@
   # Transaction search
   # Add keyboard-tab select function on materialize select so that it's more user friendly
   # add cash back feature!!!
+  # Spending graphs
   # Photo of recipt (maybe until reconciled)
   #
   # envelope average spending /spent last month
@@ -14,28 +15,32 @@
   # goals function (target category balance / balance by date)
   # average spent in each envelope
   # one click reconcile button
+  # use join clause on get_trasactions() to get account name and envelope name
+  #     This might mot actually be more efficient unless I add a feature where
+  #     there's a current account balance associated with every transaction
   #
   #
   #
   #
   #
-  # THINGS TO DO STILL (BETA 1.0)
+  # THINGS TO DO STILL (ALPHA 1.0)
   #
   # Improve envelope fill/ envelope fill editor
+  # Add envelope filler to data reload
+  # Make sure envelope filler editor works with deleted envelopes
+  # Fix CSS so it's mobile responsive
   # Change ajax in so that the site only loads 50 transactions at a time
   #     PROBLEM: If you load specifically 50 transactions at a time, but the 50th
   #     is a part of a split transaction, you're not getting the complete data needed
   #     to render the page correctly
-  # make sure the balance/amount is int (amount*100) and not float
-  # Autoselect or at least highlight today on datepicker
-  # Fix CSS so it's mobile responsive
-  # use join clause on get_trasactions() to get account name and envelope name
   # Improve documentation on every page
   #
   #
   # QUESTIONS:
   # Is the layout structure good?
   # How to avoid problem with set number of transactions
+  # How would I do scheduled transactions?
+  # General login stuff
   #
   # THINGS TO MAYBE DO:
   #
@@ -104,7 +109,7 @@ def new_expense():
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
     for i in range(len(amounts)):
-        amounts[i] = float(amounts[i])
+        amounts[i] = int(float(amounts[i]) * 100)
         envelope_ids[i] = int(envelope_ids[i])
     t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, 0, note)
     if len(envelope_ids) == 1:
@@ -120,7 +125,7 @@ def new_expense():
 def new_transfer():
     transfer_type = int(request.form['transfer_type'])
     name = request.form['name']
-    amount = float(request.form['amount'])
+    amount = int(float(request.form['amount'])*100)
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
     if (transfer_type == 2):
@@ -139,7 +144,7 @@ def new_transfer():
 @app.route('/new_income', methods=['POST'])
 def new_income():
     name = request.form['name']
-    amount = float(request.form['amount'])
+    amount = int(float(request.form['amount'])*100)
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     account_id = request.form['account_id']
     note = request.form['note']
@@ -156,7 +161,7 @@ def fill_envelopes():
     note = request.form['note']
     deletes =[]
     for i in range(len(amounts)):
-        amounts[i] = float(amounts[i])
+        amounts[i] = int(float(amounts[i])*100)
         envelope_ids[i] = int(envelope_ids[i])
         if amounts[i] == 0:
             deletes.append(i)
@@ -169,7 +174,6 @@ def fill_envelopes():
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
-    # this is sloppy because there's just hidden inputs in the form rather than using data attributes
     id = int(request.form['edit-id'])
     type = int(request.form['type'])
     delete_transaction(id)
@@ -206,9 +210,9 @@ def edit_accounts_page():
     old_accounts = []
     new_accounts = []
     for i in range(len(old_ids)):
-        old_accounts.append([old_ids[i], old_names[i], old_balances[i]])
+        old_accounts.append([old_ids[i], old_names[i], int(float(old_balances[i])*100)])
     for i in range(len(new_names)):
-        new_accounts.append([new_names[i], new_balances[i]])
+        new_accounts.append([new_names[i], int(float(new_balances[i])*100)])
     edit_accounts(old_accounts, new_accounts)
     return 'Accounts successfully updated!'
 
@@ -223,9 +227,9 @@ def edit_envelopes_page():
     old_envelopes = []
     new_envelopes = []
     for i in range(len(old_ids)):
-        old_envelopes.append([old_ids[i], old_names[i], old_budgets[i]])
+        old_envelopes.append([old_ids[i], old_names[i], int(float(old_budgets[i])*100)])
     for i in range(len(new_names)):
-        new_envelopes.append([new_names[i], new_budgets[i]])
+        new_envelopes.append([new_names[i], int(float(new_budgets[i])*100)])
     edit_envelopes(old_envelopes, new_envelopes)
     return 'Envelopes successfully updated!'
 
@@ -243,6 +247,8 @@ def transactions_function():
         transactions_data = get_envelope_transactions(envelope_id)
     else:
         transactions_data = get_transactions()
+
+    print(transactions_data)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     data = {}
@@ -253,6 +259,8 @@ def transactions_function():
     data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
     data['account_selector_html'] = render_template('account_selector.html', accounts_data=accounts_data)
     data['envelope_selector_html'] = render_template('envelope_selector.html', envelopes_data=envelopes_data)
+    data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data)
+    data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
     return jsonify(data)
 
 

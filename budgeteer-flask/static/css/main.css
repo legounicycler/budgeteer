@@ -7,6 +7,14 @@
   z-index: 1000;
 }
 
+.flex {
+  display: flex;
+}
+
+.envelope-row .input-field, .account-row .input-field {
+  margin: 0;
+}
+
 #bin {
   position: sticky;
   height: calc(100% - 164px);
@@ -103,13 +111,13 @@
   justify-content: center;
 }
 
-.envelope-budget, .envelope-balance, .envelope-name, .envelope-icon, .account-balance, .delete-account, .account-icon, .account-name {
+.scroller .envelope-budget, .scroller .envelope-balance, .scroller .envelope-name, .scroller .envelope-icon, .scroller .account-balance, .scroller .account-icon, .scroller .account-name {
   height: 36px;
 }
 
-.editor-col {
+/*.editor-col {
   height: 50px;
-}
+}*/
 
 .transaction-row, .envelope-row, .account-row{
   padding: 0 !important;
@@ -204,5 +212,9 @@ h5 {
 @media only screen and (max-width: 600px) {
   .left-content {
     height: 100%;
+  }
+
+  .modal .modal-content {
+    padding: 12px 0px;
   }
 }

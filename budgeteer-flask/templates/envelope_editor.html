@@ -14,21 +14,21 @@
           </li>
           {% for id, envelope in envelopes_data.items() %}
             {% if envelope.deleted == false and envelope.id != 1 %}
-              <li class="row envelope-row collection-item">
-                <div class="col s1 valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div>
-                <div class="col s4 envelope-name left-align editor-col input-field">
+              <li class="row envelope-row collection-item flex">
+                <div class="col s1 valign-wrapper envelope-icon"><i class="material-icons">mail_outline</i></div>
+                <div class="col s4 envelope-name left-align input-field">
                   <input class="validate" type="text" value="{{envelope.name}}" name="edit-envelope-name" required>
                   <span class="helper-text" data-error="Envelope name required"></span>
                 </div>
-                <div class="col s2 envelope-budget editor-col input-field">
+                <div class="col s2 envelope-budget input-field">
                   <input class="validate" type="text" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" name="edit-envelope-budget" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
                   <input name="envelope-id" type="hidden" value="{{envelope.id}}" required>
                   <span class="helper-text" data-error="Please enter a numeric value"></span>
                 </div>
-                <div class="col s3 valign-wrapper envelope-balance editor-col">
+                <div class="col s3 valign-wrapper envelope-balance">
                   <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>
                 </div>
-                <div class="col s2 valign-wrapper delete-envelope editor-col">
+                <div class="col s2 valign-wrapper delete-envelope">
                   <a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a>
                 </div>
               </li>
@@ -36,10 +36,10 @@
           {% endfor %}
         </ul>
         <div class="row">
-          <div class="col s3 left-align">
+          <div class="col m3 s6 left-align">
             <a id="new-envelope-row" href="#!" class="tiny">+ New envelope</a>
           </div>
-          <div class="col s3 push-s6">
+          <div class="col s6 m3 push-m6">
             <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!">Update</button>
           </div>
         </div>

@@ -25,7 +25,10 @@
 
       $('.datepicker').datepicker({
         autoClose: true,
-        format: 'mm/dd/yyyy'
+        format: 'mm/dd/yyyy',
+        defaultDate: new Date(),
+        setDefaultDate: true,
+        container: 'body'
       });
 
       // Removes user-added rows in editor when the modal is closed
@@ -56,7 +59,7 @@
         });
       });
 
-      editor_row_check()
+      editor_binds()
     });
 
 
@@ -83,32 +86,51 @@
       };
     };
 
+    function editor_binds() {
+      editor_row_check()
+      // Adds new envelope row on button click and clears temporary no-envelopes message if there is one
+      $("#new-envelope-row").click(function() {
+        $("#envelope-editor-bin").append('<li class="row envelope-row collection-item flex"><div class="col s1 valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div><div class="col s4 envelope-name left-align editor-col input-field"><input required class="validate" type="text" name="new-envelope-name"><span class="helper-text" data-error="Envelope name required"></span></div><div class="col s2 envelope-budget editor-col input-field"><input required class="validate" type="text" name="new-envelope-budget" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s3 valign-wrapper envelope-balance editor-col"><span class="balance neutral">$0.00</span></div><div class="col s2 valign-wrapper delete-envelope editor-col"><a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a></div></li>');
+        $('#no-envelopes').remove()
+      });
+      // Adds new account row on button click and clears temporary no-accounts message if there is one
+      $("#new-account-row").click(function() {
+        $("#account-editor-bin").append('<li class="row account-row collection-item flex"><div class="col s1 valign-wrapper account-icon editor-col"><i class="material-icons">account_balance</i></div><div class="col s7 account-name left-align editor-col input-field"><input required class="validate" type="text" name="new-account-name"><span class="helper-text" data-error="Account name required"></span></div><div class="col s2 account-balance editor-col input-field"><input required class="validate" type="text" name="new-account-balance" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s2 valign-wrapper delete-account editor-col"><a href="#!" class="delete-account-button"><i class="material-icons red-text">delete_forever</i></a></div></li>');
+        $('#no-accounts').remove()
+      });
 
-    // Adds new envelope row on button click and clears temporary no-envelopes message if there is one
-    $("#new-envelope-row").click(function() {
-      $("#envelope-editor-bin").append('<li class="row envelope-row collection-item"><div class="col s1 valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div><div class="col s4 envelope-name left-align editor-col input-field"><input required class="validate" type="text" name="new-envelope-name"><span class="helper-text" data-error="Envelope name required"></span></div><div class="col s2 envelope-budget editor-col input-field"><input required class="validate" type="text" name="new-envelope-budget" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s3 valign-wrapper envelope-balance editor-col"><span class="balance neutral">$0.00</span></div><div class="col s2 valign-wrapper delete-envelope editor-col"><a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a></div></li>');
-      $('#no-envelopes').remove()
-    });
+      // Opens delete warning modal when the delete button is clicked
+      $("#envelope-editor-bin").on("click", ".delete-envelope-button", function() {
+        window.delete_target = $(this);
+        $('#delete-modal p').replaceWith('<p>This action cannot be undone. The balance of this envelope will be added to your unallocated balance.</p>');
+        $('#delete-modal').modal('open');
+      });
 
-    // Adds new account row on button click and clears temporary no-accounts message if there is one
-    $("#new-account-row").click(function() {
-      $("#account-editor-bin").append('<li class="row account-row collection-item"><div class="col s1 valign-wrapper account-icon editor-col"><i class="material-icons">account_balance</i></div><div class="col s7 account-name left-align editor-col input-field"><input required class="validate" type="text" name="new-account-name"><span class="helper-text" data-error="Account name required"></span></div><div class="col s2 account-balance editor-col input-field"><input required class="validate" type="text" name="new-account-balance" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s2 valign-wrapper delete-account editor-col"><a href="#!" class="delete-account-button"><i class="material-icons red-text">delete_forever</i></a></div></li>');
-      $('#no-accounts').remove()
-    });
+      // Opens delete warning modal when the delete button is clicked
+      $("#account-editor-bin").on("click", ".delete-account-button", function() {
+        window.delete_target = $(this);
+        $('#delete-modal p').replaceWith('<p>This action cannot be undone. The balance of this account will be subtracted from your unallocated balance.</p>');
+        $('#delete-modal').modal('open');
+      });
 
-    // Opens delete warning modal when the delete button is clicked
-    $("#envelope-editor-bin").on("click", ".delete-envelope-button", function() {
-      window.delete_target = $(this);
-      $('#delete-modal p').replaceWith('<p>This action cannot be undone. The balance of this envelope will be added to your unallocated balance.</p>');
-      $('#delete-modal').modal('open');
-    });
+      //COLLECTS DATA from account/envelope editor modals and submits it to flask
+      $('#account-editor-form, #envelope-editor-form').submit(function(e) {
+        e.preventDefault()
+        var url = $(this).attr('action');
+        var current_url = $(location).attr("href");
+        var method = $(this).attr('method');
+        $(".modal").modal("close")
 
-    // Opens delete warning modal when the delete button is clicked
-    $("#account-editor-bin").on("click", ".delete-account-button", function() {
-      window.delete_target = $(this);
-      $('#delete-modal p').replaceWith('<p>This action cannot be undone. The balance of this account will be subtracted from your unallocated balance.</p>');
-      $('#delete-modal').modal('open');
-    });
+        $.ajax({
+          type: method,
+          url: url,
+          data: $(this).serialize(),
+        }).done(function( o ) {
+          data_reload(current_url);
+          M.toast({html: o})
+        });
+      });
+    };
 
     // If the yes button is clicked in the delete modal, delete the appropriate row,
     // and if it's the last row, add a placeholder HTML bit
@@ -169,6 +191,12 @@
         $('.select-wrapper:has(.account-selector)').replaceWith(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector)').replaceWith(o['envelope_selector_html']);
         $('select').formSelect();
+
+        $('#envelope-modal').replaceWith(o['envelope_editor_html']);
+        $('#account-modal').replaceWith(o['account_editor_html']);
+        $('#envelope-modal').modal();
+        $('#account-modal').modal();
+        editor_binds()
         console.log("Data successfully reloaded!")
       });
     };
@@ -217,24 +245,7 @@
     });
 
     // Sends delete ID via form, the reloads data
-    // $('.deleter-form').submit(function(e) {
-    //   e.preventDefault()
-    //   var url = $(this).attr('action');
-    //   var current_url = $(location).attr("href");
-    //   var method = $(this).attr('method');
-
-    //   $.ajax({
-    //     type: method,
-    //     url: url,
-    //     data: $(this).serialize(),
-    //   }).done(function( o ) {
-    //     data_reload(current_url);
-    //     M.toast({html: o})
-    //   });
-    // });
-
-    //COLLECTS DATA from account/envelope editor modals and submits it to flask
-    $('#account-editor-form, #envelope-editor-form, .deleter-form').submit(function(e) {
+    $('.deleter-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
       var current_url = $(location).attr("href");
@@ -250,7 +261,6 @@
         M.toast({html: o})
       });
     });
-
 
     //TRANSACTION EDITOR functions and variables
     var transaction_editor = $("#edit-expense").detach()
@@ -388,8 +398,12 @@
       $("#edit-amount").val(amt.toFixed(2));
       $("#edit-date").val(date).datepicker({
         autoClose: true,
-        format: 'mm/dd/yyyy'
+        format: 'mm/dd/yyyy',
+        container: 'body'
       });
+      var datepicker = document.getElementById('edit-date');
+      var instance = M.Datepicker.getInstance(datepicker);
+      instance.setDate(new Date(date));
       $("#edit-name").val(name);
       $("#edit-note").val(note);
       $('#edit-envelope_id').val(envelope_id);

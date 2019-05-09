@@ -51,7 +51,7 @@ def create_db():
             id INTEGER PRIMARY KEY,
             type INTEGER NOT NULL,
             name TEXT NOT NULL,
-            amount REAL NOT NULL,
+            amount INTEGER NOT NULL,
             day DATE NOT NULL,
             envelope_id INTEGER,
             account_id INTEGER,
@@ -65,7 +65,7 @@ def create_db():
         CREATE TABLE accounts (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
-            balance REAL NOT NULL DEFAULT 0,
+            balance INTEGER NOT NULL DEFAULT 0,
             deleted BOOLEAN NOT NULL DEFAULT 0
             )
         """)
@@ -74,8 +74,8 @@ def create_db():
         CREATE TABLE envelopes (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
-            balance REAL NOT NULL DEFAULT 0,
-            budget REAL NOT NULL DEFAULT 0,
+            balance INTEGER NOT NULL DEFAULT 0,
+            budget INTEGER NOT NULL DEFAULT 0,
             deleted BOOLEAN NOT NULL DEFAULT 0
             )
         """)
@@ -107,8 +107,8 @@ def get_transaction(id):
     return t
 
 def get_transactions():
-    # returns a list of all transactions with split/envelope-fill transactions merged into one
-    # Change later to take 2 inputs, where to start, and how many to fetch
+    # returns a list of all transactions to display with grouped transactions merged into one
+    # CHANGE LATER to take 2 inputs, where to start, and how many to fetch
     c.execute("SELECT id FROM transactions ORDER by day DESC, id DESC")
     ids = c.fetchall()
     tlist = []
@@ -130,7 +130,7 @@ def get_transactions():
     return tlist
 
 def get_envelope_transactions(envelope_id):
-    # returns a list of transactions with certain envelope_id
+    # returns a list of transactions with a certain envelope_id
     # Change later to take 3 inputs: envelope_id, where to start, and how many to fetch
     # If the envelope is unallocated, group envelope fill transactions
     c.execute("SELECT id FROM transactions WHERE envelope_id=? ORDER by day DESC, id DESC", (envelope_id,))
@@ -189,13 +189,10 @@ def delete_transaction(id):
 
 def new_split_transaction(t):
     #takes arrays of amt and envelope_id and creates individual transactions
-    if t.type == SPLIT_TRANSACTION:
-        grouping = gen_grouping_num()
-        amts = t.amt
-        envelopes = t.envelope_id
-        for i in range(len(amts)):
-            new_t = Transaction(SPLIT_TRANSACTION, t.name, amts[i], t.date, envelopes[i], t.account_id, grouping, t.note)
-            insert_transaction(new_t)
+    grouping = gen_grouping_num()
+    for i in range(len(amts)):
+        new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note)
+        insert_transaction(new_t)
 
 
 # ---------------ACCOUNT FUNCTIONS--------------- #
@@ -261,23 +258,29 @@ def edit_account(id, name, balance):
 def update_account_balance(id, balance):
     # updates balance of account with given id
     with conn:
-        c.execute("UPDATE accounts SET balance=? WHERE id=?",(round(balance,2), id))
+        c.execute("UPDATE accounts SET balance=? WHERE id=?",(balance, id))
 
 def edit_accounts(old_accounts, new_accounts):
     c.execute("SELECT id FROM accounts WHERE deleted=0")
     account_ids = c.fetchall()
+    print(old_accounts)
+    print(new_accounts)
+    print(account_ids)
     old_ids = []
     # adds id to old_ids then updates the info for the old accounts
     for a in old_accounts:
         old_ids.append(int(a[0]))
-        edit_account(int(a[0]), a[1], float(a[2]))
+        edit_account(int(a[0]), a[1], a[2])
+        print("account edited: ", a[0])
     # adds the new accounts
     for a in new_accounts:
-        insert_account(a[0], float(a[1]))
+        insert_account(a[0], a[1])
+        print("account added: ", a[0])
     # deletes accounts that are missing
     for id in account_ids:
         if not (id[0] in old_ids):
             delete_account(id[0])
+            print("account deleted: ", id[0])
 
 def account_transfer(name, amount, date, to_account, from_account, note):
     # Creates one transaction draining an account, and one transaction filling another
@@ -341,7 +344,7 @@ def update_envelope_balance(id, balance):
     # updates envelope balance for given id
     # NOTE: this isn't possible as a stand alone action
     with conn:
-        c.execute("UPDATE envelopes SET balance=? WHERE id=?",(round(balance,2), id))
+        c.execute("UPDATE envelopes SET balance=? WHERE id=?",(balance, id))
 
 def edit_envelope(id, name, budget):
     # updates the name and budget for given id
@@ -357,10 +360,10 @@ def edit_envelopes(old_envelopes, new_envelopes):
     # adds id to old_ids then updates the info for the old envelopes
     for e in old_envelopes:
         old_ids.append(int(e[0]))
-        edit_envelope(int(e[0]), e[1], float(e[2]))
+        edit_envelope(int(e[0]), e[1], e[2])
     # adds the new envelopes
     for e in new_envelopes:
-        insert_envelope(e[0], float(e[1]))
+        insert_envelope(e[0], e[1])
     # deletes envelopes that are missing
     for id in envelope_ids:
         if not (id[0] in old_ids):
@@ -420,7 +423,7 @@ def get_total():
     if not total is None:
         return stringify(total)
     else:
-        return 0
+        return stringify(0)
 
 def gen_grouping_num():
     # Creates a new and unique grouping number
@@ -476,7 +479,7 @@ def get_grouped_json(id):
         data['transactions'].append({
             'id': t.id,
             'name': t.name,
-            'amt': round(t.amt,2),
+            'amt': t.amt / 100,
             'date': t.date,
             'envelope_id': t.envelope_id,
             'account_id': t.account_id,
@@ -488,7 +491,7 @@ def get_grouped_json(id):
 def stringify(number):
     # Formats number into a nice string to display
     negative = number < 0
-    string = '$%.2f' % abs(number)
+    string = '$%.2f' % abs(number / 100)
     if negative:
         string = '-' + string
     return string
