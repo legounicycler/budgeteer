@@ -25,10 +25,6 @@
   margin: .25em 0;
 }
 
-#no-accounts, #no-envelopes {
-  padding: 5px;
-}
-
 #envelopes-bin, #accounts-bin {
   height: calc(100% - 56px);
 }
@@ -73,6 +69,10 @@
   margin-top: 2em;
 }
 
+.datepicker-modal {
+  margin-top: 2em;
+}
+
 .no-margin {
   margin: 0;
   padding-bottom: .1em; /* so the headers don't clip in the y-direction */
@@ -88,6 +88,10 @@
 .empty-text {
   margin-bottom: 2em;
   margin-top: 1em;
+}
+
+.no-message {
+  padding: 5px;
 }
 
 .input-field label {
@@ -216,5 +220,77 @@ h5 {
 
   .modal .modal-content {
     padding: 12px 0px;
+  }
+
+  #transaction-modal .tab a {
+    font-size: .9em !important;
+  }
+
+  h3 {
+    font-size: 2.4rem;
+  }
+
+  .select-dropdown li span {
+    font-size: 1em;
+    padding: 7px;
+  }
+
+  .select-wrapper input {
+    font-size: 12px !important;
+  }
+
+  .select-wrapper {
+    margin-bottom: .6em;
+  }
+
+  .dropdown-content li {
+    min-height: 30px;
+  }
+
+  .modal {
+    width: 90%;
+  }
+
+  .modal form {
+    padding: 0 !important;
+  }
+
+  .input-field {
+    margin-bottom: 0;
+  }
+
+  .header {
+    font-size: .9em;
+  }
+
+  input {
+    margin-bottom: 0px !important;
+  }
+
+  input[name="note"] {
+    margin-bottom: 10px !important;
+  }
+
+  .helper-text {
+    margin-bottom: .5em;
+  }
+
+  .s6 .helper-text {
+    font-size: .7em !important;
+    margin-top: .2em;
+  }
+}
+
+@media only screen and (max-width: 350px) {
+  .s6 .select-wrapper input {
+    font-size: 10px !important;
+  }
+
+  .header {
+    font-size: .8em;
+  }
+
+  .s6 .helper-text {
+    font-size: .63em !important;
   }
 }

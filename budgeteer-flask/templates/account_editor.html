@@ -8,25 +8,25 @@
 
         <ul id="account-editor-bin" class="collection">
           <li class="row collection-item left-align grey lighten-3">
-            <div class="col s7 header offset-s1 left-align">Name</div>
-            <div class="col s2 header account-balance">Balance</div>
-            <div class="col s2 header delete-account">Delete</div>
+            <div class="col s6 m7 header offset-s1 offset-m1 left-align">Name</div>
+            <div class="col s3 m2 header account-balance">Balance</div>
+            <div class="col s2 m2 header delete-account">Delete</div>
           </li>
 
           {% for id, account in accounts_data.items() %}
             {% if account.deleted == false%}
               <li class="row account-row collection-item flex">
                 <div class="col s1 valign-wrapper account-icon"><i class="material-icons">account_balance</i></div>
-                <div class="col s7 account-name left-align input-field">
+                <div class="col s6 m7 account-name left-align input-field">
                   <input class="validate" type="text" value="{{account.name}}" name="edit-account-name" required>
                   <span class="helper-text" data-error="Account name required"></span>
                 </div>
-                <div class="col s2 account-balance input-field">
+                <div class="col s3 m2 account-balance input-field">
                   <input class="validate" type="text" value="{% if account.balance[0] == '$' %}{{ account.balance[1:] }}{% else %}-{{ account.balance[2:] }}{% endif %}" name="edit-account-balance" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
                   <input name="account-id" type="hidden" value="{{account.id}}" required>
                   <span class="helper-text" data-error="Please enter a numeric value"></span>
                 </div>
-                <div class="col s2 valign-wrapper delete-account">
+                <div class="col s2 m2 valign-wrapper delete-account">
                   <a href="#!" class="delete-account-button"><i class="material-icons red-text">delete_forever</i></a>
                 </div>
               </li>

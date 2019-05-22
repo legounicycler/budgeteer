@@ -1,8 +1,11 @@
   # FEATURES TO ADD
   #
+  # Accounts/login
   # Scheduled transactions
+  # Placeholder transactions
   # Multiple delete function
   # hoverable note function
+  # loading spinners
   # sort transaction lists (multiple ways date, amount, name, etc.)
   # Transaction search
   # Add keyboard-tab select function on materialize select so that it's more user friendly
@@ -25,21 +28,22 @@
   #
   # THINGS TO DO STILL (ALPHA 1.0)
   #
-  # Improve envelope fill/ envelope fill editor
-  # Add envelope filler to data reload
-  # Make sure envelope filler editor works with deleted envelopes
+  # Update get_transactions to use join clause for account_name and deleted info
   # Fix CSS so it's mobile responsive
-  # Change ajax in so that the site only loads 50 transactions at a time
-  #     PROBLEM: If you load specifically 50 transactions at a time, but the 50th
-  #     is a part of a split transaction, you're not getting the complete data needed
-  #     to render the page correctly
+  # Fix CSS so that accounts/envelopes dropdowns are outside the modal
+  # Fix CSS so the error messages look nice/all trigger on incomplete form
   # Improve documentation on every page
   #
+  # fix template structure for transactions and envelope/selectors
+  #
+  #
+  # BUG FIXES:
+  # Envelope fill on envelope transactions view
+  # split transaction display on account transactions view
+  # test envelope/account transfers with ajax in specific window views too
   #
   # QUESTIONS:
   # Is the layout structure good?
-  # How to avoid problem with set number of transactions
-  # How would I do scheduled transactions?
   # General login stuff
   #
   # THINGS TO MAYBE DO:
@@ -75,30 +79,30 @@ t_type_dict2 = {
 @app.route("/")
 @app.route("/home", methods=['GET'])
 def home():
-    transactions_data = get_transactions()
+    (transactions_data, offset, limit) = get_transactions(0,10)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total()
     current_view = 'All transactions'
-    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
+    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, offset=offset, limit=limit)
 
 @app.route("/envelope/<envelope_id>", methods=['GET'], )
 def envelope(envelope_id):
-    transactions_data = get_envelope_transactions(envelope_id)
+    (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,10)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total()
     current_view = get_envelope(envelope_id).name
-    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
+    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, offset=offset, limit=limit)
 
 @app.route("/account/<account_id>", methods=['GET'], )
 def account(account_id):
-    transactions_data = get_account_transactions(account_id)
+    (transactions_data, offset, limit) = get_account_transactions(account_id,0,10)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total()
     current_view = get_account(account_id).name
-    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view)
+    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, offset=offset, limit=limit)
 
 @app.route('/new_expense', methods=['POST'])
 def new_expense():
@@ -111,8 +115,9 @@ def new_expense():
     for i in range(len(amounts)):
         amounts[i] = int(float(amounts[i]) * 100)
         envelope_ids[i] = int(envelope_ids[i])
-    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, 0, note)
+    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note)
     if len(envelope_ids) == 1:
+        t.grouping = gen_grouping_num()
         t.envelope_id = envelope_ids[0]
         t.amt = amounts[0]
         insert_transaction(t)
@@ -148,7 +153,7 @@ def new_income():
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     account_id = request.form['account_id']
     note = request.form['note']
-    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, 0, note)
+    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note)
     insert_transaction(t)
     return 'Successfully added new income!'
 
@@ -165,10 +170,10 @@ def fill_envelopes():
         envelope_ids[i] = int(envelope_ids[i])
         if amounts[i] == 0:
             deletes.append(i)
-    for index in deletes:
+    for index in reversed(deletes):
         amounts.pop(index)
         envelope_ids.pop(index)
-    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, 0, note)
+    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note)
     envelope_fill(t)
     return 'Envelopes successfully filled!'
 
@@ -235,33 +240,52 @@ def edit_envelopes_page():
 
 @app.route('/api/data-reload', methods=['POST'])
 def transactions_function():
-    # needs to change based on what page you're on
     url = request.get_json()['url']
     if 'account/' in url:
         regex = re.compile('account/(\d+)')
         account_id = int(regex.findall(url)[0])
-        transactions_data = get_account_transactions(account_id)
+        (transactions_data, offset, limit) = get_account_transactions(account_id,0,10)
     elif 'envelope/' in url:
         regex = re.compile('envelope/(\d+)')
         envelope_id = int(regex.findall(url)[0])
-        transactions_data = get_envelope_transactions(envelope_id)
+        (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,10)
     else:
-        transactions_data = get_transactions()
-
-    print(transactions_data)
+        (transactions_data, offset, limit) = get_transactions(0,10)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     data = {}
     data['total'] = get_total()
     data['unallocated'] = envelopes_data[1].balance
-    data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data)
+    data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
     data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
     data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
     data['account_selector_html'] = render_template('account_selector.html', accounts_data=accounts_data)
     data['envelope_selector_html'] = render_template('envelope_selector.html', envelopes_data=envelopes_data)
     data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data)
     data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
+    data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
     return jsonify(data)
+
+@app.route('/api/load-more', methods=['POST'])
+def load_more():
+    current_offset = request.get_json()['offset']
+    url = request.get_json()['url']
+    if 'account/' in url:
+        regex = re.compile('account/(\d+)')
+        account_id = int(regex.findall(url)[0])
+        (transactions_data, offset, limit) = get_account_transactions(account_id,current_offset,10)
+    elif 'envelope/' in url:
+        regex = re.compile('envelope/(\d+)')
+        envelope_id = int(regex.findall(url)[0])
+        (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,current_offset,10)
+    else:
+        (transactions_data, offset, limit) = get_transactions(current_offset,10)
+
+    # these 2 lines shouldn't be necessary here after updating to a join clause
+    (active_envelopes, envelopes_data) = get_envelope_dict()
+    (active_accounts, accounts_data) = get_account_dict()
+    more_transactions = render_template('more_transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, accounts_data=accounts_data, envelopes_data=envelopes_data)
+    return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions})
 
 
 if __name__ == '__main__':

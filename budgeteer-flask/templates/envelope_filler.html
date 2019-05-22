@@ -20,32 +20,49 @@
         </div>
 
         <div class="row">
-          <ul id="envelope-editor-bin" class="collection">
-            <li class="row collection-item left-align grey lighten-3">
-              <div class="col s5 header offset-s1 left-align">Name</div>
-              <div class="col s3 header envelope-budget">Amount</div>
-              <div class="col s3 header envelope-balance">Balance</div>
-            </li>
+          <div class="col s6">
+            <h6>Unallocated:</h6>
+            <h6><span id="unallocated-balance-envelope-filler" class="{{'negative' if envelopes_data[1].balance[0] == '-'}} balance">{{envelopes_data[1].balance}}</span></h6>
+          </div>
+          <div class="col s6">
+            <h6>Fill total:</h6>
+            <h6><span id="fill-total" class="balance">$0.00</span></h6>
+          </div>
+        </div>
 
-            {% for id, envelope in envelopes_data.items() %}
-              {% if envelope.deleted == false and envelope.id != 1 %}
-                <li class="row envelope-row collection-item flex">
-                  <div class="col s1 valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div>
-                  <div class="col s5 valign-wrapper envelope-name left-align editor-col input-field">
-                    <h5 class="truncate no-margin">{{envelope.name}}</h5>
-                    <input type="hidden" value={{envelope.id}} name="envelope_id">
-                  </div>
-                  <div class="col s3 envelope-budget editor-col input-field">
-                    <input class="validate" type="text" value="0.00" name="fill-amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
-                    <span class="helper-text" data-error="Please enter a numeric value"></span>
-                  </div>
-                  <div class="col s3 valign-wrapper envelope-balance editor-col">
-                    <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>
-                  </div>
-                </li>
+        <div class="row">
+          <ul class="collection">
+            <div class="envelope-fill-editor-bin">
+              <li class="row collection-item left-align grey lighten-3">
+                <div class="col s5 header offset-s1 left-align">Name</div>
+                <div class="col s3 header envelope-budget">Amount</div>
+                <div class="col s3 header envelope-balance">Balance</div>
+              </li>
+              {% if active_envelopes == false%}
+                <div class="row collection-item">
+                  <h5 class="no-margin no-message">You don't have any envelopes yet!</h5>
+                </div>
+              {% else %}
+                {% for id, envelope in envelopes_data.items() %}
+                  {% if envelope.deleted == false and envelope.id != 1 %}
+                    <li class="row envelope-row collection-item flex">
+                      <div class="col s1 valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div>
+                      <div class="col s5 valign-wrapper envelope-name left-align editor-col input-field">
+                        <h5 class="truncate no-margin">{{envelope.name}}</h5>
+                        <input type="hidden" value={{envelope.id}} name="envelope_id">
+                      </div>
+                      <div class="col s3 envelope-budget editor-col input-field">
+                        <input class="validate" type="text" value="0.00" name="fill-amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                        <span class="helper-text" data-error="Please enter a numeric value"></span>
+                      </div>
+                      <div class="col s3 valign-wrapper envelope-balance editor-col">
+                        <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>
+                      </div>
+                    </li>
+                  {% endif %}
+                {% endfor %}
               {% endif %}
-            {% endfor %}
-
+            </div>
           </ul>
         </div>
 
@@ -57,7 +74,7 @@
         </div>
 
         <div class="row">
-          <div class="col s3 push-s6">
+          <div class="col s6 push-s3">
             <button class="btn waves-effect waves-light yellow darken-4" name="action" type="submit" href="#!">Submit</button>
           </div>
         </div>

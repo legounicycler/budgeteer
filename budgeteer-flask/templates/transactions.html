@@ -22,6 +22,9 @@
           </li>
         </a>
       {% endfor %}
+      {% if limit == False %}
+        <a id="load-more" href="#!" data-offset="{{offset}}"><span >Load more transactions</span></a>
+      {% endif %}
     </div>
   {% else %}
     <h5 style="margin: .5em 0">Whoops! There aren't any transactions here yet!</h5>

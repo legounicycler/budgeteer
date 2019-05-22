@@ -14,7 +14,7 @@ ACCOUNT_TRANSFER = 2
 INCOME = 3
 SPLIT_TRANSACTION = 4
 ENVELOPE_FILL = 5
-PLACEHOLDER = 6
+# PLACEHOLDER = 6
 
 
 class Transaction:
@@ -55,7 +55,7 @@ def create_db():
             day DATE NOT NULL,
             envelope_id INTEGER,
             account_id INTEGER,
-            grouping INTEGER NOT NULL DEFAULT 0,
+            grouping INTEGER NOT NULL,
             note TEXT NOT NULL DEFAULT ''
             )
         """)
@@ -106,34 +106,34 @@ def get_transaction(id):
     t.id = tdata[0]
     return t
 
-def get_transactions():
+def get_transactions(start, amount):
     # returns a list of all transactions to display with grouped transactions merged into one
-    # CHANGE LATER to take 2 inputs, where to start, and how many to fetch
-    c.execute("SELECT id FROM transactions ORDER by day DESC, id DESC")
-    ids = c.fetchall()
+    c.execute("SELECT id from TRANSACTIONS GROUP BY grouping ORDER BY day DESC, id DESC LIMIT ? OFFSET ?", (amount, start))
+    groupings = c.fetchall()
     tlist = []
-    split_grouped = []
-    for id in ids:
-        t = get_transaction(id[0])
-        if (t.grouping not in split_grouped or t.grouping == 0):
-            if (t.type == SPLIT_TRANSACTION or t.type == ENVELOPE_FILL):
-                split_grouped.append(t.grouping)
-                if t.type == SPLIT_TRANSACTION:
-                    c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?", (t.grouping,))
-                    t.amt = c.fetchone()[0]
-                elif t.type == ENVELOPE_FILL:
-                    c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=1", (t.grouping,))
-                    t.amt = c.fetchone()[0] * -1
-            t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
-            t.amt = stringify(t.amt * -1)
-            tlist.append(t)
-    return tlist
+    for thing in groupings:
+        t = get_transaction(thing[0])
+        if t.type == SPLIT_TRANSACTION:
+            c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?", (t.grouping,))
+            t.amt = c.fetchone()[0]
+        elif t.type == ENVELOPE_FILL:
+            c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=1", (t.grouping,))
+            t.amt = c.fetchone()[0] * -1
+        t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
+        t.amt = stringify(t.amt * -1)
+        tlist.append(t)
+    offset = start + len(tlist)
+    if len(tlist) < amount:
+        limit = True
+    else:
+        limit = False
+    return tlist, offset, limit
 
-def get_envelope_transactions(envelope_id):
+def get_envelope_transactions(envelope_id, start, amount):
     # returns a list of transactions with a certain envelope_id
     # Change later to take 3 inputs: envelope_id, where to start, and how many to fetch
     # If the envelope is unallocated, group envelope fill transactions
-    c.execute("SELECT id FROM transactions WHERE envelope_id=? ORDER by day DESC, id DESC", (envelope_id,))
+    c.execute("SELECT id FROM transactions WHERE envelope_id=? ORDER by day DESC, id DESC LIMIT ? OFFSET ?", (envelope_id,amount,start))
     ids = c.fetchall()
     tlist = []
     for id in ids:
@@ -141,12 +141,17 @@ def get_envelope_transactions(envelope_id):
         t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
         t.amt = stringify(t.amt * -1)
         tlist.append(t)
-    return tlist
+    offset = start + len(tlist)
+    if len(tlist) < amount:
+        limit = True
+    else:
+        limit = False
+    return tlist, offset, limit
 
-def get_account_transactions(account_id):
+def get_account_transactions(account_id, start, amount):
     # returns a list of transactions with certain account_id
     # Change later to take 3 inputs: account_id, where to start, and how many to fetch
-    c.execute("SELECT id FROM transactions WHERE account_id=? ORDER by day DESC, id DESC", (account_id,))
+    c.execute("SELECT id FROM transactions WHERE account_id=? ORDER by day DESC, id DESC LIMIT ? OFFSET ?", (account_id,amount,start))
     ids = c.fetchall()
     tlist = []
     for id in ids:
@@ -154,7 +159,12 @@ def get_account_transactions(account_id):
         t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
         t.amt = stringify(t.amt * -1)
         tlist.append(t)
-    return tlist
+    offset = start + len(tlist)
+    if len(tlist) < amount:
+        limit = True
+    else:
+        limit = False
+    return tlist, offset, limit
 
 def delete_transaction(id):
     # deletes transaction and all grouped transactions and updates appropriate envelope/account balances
@@ -162,8 +172,6 @@ def delete_transaction(id):
         grouping = get_grouping_from_id(id)
         if not (grouping is None):
             ids = get_ids_from_grouping(grouping)
-            if ids is None:
-                ids = [id]
             for id in ids:
                 t = get_transaction(id)
 
@@ -190,7 +198,7 @@ def delete_transaction(id):
 def new_split_transaction(t):
     #takes arrays of amt and envelope_id and creates individual transactions
     grouping = gen_grouping_num()
-    for i in range(len(amts)):
+    for i in range(len(t.amt)):
         new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note)
         insert_transaction(new_t)
 
@@ -203,7 +211,7 @@ def insert_account(name, balance):
         c.execute("INSERT INTO accounts (name, balance) VALUES (?, ?)", (name, 0))
         account_id = c.lastrowid
         income_name = 'Initial Account Balance: ' + name
-        t = Transaction(INCOME, income_name, -1 * balance, datetime.date.today(), 1, account_id, 0, '')
+        t = Transaction(INCOME, income_name, -1 * balance, datetime.date.today(), 1, account_id, gen_grouping_num(), '')
         insert_transaction(t)
 
 def get_account(id):
@@ -263,9 +271,6 @@ def update_account_balance(id, balance):
 def edit_accounts(old_accounts, new_accounts):
     c.execute("SELECT id FROM accounts WHERE deleted=0")
     account_ids = c.fetchall()
-    print(old_accounts)
-    print(new_accounts)
-    print(account_ids)
     old_ids = []
     # adds id to old_ids then updates the info for the old accounts
     for a in old_accounts:
@@ -379,7 +384,7 @@ def envelope_transfer(name, amt, date, to_envelope, from_envelope, note):
 
 def envelope_fill(t):
     # Takes a transaction with an array of envelope ids and amounts and creates sub-transactions to fill the envelopes
-    if t.type == 5:
+    if t.type == ENVELOPE_FILL:
         grouping = gen_grouping_num()
         amts = t.amt
         envelopes = t.envelope_id
@@ -394,7 +399,7 @@ def envelope_fill(t):
 def print_database():
     print()
     print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
-    c.execute("SELECT * FROM transactions")
+    c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
     print("Transactions:")
     for row in c:
         print(row)
@@ -429,7 +434,7 @@ def gen_grouping_num():
     # Creates a new and unique grouping number
     c.execute("SELECT MAX(grouping) FROM transactions")
     prevnum = c.fetchone()[0]
-    if prevnum != 0 and prevnum is not None:
+    if prevnum is not None:
         newnum = prevnum + 1
     else:
         newnum = 1
@@ -442,18 +447,16 @@ def get_grouping_from_id(id):
     if (grouping_touple is None):
         print("There is no transaction with this id: ", id)
     else:
-        grouping = grouping_touple[0]
-        return grouping
+        return grouping_touple[0]
 
 def get_ids_from_grouping(grouping):
     # returns a list of ids associated with a particular grouping number
     id_array = []
-    if (grouping != 0):
-        c.execute("SELECT id from transactions WHERE grouping=?", (grouping,))
-        id_touple = c.fetchall()
-        for i in id_touple:
-            id_array.append(i[0])
-        return id_array
+    c.execute("SELECT id from transactions WHERE grouping=?", (grouping,))
+    id_touple = c.fetchall()
+    for i in id_touple:
+        id_array.append(i[0])
+    return id_array
 
 def type_to_icon(x):
     # given a numeric transaction type, return the string name for the materialize icon
@@ -470,8 +473,6 @@ def get_grouped_json(id):
     # Given an id, return a json with the transaction data for each grouped transaction
     grouping = get_grouping_from_id(id)
     ids = get_ids_from_grouping(grouping)
-    if grouping == 0:
-        ids = [id]
     data = {}
     data['transactions'] = []
     for id in ids:
@@ -501,7 +502,11 @@ def main():
 
     # create_db()
 
+
     print_database()
+
+    # print("Starting someid_and_grouping ~fancy~\n")
+    get_transactions(7,10)
 
     conn.close()
 
