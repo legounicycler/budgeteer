@@ -462,7 +462,6 @@
           // then reopen it, the envelope balances will always be correct
           var $span = $(this).parent().siblings(".envelope-balance").children();
           $span.text(balance_format(envelope_balances[index])).negative_check(envelope_balances[index])
-          // negative_check($span,envelope_balances[index])
           // Fills input fields and creates envelope_fill_balances_array for data processing
           if (envelope_ids.includes($(this).data("envelope-id"))) {
             $(this).val(amounts[envelope_ids.indexOf($(this).data("envelope-id"))].toFixed(2));

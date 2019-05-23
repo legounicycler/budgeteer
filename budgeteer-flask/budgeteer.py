@@ -1,5 +1,6 @@
   # FEATURES TO ADD
   #
+  # Add keyboard-tab select function on materialize select so that it's more user friendly
   # Accounts/login
   # Scheduled transactions
   # Placeholder transactions
@@ -8,7 +9,6 @@
   # loading spinners
   # sort transaction lists (multiple ways date, amount, name, etc.)
   # Transaction search
-  # Add keyboard-tab select function on materialize select so that it's more user friendly
   # add cash back feature!!!
   # Spending graphs
   # Photo of recipt (maybe until reconciled)
@@ -32,9 +32,8 @@
   # Fix CSS so it's mobile responsive
   # Fix CSS so that accounts/envelopes dropdowns are outside the modal
   # Fix CSS so the error messages look nice/all trigger on incomplete form
-  # Improve documentation on every page
-  #
   # fix template structure for transactions and envelope/selectors
+  # Improve documentation on every page
   #
   #
   # BUG FIXES:
@@ -42,9 +41,6 @@
   # split transaction display on account transactions view
   # test envelope/account transfers with ajax in specific window views too
   #
-  # QUESTIONS:
-  # Is the layout structure good?
-  # General login stuff
   #
   # THINGS TO MAYBE DO:
   #
