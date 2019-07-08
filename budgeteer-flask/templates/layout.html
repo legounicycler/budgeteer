@@ -48,12 +48,12 @@
 
   <!-- Content -->
 
-  <!--Transaction Button-->
+  <!--Transaction Buttons-->
   <div class="fixed-action-btn">
     <a class="btn-floating btn-large waves-effect waves-light orange darken-3 floater"><i class="material-icons">add</i></a>
     <ul>
       <li><a class="btn-floating red modal-trigger tooltipped" id="new-transaction-button" href="#transaction-modal" data-position="top" data-tooltip="Create transaction"><i class="material-icons">edit</i></a></li>
-      <li><a class="btn-floating green darken-1 tooltipped modal-trigger" id="fill-envelopes-button" href="#envelope-fill-modal" data-position="top" data-tooltip="Fill envelopes"><i class="material-icons">open_in_browser</i></a></li>
+      <li><a class="btn-floating green darken-1 tooltipped modal-trigger" id="fill-envelopes-button" href="#envelope-fill-modal" data-position="top" data-tooltip="Fill envelopes"><i class="material-icons">input</i></a></li>
     </ul>
   </div>
 
@@ -90,9 +90,9 @@
 
 
     <!-- RIGHT CONTENT -->
-    <div class="col s12 m12 l8 hide-on-small-only" id="transactions-column">
+    <div class="col s12 m12 l8" id="transactions-column">
       <div id="transaction-header" class="valign-wrapper orange lighten-1 white-text">
-        <h4 id="transaction-title">Transactions - {{current_view}}</h4>
+        <h4 id="transaction-title" class="truncate">Transactions - {{current_view}}</h4>
       </div>
       <div id="bin">
         {% include 'transactions.html' %}

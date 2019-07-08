@@ -7,28 +7,28 @@
       <form id="envelope-editor-form" action="{{ url_for('edit_envelopes_page') }}" method="post">
         <ul id="envelope-editor-bin" class="collection">
           <li class="row collection-item left-align grey lighten-3">
-            <div class="col s4 header offset-s1 left-align">Name</div>
-            <div class="col s2 header envelope-budget">Budgeted</div>
-            <div class="col s3 header envelope-balance">Balance</div>
-            <div class="col s2 header delete-envelope">Delete</div>
+            <div class="col s6 m4 offset-m1 header left-align">Name</div>
+            <div class="col s6 m2 header envelope-budget">Budgeted</div>
+            <div class="col m3 hide-on-small-only header envelope-balance">Balance</div>
+            <div class="col m2 hide-on-small-only header delete-envelope">Delete</div>
           </li>
           {% for id, envelope in envelopes_data.items() %}
             {% if envelope.deleted == false and envelope.id != 1 %}
               <li class="row envelope-row collection-item flex">
-                <div class="col s1 valign-wrapper envelope-icon"><i class="material-icons">mail_outline</i></div>
-                <div class="col s4 envelope-name left-align input-field">
+                <div class="col m1 hide-on-small-only valign-wrapper envelope-icon"><i class="material-icons">mail_outline</i></div>
+                <div class="col s6 m4 envelope-name left-align input-field">
                   <input class="validate" type="text" value="{{envelope.name}}" name="edit-envelope-name" required>
                   <span class="helper-text" data-error="Envelope name required"></span>
                 </div>
-                <div class="col s2 envelope-budget input-field">
+                <div class="col s5 m2 envelope-budget input-field">
                   <input class="validate" type="text" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" name="edit-envelope-budget" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
                   <input name="envelope-id" type="hidden" value="{{envelope.id}}" required>
-                  <span class="helper-text" data-error="Please enter a numeric value"></span>
+                  <span class="helper-text" data-error="Must be numeric"></span>
                 </div>
-                <div class="col s3 valign-wrapper envelope-balance">
+                <div class="col m3 hide-on-small-only valign-wrapper envelope-balance">
                   <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>
                 </div>
-                <div class="col s2 valign-wrapper delete-envelope">
+                <div class="col s1 m2 valign-wrapper delete-envelope">
                   <a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a>
                 </div>
               </li>

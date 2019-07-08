@@ -98,11 +98,6 @@
   pointer-events: none !important;
 }
 
-.tiny {
-  font-size: .75em !important;
-  color: gray;
-}
-
 .transaction-status, .envelope-budget, .transaction-name, .transaction-amount, .envelope-balance, .account-balance, .transaction-type, .delete-account, .delete-envelope {
   border-left: 1px solid #e0e0e0;
 }
@@ -123,12 +118,17 @@
   height: 50px;
 }*/
 
-.transaction-row, .envelope-row, .account-row{
-  padding: 0 !important;
-}
+/*.transaction-row, .envelope-row, .account-row{
+  padding: 0;
+}*/
 
 .header {
   height: auto;
+}
+
+/* keept header text from overflowing div*/
+.header.col {
+  padding: 0px;
 }
 
 
@@ -155,14 +155,6 @@ h5 {
   margin-bottom: 0;
 }
 
-.negative {
-  background-color: #e60000 !important;
-}
-
-/*.neutral {
-  background-color: black !important;
-}*/
-
 .balance {
   width: min-content;
   color: white;
@@ -171,6 +163,14 @@ h5 {
   background-color: green;
   font-weight: bold;
 }
+
+.negative {
+  background-color: #e60000;
+}
+
+/*.neutral {
+  background-color: black !important;
+}*/
 
 #edit-accounts, #edit-envelopes {
   margin-top: 5px;
@@ -197,6 +197,10 @@ h5 {
   text-decoration: line-through;
 }
 
+.tiny {
+  font-size: .75em;
+  color: gray;
+}
 
 @media only screen and (max-width: 992px) {
   .left-content {
@@ -211,15 +215,62 @@ h5 {
     top: 5px;
   }
 
+  #delete-modal {
+    max-width: 50%;
+  }
+
 }
 
 @media only screen and (max-width: 600px) {
-  .left-content {
-    height: 100%;
+
+  #delete-modal {
+    max-width: 75%;
+  }
+
+  #delete-modal .modal-content{
+    padding-sides: 5px;
+  }
+
+  .delete-account, .delete-envelope {
+    border-left: none;
+  }
+
+  .envelope-fill-editor-bin .envelope-row h5 {
+    font-size: 1em;
+  }
+
+  .nav-wrapper i {
+    height: 64px !important;
+    line-height: 64px !important;
+  }
+
+  .sidenav-trigger {
+    margin: 0px !important;
+  }
+
+  .navbar-fixed {
+    height: 64px;
+  }
+
+  nav {
+    height: 64px;
+    line-height: 64px;
+  }
+
+  #transactions-bin {
+    font-size: .8em;
   }
 
   .modal .modal-content {
     padding: 12px 0px;
+  }
+
+  .modal-content.datepicker-container {
+    padding-top: 0;
+  }
+
+  .datepicker-modal {
+    margin-top: 0;
   }
 
   #transaction-modal .tab a {
@@ -251,8 +302,13 @@ h5 {
     width: 90%;
   }
 
-  .modal form {
-    padding: 0 !important;
+  /* Keeps transaction creation modal envelope carrats in place */
+  .modal form.col {
+    padding: 0 ;
+  }
+
+  #account-editor-form, #envelope-editor-form {
+    padding: 0 3px;
   }
 
   .input-field {
@@ -275,10 +331,53 @@ h5 {
     margin-bottom: .5em;
   }
 
-  .s6 .helper-text {
-    font-size: .7em !important;
+  .s6 .helper-text, .s4 .helper-text, .s3 .helper-text {
+    font-size: .68em !important;
     margin-top: .2em;
   }
+
+  #transaction-title {
+    font-size: 1.8em;
+  }
+
+  .header {
+    text-align: center;
+  }
+
+}
+
+@media only screen and (max-width: 450px) {
+    /* Extends transactions to edge of screen*/
+    #transactions-bin {
+      margin: 0px;
+      top: 0px;
+    }
+
+    /* Keeps transaction title from wrapping*/
+    #transaction-title {
+      font-size: 1.5em;
+    }
+
+    #bin {
+      height: calc(100% - 154px);
+    }
+
+    .transaction-name {
+      font-size: .9em;
+    }
+
+    .transaction-name .tiny {
+      font-size: .8em;
+    }
+
+    .envelope-budget.editor-col.col {
+      padding: 0 3px;
+    }
+
+    .envelope-budget.editor-col .helper-text {
+      font-size: .6em !important;
+    }
+
 }
 
 @media only screen and (max-width: 350px) {
@@ -293,4 +392,12 @@ h5 {
   .s6 .helper-text {
     font-size: .63em !important;
   }
+
+  .transaction-date {
+    font-size: .9em;
+  }
+
+  /*.balance {
+    font-size: .9em;
+  }*/
 }

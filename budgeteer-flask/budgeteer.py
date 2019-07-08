@@ -13,6 +13,7 @@
   # Spending graphs
   # Photo of recipt (maybe until reconciled)
   #
+  # Link to other transactions in descriptions??
   # envelope average spending /spent last month
   # cover overspending button
   # goals function (target category balance / balance by date)
@@ -75,7 +76,7 @@ t_type_dict2 = {
 @app.route("/")
 @app.route("/home", methods=['GET'])
 def home():
-    (transactions_data, offset, limit) = get_transactions(0,10)
+    (transactions_data, offset, limit) = get_transactions(0,50)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total()
@@ -84,7 +85,7 @@ def home():
 
 @app.route("/envelope/<envelope_id>", methods=['GET'], )
 def envelope(envelope_id):
-    (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,10)
+    (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total()
@@ -93,7 +94,7 @@ def envelope(envelope_id):
 
 @app.route("/account/<account_id>", methods=['GET'], )
 def account(account_id):
-    (transactions_data, offset, limit) = get_account_transactions(account_id,0,10)
+    (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total()
@@ -240,13 +241,13 @@ def transactions_function():
     if 'account/' in url:
         regex = re.compile('account/(\d+)')
         account_id = int(regex.findall(url)[0])
-        (transactions_data, offset, limit) = get_account_transactions(account_id,0,10)
+        (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
     elif 'envelope/' in url:
         regex = re.compile('envelope/(\d+)')
         envelope_id = int(regex.findall(url)[0])
-        (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,10)
+        (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
     else:
-        (transactions_data, offset, limit) = get_transactions(0,10)
+        (transactions_data, offset, limit) = get_transactions(0,50)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     data = {}
@@ -269,13 +270,13 @@ def load_more():
     if 'account/' in url:
         regex = re.compile('account/(\d+)')
         account_id = int(regex.findall(url)[0])
-        (transactions_data, offset, limit) = get_account_transactions(account_id,current_offset,10)
+        (transactions_data, offset, limit) = get_account_transactions(account_id,current_offset,50)
     elif 'envelope/' in url:
         regex = re.compile('envelope/(\d+)')
         envelope_id = int(regex.findall(url)[0])
-        (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,current_offset,10)
+        (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,current_offset,50)
     else:
-        (transactions_data, offset, limit) = get_transactions(current_offset,10)
+        (transactions_data, offset, limit) = get_transactions(current_offset,50)
 
     # these 2 lines shouldn't be necessary here after updating to a join clause
     (active_envelopes, envelopes_data) = get_envelope_dict()
