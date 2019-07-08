@@ -1,6 +1,0 @@
-<select class="account-selector" name="account_id" required>
-  <option value="" disabled selected>Choose an Account</option>
-  {% for id, account in accounts_data.items() %}
-    {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}</option>{% endif %}
-  {% endfor %}
-</select>
