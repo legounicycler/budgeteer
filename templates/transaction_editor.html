@@ -45,7 +45,7 @@
 
             <div class="row">
               <div class="input-field col s6">
-                <select id="edit-account_id" class="account-selector" name="account_id">
+                <select id="edit-account_id" class="account-selector" name="account_id" required>
                   <option value="" disabled selected>Choose an Account</option>
                   {% for id, account in accounts_data.items() %}
                     {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance}}</option>{% endif %}
@@ -103,7 +103,7 @@
 
             <div class="row">
               <div class="input-field col s12">
-                <select id="edit-transfer_type"class="div-toggle" data-target=".transfer-toggler" name="transfer_type">
+                <select id="edit-transfer_type"class="div-toggle" data-target=".transfer-toggler" name="transfer_type" required>
                   <option value="1" data-show=".envelope-transfer">Envelope Transfer</option>
                   <option value="2" data-show=".account-transfer">Account Transfer</option>
                 </select>
@@ -222,7 +222,7 @@
 
             <div class="row">
               <div class="input-field col s12">
-                <select id="edit-account_id" class="account-selector" name="account_id">
+                <select id="edit-account_id" class="account-selector" name="account_id" required>
                   <option value="" disabled selected>Choose an Account</option>
                   {% for id, account in accounts_data.items() %}
                     {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance}}</option>{% endif %}

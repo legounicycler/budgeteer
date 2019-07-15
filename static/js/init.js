@@ -255,8 +255,8 @@
         $('#transactions-bin').replaceWith(o['transactions_html']);
         $('#accounts-bin').replaceWith(o['accounts_html']);
         $('#envelopes-bin').replaceWith(o['envelopes_html']);
-        $('.select-wrapper:has(.account-selector)').replaceWith(o['account_selector_html']);
-        $('.select-wrapper:has(.envelope-selector)').replaceWith(o['envelope_selector_html']);
+        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
+        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
         $('.envelope-transfer select').first().attr('name', 'from_envelope');
         $('.envelope-transfer select').last().attr('name', 'to_envelope');
         $('.account-transfer select').first().attr('name', 'from_account');
@@ -466,7 +466,9 @@
             envelope_fill_balances_array.push(0.00)
           }
         });
-        console.log(envelope_fill_balances_array)
+        if (envelope_fill_balances_array.length == 0) { //if you've deleted all the envelopes this prevents it from crashing
+          envelope_fill_balances_array.push(0.00)
+        }
         $('#edit-fill-total').text(balance_format(envelope_fill_balances_array.reduce(getSum))).negative_check(parseFloat(envelope_fill_balances_array.reduce(getSum)));
         $('#edit-unallocated-balance-envelope-filler').text(balance_format(parseFloat(unallocated_balance))).negative_check(unallocated_balance)
       }
