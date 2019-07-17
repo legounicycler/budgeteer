@@ -13,8 +13,25 @@
   color: gray;
 }
 
+.schedule-content {
+  display: none;
+}
+
 .flex {
   display: flex;
+}
+
+.no-padding {
+  padding: 0 !important;
+}
+
+.checkbox-special {
+  padding-left: 20px !important;
+  height: 20px !important;
+}
+
+.schedule-label {
+  color: gray;
 }
 
 .envelope-row .input-field, .account-row .input-field {
@@ -119,14 +136,6 @@
 .scroller .envelope-budget, .scroller .envelope-balance, .scroller .envelope-name, .scroller .envelope-icon, .scroller .account-balance, .scroller .account-icon, .scroller .account-name {
   height: 36px;
 }
-
-/*.editor-col {
-  height: 50px;
-}*/
-
-/*.transaction-row, .envelope-row, .account-row{
-  padding: 0;
-}*/
 
 .header {
   height: auto;
@@ -348,6 +357,10 @@ h5 {
 
   .header {
     text-align: center;
+  }
+
+  .schedule-label {
+    font-size: .75em;
   }
 
 }
