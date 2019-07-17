@@ -1,6 +1,8 @@
   # FEATURES TO ADD
   #
   # Scheduled transactions (chrontab?)
+  # Quick fill for envelopes based on budget
+  # Budget progress bar
   # Accounts/login
   # Multiple delete function
   # hoverable note function
@@ -8,8 +10,9 @@
   # Transaction search
   # loading spinners
   # Placeholder transactions (for deleted/edited accounts/envelopes)
-  # add cash back feature!!!
+  # import transactions from bank
   # Spending graphs/budgeting tracking
+  # Add cash back feature
   # Photo of recipt (maybe until reconciled)
   # Add keyboard-tab select function on materialize select so that it's more user friendly
   #
@@ -94,7 +97,10 @@ def new_expense():
     account_id = request.form['account_id']
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
-    schedule = None
+    scheduled = request.form.getlist('scheduled')
+    schedule = request.form['schedule']
+    print(scheduled)
+    print(schedule)
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i]) * 100))
         envelope_ids[i] = int(envelope_ids[i])
@@ -116,7 +122,10 @@ def new_transfer():
     amount = int(round(float(request.form['amount'])*100))
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
-    schedule = None
+    scheduled = request.form.getlist('scheduled')
+    schedule = request.form['schedule']
+    print(scheduled)
+    print(schedule)
     if (transfer_type == 2):
         to_account = request.form['to_account']
         from_account = request.form['from_account']
@@ -137,7 +146,10 @@ def new_income():
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     account_id = request.form['account_id']
     note = request.form['note']
-    schedule = None
+    scheduled = request.form.getlist('scheduled')
+    schedule = request.form['schedule']
+    print(scheduled)
+    print(schedule)
     t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID)
     insert_transaction(t)
     return 'Successfully added new income!'
@@ -150,7 +162,10 @@ def fill_envelopes():
     envelope_ids = request.form.getlist('envelope_id')
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
-    schedule = None #this will change later when form field is added
+    scheduled = request.form.getlist('scheduled')
+    schedule = request.form['schedule']
+    print(scheduled)
+    print(schedule)
     deletes =[]
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i])*100))

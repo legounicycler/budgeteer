@@ -46,6 +46,14 @@
         hoverEnabled: false
       });
 
+      $('.scheduler').click(function() {
+        if($(this).siblings().is(':checked')) {
+          $(this).parent().parent().parent().parent().siblings('.schedule-content').hide()
+        } else {
+          $(this).parent().parent().parent().parent().siblings('.schedule-content').show()
+        }
+      });
+
       // Sets up toggler for transfer editor
       $('.div-toggle').trigger('change');
 
@@ -265,6 +273,8 @@
         $('#envelope-modal').replaceWith(o['envelope_editor_html']);
         $('#account-modal').replaceWith(o['account_editor_html']);
         $('#envelope-modal, #account-modal').modal();
+        $('.datepicker').datepicker('setDate', new Date());
+        $('input[name="date"]').val((new Date()).toLocaleDateString("en-US"));
         $('#total span').text(o['total']);
         if (o['total'][0] == '-') {
           $('#total span').addClass('negative');
@@ -480,9 +490,7 @@
         format: 'mm/dd/yyyy',
         container: 'body'
       });
-      var datepicker = document.getElementById('edit-date');
-      var instance = M.Datepicker.getInstance(datepicker);
-      instance.setDate(new Date(date));
+      $('#edit-date').datepicker('setDate', new Date(date));
       $("#edit-name").val(name);
       $("#edit-note").val(note);
       $('#edit-envelope_id').val(envelope_id).formSelect();
