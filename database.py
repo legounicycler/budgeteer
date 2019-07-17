@@ -524,8 +524,6 @@ def main():
 
     # create_db()
 
-    update_envelope_balance(2, 0)
-
     print_database()
 
     conn.close()

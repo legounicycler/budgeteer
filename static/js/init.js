@@ -274,7 +274,7 @@
         $('#account-modal').replaceWith(o['account_editor_html']);
         $('#envelope-modal, #account-modal').modal();
         $('.datepicker').datepicker('setDate', new Date());
-        $('input[name="date"]').val((new Date()).toLocaleDateString("en-US"));
+        $('input[name="date"]').val((new Date()).toLocaleDateString("en-US", {day: '2-digit', month: '2-digit', year: 'numeric'}));
         $('#total span').text(o['total']);
         if (o['total'][0] == '-') {
           $('#total span').addClass('negative');

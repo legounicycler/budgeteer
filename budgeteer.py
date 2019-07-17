@@ -99,8 +99,8 @@ def new_expense():
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
     schedule = request.form['schedule']
-    print(scheduled)
-    print(schedule)
+    if len(scheduled) == 0:
+      schedule = None
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i]) * 100))
         envelope_ids[i] = int(envelope_ids[i])
@@ -124,8 +124,8 @@ def new_transfer():
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
     schedule = request.form['schedule']
-    print(scheduled)
-    print(schedule)
+    if len(scheduled) == 0:
+      schedule = None
     if (transfer_type == 2):
         to_account = request.form['to_account']
         from_account = request.form['from_account']
@@ -148,8 +148,8 @@ def new_income():
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
     schedule = request.form['schedule']
-    print(scheduled)
-    print(schedule)
+    if len(scheduled) == 0:
+      schedule = None
     t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID)
     insert_transaction(t)
     return 'Successfully added new income!'
@@ -164,8 +164,8 @@ def fill_envelopes():
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
     schedule = request.form['schedule']
-    print(scheduled)
-    print(schedule)
+    if len(scheduled) == 0:
+      schedule = None
     deletes =[]
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i])*100))
