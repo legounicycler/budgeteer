@@ -1,15 +1,18 @@
   # FEATURES TO ADD
   #
-  # Scheduled transactions
+  # Scheduled transactions (chrontab?)
+  # Quick fill for envelopes based on budget
+  # Budget progress bar
   # Accounts/login
   # Multiple delete function
   # hoverable note function
   # sort transaction lists (multiple ways date, amount, name, etc.)
   # Transaction search
   # loading spinners
-  # Placeholder transactions (for deleted accounts/envelopes)
-  # add cash back feature!!!
+  # Placeholder transactions (for deleted/edited accounts/envelopes)
+  # import transactions from bank
   # Spending graphs/budgeting tracking
+  # Add cash back feature
   # Photo of recipt (maybe until reconciled)
   # Add keyboard-tab select function on materialize select so that it's more user friendly
   #
@@ -23,6 +26,8 @@
   #     This might mot actually be more efficient unless I add a feature where
   #     there's a current account balance associated with every transaction
   #
+  # BUG FIXES:
+  # Helper text overflow on medium screen envelope editor
   #
   # THINGS TO MAYBE DO:
   #
@@ -36,6 +41,8 @@ import re
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'da3e7b955be0f7eb264a9093989e0b46'
+
+USER_ID = 1
 
 t_type_dict = {
         0: 'Basic Transaction',
@@ -61,7 +68,7 @@ def home():
     (transactions_data, offset, limit) = get_transactions(0,50)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
-    total_funds = get_total()
+    total_funds = get_total(USER_ID)
     current_view = 'All transactions'
     return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, offset=offset, limit=limit)
 
@@ -70,7 +77,7 @@ def envelope(envelope_id):
     (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
-    total_funds = get_total()
+    total_funds = get_total(USER_ID)
     current_view = get_envelope(envelope_id).name
     return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, offset=offset, limit=limit)
 
@@ -79,7 +86,7 @@ def account(account_id):
     (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
-    total_funds = get_total()
+    total_funds = get_total(USER_ID)
     current_view = get_account(account_id).name
     return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, offset=offset, limit=limit)
 
@@ -91,10 +98,14 @@ def new_expense():
     account_id = request.form['account_id']
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
+    scheduled = request.form.getlist('scheduled')
+    schedule = request.form['schedule']
+    if len(scheduled) == 0:
+      schedule = None
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i]) * 100))
         envelope_ids[i] = int(envelope_ids[i])
-    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note)
+    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, schedule, False, USER_ID)
     if len(envelope_ids) == 1:
         t.grouping = gen_grouping_num()
         t.envelope_id = envelope_ids[0]
@@ -112,14 +123,18 @@ def new_transfer():
     amount = int(round(float(request.form['amount'])*100))
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
+    scheduled = request.form.getlist('scheduled')
+    schedule = request.form['schedule']
+    if len(scheduled) == 0:
+      schedule = None
     if (transfer_type == 2):
         to_account = request.form['to_account']
         from_account = request.form['from_account']
-        account_transfer(name, amount, date, to_account, from_account, note)
+        account_transfer(name, amount, date, to_account, from_account, note, schedule, USER_ID)
     elif (transfer_type == 1):
         to_envelope = request.form['to_envelope']
         from_envelope = request.form['from_envelope']
-        envelope_transfer(name, amount, date, to_envelope, from_envelope, note)
+        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, schedule, USER_ID)
     else:
         print('What the heck are you even trying to do you twit?')
     return 'Successfully added new transfer!'
@@ -132,7 +147,11 @@ def new_income():
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     account_id = request.form['account_id']
     note = request.form['note']
-    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note)
+    scheduled = request.form.getlist('scheduled')
+    schedule = request.form['schedule']
+    if len(scheduled) == 0:
+      schedule = None
+    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID)
     insert_transaction(t)
     return 'Successfully added new income!'
 
@@ -144,6 +163,10 @@ def fill_envelopes():
     envelope_ids = request.form.getlist('envelope_id')
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
+    scheduled = request.form.getlist('scheduled')
+    schedule = request.form['schedule']
+    if len(scheduled) == 0:
+      schedule = None
     deletes =[]
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i])*100))
@@ -153,7 +176,7 @@ def fill_envelopes():
     for index in reversed(deletes):
         amounts.pop(index)
         envelope_ids.pop(index)
-    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note)
+    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, schedule, False, USER_ID)
     envelope_fill(t)
     return 'Envelopes successfully filled!'
 
@@ -197,7 +220,7 @@ def edit_accounts_page():
     for i in range(len(old_ids)):
         old_accounts.append([old_ids[i], old_names[i], int(round(float(old_balances[i])*100))])
     for i in range(len(new_names)):
-        new_accounts.append([new_names[i], int(round(float(new_balances[i])*100))])
+        new_accounts.append([new_names[i], int(round(float(new_balances[i])*100)), USER_ID])
     edit_accounts(old_accounts, new_accounts)
     return 'Accounts successfully updated!'
 
@@ -214,7 +237,7 @@ def edit_envelopes_page():
     for i in range(len(old_ids)):
         old_envelopes.append([old_ids[i], old_names[i], int(round(float(old_budgets[i])*100))])
     for i in range(len(new_names)):
-        new_envelopes.append([new_names[i], int(round(float(new_budgets[i])*100))])
+        new_envelopes.append([new_names[i], int(round(float(new_budgets[i])*100)), USER_ID])
     edit_envelopes(old_envelopes, new_envelopes)
     return 'Envelopes successfully updated!'
 
@@ -234,7 +257,7 @@ def transactions_function():
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     data = {}
-    data['total'] = get_total()
+    data['total'] = get_total(USER_ID)
     data['unallocated'] = envelopes_data[1].balance
     data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
     data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)

@@ -6,6 +6,7 @@ database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
 conn = sqlite3.connect(database, check_same_thread=False)
 c = conn.cursor()
 
+# Going to have to CHANGE since each user has their own unique unallocated envelope
 UNALLOCATED = 1
 
 BASIC_TRANSACTION = 0
@@ -16,10 +17,14 @@ SPLIT_TRANSACTION = 4
 ENVELOPE_FILL = 5
 # PLACEHOLDER = 6
 
+
+# Temporary testing user_id
+USER_ID = 1
+
 # ------ CLASSES/DATABASE DEFINITIONS ------ #
 
 class Transaction:
-    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note):
+    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id):
         self.id = None
         self.type = type
         self.name = name
@@ -29,24 +34,27 @@ class Transaction:
         self.account_id = account_id
         self.grouping = grouping
         self.note = note
-        # schedule
+        self.schedule = schedule
+        self.status = status
+        self.user_id = user_id
         # current account balance (for easier reconciling)
-        # status (reconciled or not)
 
 class Account:
-    def __init__(self, name, balance, deleted):
+    def __init__(self, name, balance, deleted, user_id):
         self.id = None
         self.name = name
         self.balance = balance
         self.deleted = deleted
+        self.user_id = user_id
 
 class Envelope:
-    def __init__(self, name, balance, budget, deleted):
+    def __init__(self, name, balance, budget, deleted, user_id):
         self.id = None
         self.name = name
         self.balance = balance
         self.budget = budget
         self.deleted = deleted
+        self.user_id = user_id
 
 # Creates the database file
 def create_db():
@@ -60,9 +68,10 @@ def create_db():
             envelope_id INTEGER,
             account_id INTEGER,
             grouping INTEGER NOT NULL,
-            note TEXT NOT NULL DEFAULT ''
-            -- user_id
-            -- schedule
+            note TEXT NOT NULL DEFAULT '',
+            schdeule TEXT,
+            status BOOLEAN NOT NULL DEFAULT 0,
+            user_id NOT NULL
             -- current_account_balance
             )
         """)
@@ -72,8 +81,8 @@ def create_db():
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
             balance INTEGER NOT NULL DEFAULT 0,
-            deleted BOOLEAN NOT NULL DEFAULT 0
-            -- user_id
+            deleted BOOLEAN NOT NULL DEFAULT 0,
+            user_id INTEGER NOT NULL
             )
         """)
 
@@ -83,12 +92,20 @@ def create_db():
             name TEXT NOT NULL,
             balance INTEGER NOT NULL DEFAULT 0,
             budget INTEGER NOT NULL DEFAULT 0,
-            deleted BOOLEAN NOT NULL DEFAULT 0
-            -- user_id
+            deleted BOOLEAN NOT NULL DEFAULT 0,
+            user_id INTEGER NOT NULL
             )
         """)
 
-    insert_envelope('Unallocated', 0)
+    c.execute("""
+        CREATE TABLE users (
+            user_id INTEGER PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
+            )
+        """)
+
+    insert_envelope('Unallocated', 0, USER_ID)
 
 
 # ---------------TRANSACTION FUNCTIONS--------------- #
@@ -96,8 +113,8 @@ def create_db():
 def insert_transaction(t):
     # Inserts transaction into database, then updates account/envelope balances
     with conn:
-        c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note))
+        c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id))
         if not (t.account_id is None):
             newaccountbalance = get_account_balance(t.account_id) - t.amt
             update_account_balance(t.account_id, newaccountbalance)
@@ -109,7 +126,7 @@ def get_transaction(id):
     # Retrieves transaction object from database given its ID
     c.execute("SELECT * FROM transactions WHERE id=?", (id,))
     tdata = c.fetchone()
-    t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8])
+    t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11])
     t.id = tdata[0]
     return t
 
@@ -118,7 +135,6 @@ def get_transactions(start, amount):
     # (Groups split transactions and envelope fills and displays their summed total)
     c.execute("SELECT id from TRANSACTIONS GROUP BY (CASE WHEN type = 1 OR type = 2 THEN id ELSE grouping END) ORDER BY day DESC, id DESC LIMIT ? OFFSET ?", (amount, start))
     groupings = c.fetchall()
-    print(groupings)
     tlist = []
     for thing in groupings:
         t = get_transaction(thing[0])
@@ -208,26 +224,26 @@ def new_split_transaction(t):
     #takes a transaction with arrays of amt and envelope_id and creates individual transactions
     grouping = gen_grouping_num()
     for i in range(len(t.amt)):
-        new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note)
+        new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id)
         insert_transaction(new_t)
 
 
 # ---------------ACCOUNT FUNCTIONS--------------- #
 
-def insert_account(name, balance):
+def insert_account(name, balance, user_id):
     #inserts new account and creates "initial account balance" transaction
     with conn:
-        c.execute("INSERT INTO accounts (name, balance) VALUES (?, ?)", (name, 0))
+        c.execute("INSERT INTO accounts (name, balance, user_id) VALUES (?, ?, ?)", (name, 0, user_id))
         account_id = c.lastrowid
         income_name = 'Initial Account Balance: ' + name
-        t = Transaction(INCOME, income_name, -1 * balance, datetime.date.today(), 1, account_id, gen_grouping_num(), '')
+        t = Transaction(INCOME, income_name, -1 * balance, datetime.date.today(), 1, account_id, gen_grouping_num(), '', None, False, user_id)
         insert_transaction(t)
 
 def get_account(id):
     # returns account associated with the given id
     c.execute("SELECT * FROM accounts WHERE id=?", (id,))
     adata = c.fetchone()
-    a = Account(adata[1], adata[2], adata[3])
+    a = Account(adata[1], adata[2], adata[3], adata[4])
     a.id = adata[0]
     return a
 
@@ -278,6 +294,7 @@ def update_account_balance(id, balance):
         c.execute("UPDATE accounts SET balance=? WHERE id=?",(balance, id))
 
 def edit_accounts(old_accounts, new_accounts):
+    # updates database given 2 lists of account objects
     c.execute("SELECT id FROM accounts WHERE deleted=0")
     account_ids = c.fetchall()
     old_ids = []
@@ -285,38 +302,35 @@ def edit_accounts(old_accounts, new_accounts):
     for a in old_accounts:
         old_ids.append(int(a[0]))
         edit_account(int(a[0]), a[1], a[2])
-        print("account edited: ", a[0])
     # adds the new accounts
     for a in new_accounts:
-        insert_account(a[0], a[1])
-        print("account added: ", a[0])
+        insert_account(a[0], a[1], a[2])
     # deletes accounts that are missing
     for id in account_ids:
         if not (id[0] in old_ids):
             delete_account(id[0])
-            print("account deleted: ", id[0])
 
-def account_transfer(name, amount, date, to_account, from_account, note):
+def account_transfer(name, amount, date, to_account, from_account, note, schedule, user_id):
     # Creates one transaction draining an account, and one transaction filling another
     grouping = gen_grouping_num()
-    fill = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, to_account, grouping, note)
+    fill = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, to_account, grouping, note, schedule, False, user_id)
     insert_transaction(fill)
-    empty = Transaction(ACCOUNT_TRANSFER, name, -1* amount, date, None, from_account, grouping, note)
+    empty = Transaction(ACCOUNT_TRANSFER, name, -1* amount, date, None, from_account, grouping, note, schedule, False, user_id)
     insert_transaction(empty)
 
 
 # ---------------ENVELOPE FUNCTIONS--------------- #
 
-def insert_envelope(name, budget):
+def insert_envelope(name, budget, user_id):
     # Inserts an envelope into the database with givne name and budget and a balnce of 0
     with conn:
-        c.execute("INSERT INTO envelopes (name, budget) VALUES (?, ?)", (name,budget))
+        c.execute("INSERT INTO envelopes (name, budget, user_id) VALUES (?, ?, ?)", (name,budget,user_id))
 
 def get_envelope(id):
     # returns an envelope object given an envelope_id
     c.execute("SELECT * FROM envelopes WHERE id=?", (id,))
     edata = c.fetchone()
-    e = Envelope(edata[1], edata[2], edata[3], edata[4])
+    e = Envelope(edata[1], edata[2], edata[3], edata[4], edata[5])
     e.id = edata[0]
     return e
 
@@ -351,8 +365,7 @@ def get_envelope_balance(id):
     if not (balance is None):
         return balance[0]
     else:
-        print("that envelope doesn't exist you imbicil")
-
+        print("That envelope doesn't exist you imbicil")
 
 def update_envelope_balance(id, balance):
     # updates envelope balance for given id
@@ -366,7 +379,7 @@ def edit_envelope(id, name, budget):
         c.execute("UPDATE envelopes SET name=?, budget=? WHERE id=?",(name, budget, id))
 
 def edit_envelopes(old_envelopes, new_envelopes):
-    # takes info from the envelope editor form and process it accordingly
+    # updates database given 2 lists of envelope objects from envelope editor
     c.execute("SELECT id FROM envelopes WHERE deleted=0")
     envelope_ids = c.fetchall()
     envelope_ids.remove((1,)) # gets rid of unallocated id (1) in envelope list
@@ -377,18 +390,18 @@ def edit_envelopes(old_envelopes, new_envelopes):
         edit_envelope(int(e[0]), e[1], e[2])
     # adds the new envelopes
     for e in new_envelopes:
-        insert_envelope(e[0], e[1])
+        insert_envelope(e[0], e[1], e[2])
     # deletes envelopes that are missing
     for id in envelope_ids:
         if not (id[0] in old_ids):
             delete_envelope(id[0])
 
-def envelope_transfer(name, amt, date, to_envelope, from_envelope, note):
+def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedule, user_id):
     # Creates a transaction to fill one envelope and another to empty the other
     grouping = gen_grouping_num()
-    fill = Transaction(ENVELOPE_TRANSFER, name, amt, date, to_envelope, None, grouping, note)
+    fill = Transaction(ENVELOPE_TRANSFER, name, amt, date, to_envelope, None, grouping, note, schedule, False, user_id)
     insert_transaction(fill)
-    empty = Transaction(ENVELOPE_TRANSFER, name, -1 * amt, date, from_envelope, None, grouping, note)
+    empty = Transaction(ENVELOPE_TRANSFER, name, -1 * amt, date, from_envelope, None, grouping, note, schedule, False, user_id)
     insert_transaction(empty)
 
 def envelope_fill(t):
@@ -398,41 +411,17 @@ def envelope_fill(t):
         amts = t.amt
         envelopes = t.envelope_id
         for i in range(len(amts)):
-            empty_unallocated = Transaction(ENVELOPE_FILL, t.name, amts[i], t.date, UNALLOCATED, None, grouping, t.note)
+            empty_unallocated = Transaction(ENVELOPE_FILL, t.name, amts[i], t.date, UNALLOCATED, None, grouping, t.note, t.schedule, False, t.user_id)
             insert_transaction(empty_unallocated)
-            fill_envelope = Transaction(ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note)
+            fill_envelope = Transaction(ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id)
             insert_transaction(fill_envelope)
 
 
-#OTHER FUNCTIONS
-def print_database():
-    print()
-    print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
-    c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
-    print("Transactions:")
-    for row in c:
-        print(row)
-    print()
+# ------ OTHER FUNCTIONS ------ #
 
-    print('Accounts:')
-    c.execute("SELECT * FROM accounts")
-    for row in c:
-        print(row)
-    print()
-
-    print('Envelopes:')
-    c.execute("SELECT * FROM envelopes")
-    for row in c:
-        print(row)
-    print()
-    print("TOTAL FUNDS: ", get_total())
-    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-    print()
-
-
-def get_total():
+def get_total(user_id):
     # Sums the account balances to get a total to display
-    c.execute("SELECT SUM(balance) FROM accounts")
+    c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (user_id,))
     total = c.fetchone()[0]
     if not total is None:
         return stringify(total)
@@ -441,6 +430,7 @@ def get_total():
 
 def gen_grouping_num():
     # Creates a new and unique grouping number
+    # POSSIBLY CAN DO +1 in SQLITE QUERRY RATHER THAN THIS LOGIC (TEST IN THIS PROGRAM)
     c.execute("SELECT MAX(grouping) FROM transactions")
     prevnum = c.fetchone()[0]
     if prevnum is not None:
@@ -506,16 +496,35 @@ def stringify(number):
         string = '-' + string
     return string
 
+def print_database():
+    print()
+    print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+    c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
+    print("Transactions:")
+    for row in c:
+        print(row)
+    print()
+
+    print('Accounts:')
+    c.execute("SELECT * FROM accounts")
+    for row in c:
+        print(row)
+    print()
+
+    print('Envelopes:')
+    c.execute("SELECT * FROM envelopes")
+    for row in c:
+        print(row)
+    print()
+    print("TOTAL FUNDS: ", get_total(USER_ID))
+    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+    print()
 
 def main():
 
     # create_db()
 
-
     print_database()
-
-    # print("Starting someid_and_grouping ~fancy~\n")
-    get_transactions(7,10)
 
     conn.close()
 

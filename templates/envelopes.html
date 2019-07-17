@@ -4,20 +4,29 @@
     <h5 class="empty-text white-text">You don't have any envelopes yet!</h5>
   {% else %}
     <ul class="collection">
-      <li class="row valign-wrapper collection-item left-align grey lighten-3">
+      <!-- <li class="row valign-wrapper collection-item left-align grey lighten-3">
         <div class="col s5 header offset-s1 left-align">Name</div>
         <div class="col s3 header envelope-budget">Budgeted</div>
         <div class="col s3 header envelope-balance">Balance</div>
-      </li>
+      </li> -->
       <div class="scroller">
         {% for id, envelope in envelopes_data.items() %}
           {% if envelope.deleted == false and envelope.id != 1 %}
             <a class="waves-effect collection-item" href="/envelope/{{envelope.id}}" data-envelope-balance={{envelope.balance}}>
-              <li class="row envelope-row">
-                <div class="col s1 valign-wrapper envelope-icon"><i class="material-icons">mail_outline</i></div>
-                <div class="col s5 envelope-name left-align valign-wrapper"><h5 class="truncate no-margin">{{envelope.name}}</h5></div>
-                <div class="col s3 valign-wrapper envelope-budget">{{envelope.budget}}</div>
-                <div class="col s3 valign-wrapper envelope-balance"><span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span></div>
+              <li class="envelope-row">
+                <div class="row flex-parent">
+                  <div class="flex-child envelope-name no-padding blue-grey-text text-darken-3">
+                    <i class="material-icons hide-on-small-only">mail_outline</i> {{envelope.name}}
+                  </div>
+                  <div class="no-padding blue-grey-text text-darken-3">
+                    <h6><b>{{envelope.balance}}</b> of {{envelope.budget}}</h6>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="budget-bar grey lighten-2">
+                    <div class="budget-measure green darken-2"></div>
+                  </div>
+                </div>
               </li>
             </a>
           {% endif %}

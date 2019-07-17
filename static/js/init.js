@@ -46,6 +46,14 @@
         hoverEnabled: false
       });
 
+      $('.scheduler').click(function() {
+        if($(this).siblings().is(':checked')) {
+          $(this).parent().parent().parent().parent().siblings('.schedule-content').hide()
+        } else {
+          $(this).parent().parent().parent().parent().siblings('.schedule-content').show()
+        }
+      });
+
       // Sets up toggler for transfer editor
       $('.div-toggle').trigger('change');
 
@@ -99,6 +107,10 @@
       return total + num;
     }
 
+    function budget_bars() {
+
+    }
+
     // Checks for any current envelopes/accounts. If no, adds a message in editor modal
     function editor_row_check() {
       if ( $('#account-editor-bin').children().length == 1 ) {
@@ -113,7 +125,7 @@
       editor_row_check()
       // Adds new envelope row on button click and clears temporary no-envelopes message if there is one
       $("#new-envelope-row").click(function() {
-        $("#envelope-editor-bin").append('<li class="row envelope-row collection-item flex"><div class="col m1 hide-on-small-only valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div><div class="col s6 m4 envelope-name left-align editor-col input-field"><input required class="validate" type="text" name="new-envelope-name"><span class="helper-text" data-error="Envelope name required"></span></div><div class="col s5 m2 envelope-budget editor-col input-field"><input required class="validate" type="text" name="new-envelope-budget" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><span class="helper-text" data-error="Must be numeric"></span></div><div class="col m3 hide-on-small-only valign-wrapper envelope-balance editor-col"><span class="balance neutral">$0.00</span></div><div class="col s1 m2 valign-wrapper delete-envelope editor-col"><a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a></div></li>');
+        $("#envelope-editor-bin").append('<li class="row edit-envelope-row collection-item flex"><div class="col m1 hide-on-small-only valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div><div class="col s6 m4 envelope-name left-align editor-col input-field"><input required class="validate" type="text" name="new-envelope-name"><span class="helper-text" data-error="Envelope name required"></span></div><div class="col s5 m2 envelope-budget editor-col input-field"><input required class="validate" type="text" name="new-envelope-budget" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><span class="helper-text" data-error="Must be numeric"></span></div><div class="col m3 hide-on-small-only valign-wrapper envelope-balance editor-col"><span class="balance neutral">$0.00</span></div><div class="col s1 m2 valign-wrapper delete-envelope editor-col"><a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a></div></li>');
         $('#no-envelopes').remove();
       });
       // Adds new account row on button click and clears temporary no-accounts message if there is one
@@ -255,8 +267,8 @@
         $('#transactions-bin').replaceWith(o['transactions_html']);
         $('#accounts-bin').replaceWith(o['accounts_html']);
         $('#envelopes-bin').replaceWith(o['envelopes_html']);
-        $('.select-wrapper:has(.account-selector)').replaceWith(o['account_selector_html']);
-        $('.select-wrapper:has(.envelope-selector)').replaceWith(o['envelope_selector_html']);
+        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
+        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
         $('.envelope-transfer select').first().attr('name', 'from_envelope');
         $('.envelope-transfer select').last().attr('name', 'to_envelope');
         $('.account-transfer select').first().attr('name', 'from_account');
@@ -265,6 +277,8 @@
         $('#envelope-modal').replaceWith(o['envelope_editor_html']);
         $('#account-modal').replaceWith(o['account_editor_html']);
         $('#envelope-modal, #account-modal').modal();
+        $('.datepicker').datepicker('setDate', new Date());
+        $('input[name="date"]').val((new Date()).toLocaleDateString("en-US", {day: '2-digit', month: '2-digit', year: 'numeric'}));
         $('#total span').text(o['total']);
         if (o['total'][0] == '-') {
           $('#total span').addClass('negative');
@@ -466,7 +480,9 @@
             envelope_fill_balances_array.push(0.00)
           }
         });
-        console.log(envelope_fill_balances_array)
+        if (envelope_fill_balances_array.length == 0) { //if you've deleted all the envelopes this prevents it from crashing
+          envelope_fill_balances_array.push(0.00)
+        }
         $('#edit-fill-total').text(balance_format(envelope_fill_balances_array.reduce(getSum))).negative_check(parseFloat(envelope_fill_balances_array.reduce(getSum)));
         $('#edit-unallocated-balance-envelope-filler').text(balance_format(parseFloat(unallocated_balance))).negative_check(unallocated_balance)
       }
@@ -478,9 +494,7 @@
         format: 'mm/dd/yyyy',
         container: 'body'
       });
-      var datepicker = document.getElementById('edit-date');
-      var instance = M.Datepicker.getInstance(datepicker);
-      instance.setDate(new Date(date));
+      $('#edit-date').datepicker('setDate', new Date(date));
       $("#edit-name").val(name);
       $("#edit-note").val(note);
       $('#edit-envelope_id').val(envelope_id).formSelect();
