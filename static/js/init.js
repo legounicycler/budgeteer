@@ -69,6 +69,8 @@
 
       var elem = document.getElementsByClassName('select_dropdown');
       M.FormSelect.init(elem, {dropdownOptions:{container:document.body}});
+
+      budget_bars()
     }); // end of document ready
 
 
@@ -108,6 +110,28 @@
     }
 
     function budget_bars() {
+      $('.envelope-row').each(function() {
+        balance = parseFloat($(this).parent().data('envelope-balance').replace("$", ""));
+        budget = parseFloat($(this).parent().data('envelope-budget').replace("$", ""));
+        $budget_measure = $(this).find('.budget-measure');
+        console.log(balance);
+        console.log(budget);
+        percentage = (balance / budget) * 100;
+        if (percentage > 100) {
+          percentage = 100;
+        } else if (percentage < -100) {
+          percentage = -100;
+        }
+        if (percentage >= 0) {
+          $budget_measure.width(percentage + '%');
+          $budget_measure.css("background-color","#108010");
+          $budget_measure.css("float","left");
+        } else {
+          $budget_measure.width((-1*percentage) + '%');
+          $budget_measure.css("background-color","#d50707");
+          $budget_measure.css("float","right");
+        }
+      });
 
     }
 
@@ -305,6 +329,8 @@
           envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
         });
         envelope_fill_balances_array = [];
+
+        budget_bars()
 
         console.log("Page data reloaded!")
       });

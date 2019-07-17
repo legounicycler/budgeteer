@@ -2,7 +2,6 @@
   #
   # Scheduled transactions (chrontab?)
   # Quick fill for envelopes based on budget
-  # Budget progress bar
   # Accounts/login
   # Multiple delete function
   # hoverable note function
