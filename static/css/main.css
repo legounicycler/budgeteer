@@ -13,6 +13,10 @@
   color: gray;
 }
 
+.schedule-content {
+  display: none;
+}
+
 .flex {
   display: flex;
 }
@@ -35,6 +39,19 @@
 .flex-child i {
   vertical-align: middle;
   margin-right: .5em;
+}
+
+.no-padding {
+  padding: 0 !important;
+}
+
+.checkbox-special {
+  padding-left: 20px !important;
+  height: 20px !important;
+}
+
+.schedule-label {
+  color: gray;
 }
 
 .edit-envelope-row .input-field, .account-row .input-field {
