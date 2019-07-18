@@ -1,5 +1,6 @@
 import sqlite3
 import datetime
+from datetime import datetime
 import json
 
 database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
@@ -127,6 +128,11 @@ def get_transaction(id):
     c.execute("SELECT * FROM transactions WHERE id=?", (id,))
     tdata = c.fetchone()
     t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11])
+    # converts string to datetime object
+    if len(t.date) < 11:
+        t.date = datetime.strptime(t.date, "%Y-%m-%d")
+    else:
+        t.date = datetime.strptime(t.date, "%Y-%m-%d %H:%M:%S")
     t.id = tdata[0]
     return t
 
@@ -144,7 +150,7 @@ def get_transactions(start, amount):
         elif t.type == ENVELOPE_FILL:
             c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=1", (t.grouping,))
             t.amt = c.fetchone()[0] * -1
-        t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
+        # t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
         t.amt = stringify(t.amt * -1)
         tlist.append(t)
     # offset specifies where to start from on the next call

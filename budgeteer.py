@@ -61,6 +61,15 @@ t_type_dict2 = {
     5: 'input'
 }
 
+def datetimeformat(value, format='%m/%d/%Y'):
+    return value.strftime(format)
+
+def datetimeformatshort(value, format='%b %d\n%Y'):
+    return value.strftime(format)
+
+app.jinja_env.filters['datetimeformat'] = datetimeformat
+app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
+
 @app.route("/")
 @app.route("/home", methods=['GET'])
 def home():
@@ -289,6 +298,12 @@ def load_more():
     more_transactions = render_template('more_transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, accounts_data=accounts_data, envelopes_data=envelopes_data)
     return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions})
 
+@app.route('/api/multi-delete', methods=['POST'])
+def multi_delete():
+  delete_ids = request.form.getlist('delete')
+  for id in delete_ids:
+    delete_transaction(id)
+  return 'Transactions successfully deleted!'
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -12,10 +12,14 @@
         {% for id, account in accounts_data.items() %}
           {% if account.deleted == false%}
             <a class="waves-effect collection-item" href="/account/{{account.id}}">
-              <li class="row account-row">
+              <li class="row account-row blue-grey-text text-darken-3">
                 <div class="col s1 valign-wrapper account-icon"><i class="material-icons">account_balance</i></div>
-                <div class="col s8 account-name left-align valign-wrapper"><h5 class="truncate no-margin">{{account.name}}</h5></div>
-                <div class="col s3 valign-wrapper account-balance"><span class="{{'negative' if account.balance[0] == '-'}} balance">{{account.balance}}</span></div>
+                <div class="col s8 account-name left-align valign-wrapper">
+                  <h5 class="truncate no-margin"><b>{{account.name}}</b></h5>
+                </div>
+                <div class="col s3 valign-wrapper account-balance">
+                  <span class="{{'negative' if account.balance[0] == '-'}} balance">{{account.balance}}</span>
+                </div>
               </li>
             </a>
           {% endif %}

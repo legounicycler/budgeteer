@@ -8,6 +8,15 @@
   z-index: 1000;
 }
 
+.transaction {
+  cursor: pointer;
+}
+
+.transaction-link {
+  color: black;
+  padding: 0 !important;
+}
+
 .little-balance {
   font-size: .8em;
   color: gray;
@@ -38,7 +47,6 @@
 
 .flex-child i {
   vertical-align: middle;
-  margin-right: .5em;
 }
 
 .no-padding {
@@ -65,7 +73,7 @@
 
 .budget-bar {
   /*width: 90%;*/
-  margin-bottom: 1%;
+  margin-bottom: 7px;
   text-align: left;
   height: 16px;
 }
@@ -79,7 +87,7 @@
   font-size: 1.2em;
 }
 
-.schedule-content {
+.schedule-content, .checkbox-bucket {
   display: none;
 }
 
@@ -108,6 +116,13 @@
 
 #envelopes, #accounts {
   height: calc(100% - 64px - 90px - 48px);
+}
+
+#multi-delete-submit {
+  color: white;
+  text-decoration: underline;
+  cursor: pointer;
+  display: none;
 }
 
 #envelopes-bin .collection, #accounts-bin .collection, #transactions-bin {
@@ -258,10 +273,6 @@ h5 {
   margin: 10px;
 }
 
-.hide {
-  display: none;
-}
-
 .strikethrough {
   text-decoration: line-through;
 }
@@ -384,10 +395,6 @@ h5 {
     margin-bottom: 0;
   }
 
-  .header {
-    font-size: .9em;
-  }
-
   input {
     margin-bottom: 0px !important;
   }
@@ -426,6 +433,15 @@ h5 {
       top: 0px;
     }
 
+    .long-date {
+      display: none;
+    }
+
+    .short-date {
+      display: inline !important;
+      line-height: 16px;
+    }
+
     /* Keeps transaction title from wrapping*/
     #transaction-title {
       font-size: 1.5em;
@@ -440,7 +456,7 @@ h5 {
     }
 
     .transaction-name .tiny {
-      font-size: .8em;
+      font-size: 1.2em;
     }
 
     .envelope-budget.editor-col.col {
@@ -451,15 +467,16 @@ h5 {
       font-size: .6em !important;
     }
 
+    .transaction-name h5 {
+      margin: 5px 0px 0px 0px;
+      font-size: 1.5em;
+    }
+
 }
 
 @media only screen and (max-width: 350px) {
   .s6 .select-wrapper input {
     font-size: 10px !important;
-  }
-
-  .header {
-    font-size: .8em;
   }
 
   .s6 .helper-text {

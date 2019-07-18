@@ -91,13 +91,25 @@
 
     <!-- RIGHT CONTENT -->
     <div class="col s12 m12 l8" id="transactions-column">
-      <div id="transaction-header" class="valign-wrapper orange lighten-1 white-text">
-        <h4 id="transaction-title" class="truncate no-margin">Transactions - {{current_view}}</h4>
+      <form id="multi-delete-form" action="{{ url_for('multi_delete') }}" method="post">
+        <div id="transaction-header" class="orange lighten-1 white-text">
+          <div class="row">
+            <div class="col s12 left-align">
+              <h4 id="transaction-title" class="truncate">Transactions - {{current_view}}</h4>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col s2 push-s10">
+              <a id="multi-delete-submit">Delete</a>
+            </div>
+            <!-- <button class="btn-flat col s4" type="submit" name="action" href="#!">Submit</button> -->
+          </div>
+        </div>
+        <div id="bin">
+          {% include 'transactions.html' %}
+        </div>
       </div>
-      <div id="bin">
-        {% include 'transactions.html' %}
-      </div>
-    </div>
+    </form>
   </div>
 
   {% include 'envelope_editor.html' %}
