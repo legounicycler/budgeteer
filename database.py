@@ -3,7 +3,8 @@ import datetime
 from datetime import datetime
 import json
 
-database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
+# database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
+database = '/home/anthony/database.sqlite'
 conn = sqlite3.connect(database, check_same_thread=False)
 c = conn.cursor()
 
@@ -170,7 +171,7 @@ def get_envelope_transactions(envelope_id, start, amount):
     tlist = []
     for id in ids:
         t = get_transaction(id[0])
-        t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
+        # t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
         t.amt = stringify(t.amt * -1)
         tlist.append(t)
     # offset specifies where to start from on the next call
@@ -190,7 +191,7 @@ def get_account_transactions(account_id, start, amount):
     tlist = []
     for thing in ids:
         t = get_transaction(thing[0])
-        t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
+        # t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
         t.amt = stringify(thing[1] * -1)
         tlist.append(t)
     # offset specifies where to start from on the next call

@@ -125,6 +125,11 @@
   display: none;
 }
 
+/* keeps the scroller working properly for transactions*/
+#multi-delete-form {
+  display: inline;
+}
+
 #envelopes-bin .collection, #accounts-bin .collection, #transactions-bin {
   max-height: 100%;
   display: flex;
