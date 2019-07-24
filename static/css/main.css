@@ -172,8 +172,9 @@
 
 .no-margin {
   margin: 0;
-  padding-bottom: .1em; /* so the headers don't clip in the y-direction */
 }
+
+
 
 .empty-img {
   height: auto;
@@ -267,6 +268,7 @@ h5 {
 
 #transaction-title {
   margin-left: 10px;
+  padding-bottom: .1em; /* so the header doesn't clip in the y-direction */
 }
 
 #transactions-column {
