@@ -3,8 +3,8 @@ import datetime
 from datetime import datetime
 import json
 
-database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
-# database = '/home/anthony/database.sqlite'
+# database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
+database = '/home/anthony/database.sqlite'
 conn = sqlite3.connect(database, check_same_thread=False)
 c = conn.cursor()
 
