@@ -3,7 +3,7 @@
   # Scheduled transactions (chrontab?)
   # Ajax for accounts/envelopes views
   # Quick fill for envelopes based on budget
-  # Accounts/login
+  # Accounts/login functions
   # hoverable note function
   # sort transaction lists (multiple ways date, amount, name, etc.)
   # Transaction search

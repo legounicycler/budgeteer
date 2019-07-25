@@ -600,12 +600,12 @@
           $inputs.each(function(index) {
             // this code exists so that if you change a value, close the editor,
             // then reopen it, the envelope balances will always be correct
-            var $span = e.parent().siblings(".envelope-balance").children();
-            $span.text(balance_format(envelope_balances[index])).negative_check(envelope_balances[index])
+            var $span = $(this).parent().siblings(".envelope-balance").children();
+            $span.text(balance_format(envelope_balances[index])).negative_check(envelope_balances[index]);
             // Fills input fields and creates envelope_fill_balances_array for data processing
-            if (envelope_ids.includes(e.data("envelope-id"))) {
-              e.val(amounts[envelope_ids.indexOf(e.data("envelope-id"))].toFixed(2));
-              envelope_fill_balances_array.push(parseFloat(amounts[envelope_ids.indexOf(e.data("envelope-id"))]));
+            if (envelope_ids.includes($(this).data("envelope-id"))) {
+              $(this).val(amounts[envelope_ids.indexOf($(this).data("envelope-id"))].toFixed(2));
+              envelope_fill_balances_array.push(parseFloat(amounts[envelope_ids.indexOf($(this).data("envelope-id"))]));
             } else {
               envelope_fill_balances_array.push(0.00)
             }
