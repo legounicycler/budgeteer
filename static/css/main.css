@@ -130,6 +130,22 @@
   display: inline;
 }
 
+/* keeps the scroller working properly for transactions*/
+.transaction-name .row {
+  text-align: left;
+}
+
+/* keeps the scroller working properly for transactions*/
+.transaction-details {
+  max-height: 18px;
+}
+
+/* keeps the scroller working properly for transactions*/
+i.no-margin.tiny {
+  line-height: 18px;
+  padding-bottom: .1em;
+}
+
 #envelopes-bin .collection, #accounts-bin .collection, #transactions-bin {
   max-height: 100%;
   display: flex;
@@ -161,6 +177,10 @@
   margin-top: 7px;
 }
 
+pre {
+  margin: inherit;
+}
+
 #delete-modal {
   max-width: 30%;
   margin-top: 2em;
@@ -174,7 +194,9 @@
   margin: 0;
 }
 
-
+h5.no-margin {
+  padding-bottom: .1em;
+}
 
 .empty-img {
   height: auto;

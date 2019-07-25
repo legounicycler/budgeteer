@@ -1,9 +1,9 @@
   # FEATURES TO ADD
   #
   # Scheduled transactions (chrontab?)
+  # Ajax for accounts/envelopes views
   # Quick fill for envelopes based on budget
   # Accounts/login
-  # Multiple delete function
   # hoverable note function
   # sort transaction lists (multiple ways date, amount, name, etc.)
   # Transaction search
@@ -11,9 +11,10 @@
   # Placeholder transactions (for deleted/edited accounts/envelopes)
   # import transactions from bank
   # Spending graphs/budgeting tracking
-  # Add cash back feature
-  # Photo of recipt (maybe until reconciled)
   # Add keyboard-tab select function on materialize select so that it's more user friendly
+  # Add cash back feature
+  # Split envelope transfer?
+  # Photo of recipt (maybe until reconciled)
   #
   # Link to other transactions in descriptions??
   # envelope average spending /spent last month
@@ -27,6 +28,7 @@
   #
   # BUG FIXES:
   # Helper text overflow on medium screen envelope editor
+  # Context menu not available on non-mobile transactions right click
   #
   # THINGS TO MAYBE DO:
   #
