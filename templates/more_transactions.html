@@ -12,7 +12,7 @@
           </label>
         </div>
       </div>
-      <div class="transaction modal-trigger" href="#editor-modal" data-id="{{transaction.id}}" data-name="{{transaction.name}}" data-type="{{transaction.type}}" data-date="{{transaction.date|datetimeformat}}" data-amt="{{transaction.amt}}" data-account_id="{{transaction.account_id}}" data-account_name = "{% if transaction.account_id is not none %}{{ accounts_data[transaction.account_id].name }}{% endif %}" data-envelope_id="{{transaction.envelope_id}}" data-envelope_name = "{% if transaction.envelope_id is not none %}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}" data-grouping="{{transaction.grouping}}" data-note="{{transaction.note}}">
+      <div class="transaction modal-trigger" href="#editor-modal" data-id="{{transaction.id}}" data-name="{{transaction.name}}" data-type="{{transaction.type}}" data-date="{{transaction.date|datetimeformat}}" data-amt="{{transaction.amt}}" data-account_id="{{transaction.account_id}}" data-account_name = "{% if transaction.account_id is not none %}{{ accounts_data[transaction.account_id].name }}{% endif %}" data-envelope_id="{{transaction.envelope_id}}" data-envelope_name = "{% if transaction.envelope_id is not none %}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}" data-grouping="{{transaction.grouping}}" data-note="{{transaction.note}}" data-schedule="{{transaction.schedule}}" data-status="{{transaction.status}}" data-user_id="{{transaction.user_id}}">
         <div class="col m1 hide-on-small-only valign-wrapper transaction-type"><i class="material-icons" title="{{t_type_dict[transaction.type]}}">{{t_type_dict2[transaction.type]}}</i></div>
         <div class="col s7 transaction-name left-align">
           <div class="row">

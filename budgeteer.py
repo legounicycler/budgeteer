@@ -34,6 +34,7 @@
   #
   # Update get_transactions to use join clause for account_name and deleted info
   # fix template structure for transactions and envelope/selectors
+  # customization of date option
 
 from flask import Flask, render_template, url_for, request, redirect, jsonify
 from database import *

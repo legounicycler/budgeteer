@@ -257,11 +257,12 @@
       $(".aclass").last().prepend($envelope_selector).find("select").last().formSelect();
     });
 
-    // Removes new envelope row in transaction builder
-    $("#remove-envelope").click(function() {
-      // add something here eventually
-    });
+    // // Removes new envelope row in transaction builder
+    // $("#remove-envelope").click(function() {
+    //   // add something here eventually
+    // });
 
+    // Load more transactions button
     $('#bin').on('click', '#load-more', function() {
       var current_url = $(location).attr("href");
       $.ajax({
@@ -277,109 +278,9 @@
           $('#load-more').attr('data-offset', o['offset'])
         }
       });
-    })
-
-    // ----------------- FORM SUBMISSION/FILLING JS ------------------- //
-
-
-    // Retrieves updated data from database and updates the necessary html
-    function data_reload(current_url) {
-      $.ajax({
-        type: "POST",
-        url: "/api/data-reload",
-        data: JSON.stringify({"url": current_url}),
-        contentType: 'application/json'
-      }).done(function( o ) {
-        $('#load-more').remove()
-        $('#transactions-bin').replaceWith(o['transactions_html']);
-        $('#accounts-bin').replaceWith(o['accounts_html']);
-        $('#envelopes-bin').replaceWith(o['envelopes_html']);
-        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
-        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
-        $('.envelope-transfer select').first().attr('name', 'from_envelope');
-        $('.envelope-transfer select').last().attr('name', 'to_envelope');
-        $('.account-transfer select').first().attr('name', 'from_account');
-        $('.account-transfer select').last().attr('name', 'to_account');
-        $('select').formSelect({dropdownOptions: {container: 'body'}});
-        $('#envelope-modal').replaceWith(o['envelope_editor_html']);
-        $('#account-modal').replaceWith(o['account_editor_html']);
-        $('#envelope-modal, #account-modal').modal();
-        $('.datepicker').datepicker('setDate', new Date());
-        $('input[name="date"]').val((new Date()).toLocaleDateString("en-US", {day: '2-digit', month: '2-digit', year: 'numeric'}));
-        $('#total span').text(o['total']);
-        if (o['total'][0] == '-') {
-          $('#total span').addClass('negative');
-        } else {
-          $('#total span').removeClass('negative');
-        };
-        $('#unallocated span, #unallocated-balance-envelope-filler').text(o['unallocated']);
-        if (o['unallocated'][0] == '-') {
-          $('#unallocated span, #unallocated-balance-envelope-filler').addClass('negative');
-        } else {
-          $('#unallocated span, #unallocated-balance-envelope-filler').removeClass('negative');
-        };
-
-        envelope_fill_editor.appendTo('#editor-row'); //Has to be added back to DOM before replacing HTML
-        $('.envelope-fill-editor-bin').replaceWith(o['envelope_fill_editor_rows_html']);
-        $('#fill-total').text("$0.00").removeClass("negative")
-
-        editor_binds()
-        M.updateTextFields();
-
-        unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
-        envelope_balances = []
-        $('#envelopes-bin .scroller').children().each( function() {
-          envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
-        });
-        envelope_fill_balances_array = [];
-
-        budget_bars()
-        none_checked = true
-
-        console.log("Page data reloaded!")
-      });
-    };
-
-
-    // Submits form data, closes the modal, clears the form, and reloads the data
-    $('#transaction-modal form, #edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form').submit(function(e) {
-      e.preventDefault()
-      var url = $(this).attr('action');
-      var current_url = $(location).attr("href");
-      var method = $(this).attr('method');
-      var id = '#' + $(this).attr('id');
-
-      $.ajax({
-        type: method,
-        url: url,
-        data: $(this).serialize(),
-      }).done(function( o ) {
-        $('.modal').modal("close")
-        $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
-        $(id)[0].reset();
-        data_reload(current_url);
-        M.toast({html: o})
-      });
     });
 
-    // Sends delete ID(s) via form, the reloads data
-    $('.deleter-form, #multi-delete-form').submit(function(e) {
-      e.preventDefault()
-      var url = $(this).attr('action');
-      var current_url = $(location).attr("href");
-      var method = $(this).attr('method');
-
-      $.ajax({
-        type: method,
-        url: url,
-        data: $(this).serialize(),
-      }).done(function( o ) {
-        $(".modal").modal("close")
-        data_reload(current_url);
-        M.toast({html: o})
-      });
-    });
-
+    // MULTIDELETE CODE
     $('#bin').on('mouseenter', '.transaction-date', function() {
       if (none_checked) {
         $(this).find('.date-bucket').hide();
@@ -443,377 +344,363 @@
       $('#editor-modal').modal('open');
     });
 
-    // $('#bin').on('click', '.transaction', function() {
-    //   $this = $(this);
-    //   transaction_modal_open($this);
-    // });
+    $('.transaction').bind('contextmenu', function(e) {
+      return false;
+    });
 
-    // (function() {
-    //   // how many milliseconds is a long press?
-    //   var longpress = 1000;
-    //   var start;
-    //   var end;
-    //   var delay;
-
-    //   $('#bin').on('touchstart', '.transaction', function( e ) {
-    //     start = new Date().getTime();
-    //     $this = $(this);
-    //     delay = setTimeout(check, longpress);
-    //     function check() {
-    //       console.log('longpress!')
-    //       console.log($this)
-    //       $('.date-bucket').hide();
-    //       $('.checkbox-bucket').show()
-    //       $this.parent().find('.delete-boxes').click();
-    //     }
-    //   }).on('touchmove', '.transaction', function( e ) {
-    //       clearTimeout(delay);
-    //       start = 0;
-    //   }).on( 'touchend', '.transaction', function( e ) {
-    //       clearTimeout(delay);
-    //       end = new Date().getTime();
-    //       duration = end - start
-    //       if (duration < longpress) {
-    //         console.log("shortpress")
-    //       }
-    //       start = 0;
-    //   });
-    // }());
+    $(document).on('change', '.schedule-select', function() {
+      schedule_toggle($(this))
+    }).on('change', '.datepicker', function() {
+      $schedule_select = $(this).parent().parent().parent().find('.schedule-select');
+      schedule_toggle($schedule_select)
+    });
 
 
-      function transaction_modal_open(e) {
-        // gets and format data from html data tags
-        var id = e.data('id');
-        var name = e.data('name');
-        var type = e.data('type');
-        var date = e.data('date');
-        var envelope_name = e.data('envelope_name');
-        var envelope_id = e.data('envelope_id');
-        var account_name = e.data('account_name');
-        var account_id = e.data('account_id');
-        var grouping = e.data('grouping');
-        var note = e.data('note');
-        var amt = -1 * parseFloat(e.data('amt').replace("$",""));
-        var to_envelope = null;
-        var from_envelope = null;
-
-        //if it's a grouped transaction, use ajax to get data from all grouped transaction
-        if (type != 0 || type != 3 ) {
-          $.ajax({
-            async: false,
-            type: "GET",
-            url: "/api/transaction/" + id + "/group",
-          }).done(function( o ) {
-            var t_data = o["transactions"];
-
-            // depending on the type, get/format different transaction data
-            if (type == 1) {
-              var t1 = t_data[0];
-              var t2 = t_data[1];
-              if (t1["amt"] > 0) {
-                to_envelope = t1["envelope_id"];
-                from_envelope = t2["envelope_id"];
-              } else {
-                to_envelope = t2["envelope_id"];
-                from_envelope = t1["envelope_id"];
-              }
-            } else if (type == 2) {
-              var t1 = t_data[0];
-              var t2 = t_data[1];
-              if (t1["amt"] > 0) {
-                to_account = t1["account_id"];
-                from_account = t2["account_id"];
-              } else {
-                to_account = t2["account_id"];
-                from_account = t1["account_id"];
-              }
-            } else if (type == 4) {
-              envelope_ids = [];
-              amounts = [];
-              $.each(t_data, function(key, t) {
-                  envelope_ids.push(t['envelope_id']);
-                  amounts.push(t['amt']);
-              });
-              amt = amounts[0];
-              envelope_id = envelope_ids[0];
-            } else if (type == 5) {
-              envelope_ids = [];
-              amounts = [];
-              $.each(t_data, function(key, t) {
-                  if (t['envelope_id'] != 1) {
-                    envelope_ids.push(t['envelope_id']);
-                    amounts.push(t['amt'] * -1);
-                  }
-              });
-            };
-          });
+    function schedule_toggle(e) {
+      const months = ["Jan", "Feb", "Mar","Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const weekday = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      var nextdate;
+      var nextmonth;
+      var nextyear;
+      var getDaysInMonth = function(month,year) {
+        return new Date(year, month+1, 0).getDate();
+      };
+      var option = e.val()
+      $message = e.parent().parent().siblings().children();
+      var date_string = e.parent().parent().parent().siblings().find('.datepicker').val();
+      var date = new Date(date_string);
+      for (i = 0; i < 2; i++) {
+        if (option == 'daily') {
+          nextdate = date.getDate() + 1;
+          date.setDate(nextdate);
+        } else if (option == 'weekly') {
+          nextdate = date.getDate() + 7;
+          date.setDate(nextdate);
+        } else if (option == 'biweekly') {
+          nextdate = date.getDate() + 14;
+          date.setDate(nextdate);
+        } else if (option == 'monthly') {
+          nextmonth = date.getMonth() + 1;
+          // special case for if nextmonth has less days than current month
+          if (date.getDate() > getDaysInMonth(nextmonth,date.getFullYear())) {
+            date.setDate(getDaysInMonth(nextmonth,date.getFullYear()))
+            date.setMonth(nextmonth)
+          } else {
+            date.setMonth(nextmonth)
+          }
+        } else if (option == 'endofmonth') {
+          if (date.getDate() == getDaysInMonth(date.getMonth(),date.getYear())) {
+            // if current date is already the last day in the month, add another month
+            date = new Date(date.getFullYear(), date.getMonth() + 2, 0)
+          } else {
+            date = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+          }
+        } else if (option == 'semianually') {
+          nextmonth = date.getMonth() + 6;
+          // special case for if nextmonth has less days than current month
+          if (date.getDate() > getDaysInMonth(nextmonth,date.getFullYear())) {
+            date.setDate(getDaysInMonth(nextmonth,date.getFullYear()))
+            date.setMonth(nextmonth)
+          } else {
+            date.setMonth(nextmonth)
+          }
+        } else if (option == 'anually') {
+          nextyear = date.getFullYear() + 1;
+          // special case for if nextmonth has less days than current month
+          // *only occurs if scheduled on Feb 29th of a leap year*
+          if (date.getDate() > getDaysInMonth(date.getMonth(),nextyear)) {
+            date.setDate(getDaysInMonth(date.getMonth(),nextyear))
+            date.setYear(nextyear)
+          } else {
+            date.setYear(nextyear)
+          }
+        };
+        if (i == 0) {
+          var nextdate_string1 = months[date.getMonth()] + " " + date.getDate() + ', ' + date.getFullYear();
+        } else {
+          var nextdate_string2 = months[date.getMonth()] + " " + date.getDate() + ', ' + date.getFullYear();
         }
+      };
+      $message.html("Scheduled for: " + nextdate_string1 + ", " + nextdate_string2 + ", etc...");
+    };
 
-        // Check which editor to show, detatch the others, and update the special fields
-        if (type == 0) {
-          transaction_editor.appendTo('#editor-row');
-          $("#edit-transfer").detach();
-          $("#edit-income").detach();
-          $("#edit-envelope-fill").detach();
-        } else if (type == 1 || type == 2) {
-          transfer_editor.appendTo('#editor-row');
-          $("#edit-expense").detach();
-          $("#edit-income").detach();
-          $("#edit-envelope-fill").detach();
-          $('#edit-transfer_type').val(type).formSelect();
-          amt = Math.abs(amt);
-          if (type == 1) {
-            $('.account-transfer').addClass('hide');
-            $('.envelope-transfer').removeClass('hide');
-            $('#edit-from_envelope').val(from_envelope).formSelect();
-            $('#edit-to_envelope').val(to_envelope).formSelect();
-          } else if (type == 2) {
-            $('.envelope-transfer').addClass('hide');
-            $('.account-transfer').removeClass('hide');
-            $('#edit-to_account').val(to_account).formSelect();
-            $('#edit-from_account').val(from_account).formSelect();
-          }
-        } else if (type == 3) {
-          income_editor.appendTo('#editor-row');
-          $("#edit-expense").detach();
-          $("#edit-transfer").detach();
-          $("#edit-envelope-fill").detach();
-          amt = amt * -1;
-        } else if (type == 4) {
-          transaction_editor.appendTo('#editor-row');
-          $("#edit-transfer").detach();
-          $("#edit-income").detach();
-          $("#edit-envelope-fill").detach();
-          for (i=1 ; i<envelope_ids.length ; i++) {
-            var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
-            $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
-            $(".aclass").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect();
-          }
-        } else if (type == 5) {
-          envelope_fill_editor.appendTo('#editor-row');
-          $("#edit-transfer").detach();
-          $("#edit-income").detach();
-          $("#edit-expense").detach();
-          // Fills input fields
-          var $inputs = $('#edit-envelope-fill-form .envelope-fill-editor-bin :input[type=text]');
-          envelope_fill_balances_array = [];
-          $inputs.each(function(index) {
-            // this code exists so that if you change a value, close the editor,
-            // then reopen it, the envelope balances will always be correct
-            var $span = $(this).parent().siblings(".envelope-balance").children();
-            $span.text(balance_format(envelope_balances[index])).negative_check(envelope_balances[index]);
-            // Fills input fields and creates envelope_fill_balances_array for data processing
-            if (envelope_ids.includes($(this).data("envelope-id"))) {
-              $(this).val(amounts[envelope_ids.indexOf($(this).data("envelope-id"))].toFixed(2));
-              envelope_fill_balances_array.push(parseFloat(amounts[envelope_ids.indexOf($(this).data("envelope-id"))]));
-            } else {
-              envelope_fill_balances_array.push(0.00)
-            }
-          });
-          if (envelope_fill_balances_array.length == 0) { //if you've deleted all the envelopes this prevents it from crashing
-            envelope_fill_balances_array.push(0.00)
-          }
-          $('#edit-fill-total').text(balance_format(envelope_fill_balances_array.reduce(getSum))).negative_check(parseFloat(envelope_fill_balances_array.reduce(getSum)));
-          $('#edit-unallocated-balance-envelope-filler').text(balance_format(parseFloat(unallocated_balance))).negative_check(unallocated_balance)
-        }
+    // ----------------- FORM SUBMISSION/FILLING JS ------------------- //
 
-        // update the rest of the common fields
-        $("#edit-amount").val(amt.toFixed(2));
-        $("#edit-date").val(date).datepicker({
-          autoClose: true,
-          format: 'mm/dd/yyyy',
-          container: 'body'
-        });
-        $('#edit-date').datepicker('setDate', new Date(date));
-        $("#edit-name").val(name);
-        $("#edit-note").val(note);
-        $('#edit-envelope_id').val(envelope_id).formSelect();
-        $('#edit-account_id').val(account_id).formSelect();
-        $('#dtid').attr('value', id);
-        $('#edit-id').attr('value', id);
-        $('#type').attr('value', type);
-        M.updateTextFields();
+
+    // Retrieves updated data from database and updates the necessary html
+    function data_reload(current_url) {
+      $.ajax({
+        type: "POST",
+        url: "/api/data-reload",
+        data: JSON.stringify({"url": current_url}),
+        contentType: 'application/json'
+      }).done(function( o ) {
+        $('#load-more').remove()
+        $('#transactions-bin').replaceWith(o['transactions_html']);
+        $('#accounts-bin').replaceWith(o['accounts_html']);
+        $('#envelopes-bin').replaceWith(o['envelopes_html']);
+        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
+        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
+        $('.envelope-transfer select').first().attr('name', 'from_envelope');
+        $('.envelope-transfer select').last().attr('name', 'to_envelope');
+        $('.account-transfer select').first().attr('name', 'from_account');
+        $('.account-transfer select').last().attr('name', 'to_account');
+        $('select').formSelect({dropdownOptions: {container: 'body'}});
+        $('#envelope-modal').replaceWith(o['envelope_editor_html']);
+        $('#account-modal').replaceWith(o['account_editor_html']);
+        $('#envelope-modal, #account-modal').modal();
+        $('.datepicker').datepicker('setDate', new Date());
+        $('input[name="date"]').val((new Date()).toLocaleDateString("en-US", {day: '2-digit', month: '2-digit', year: 'numeric'}));
+        $('#total span').text(o['total']);
+        if (o['total'][0] == '-') {
+          $('#total span').addClass('negative');
+        } else {
+          $('#total span').removeClass('negative');
+        };
+        $('#unallocated span, #unallocated-balance-envelope-filler').text(o['unallocated']);
+        if (o['unallocated'][0] == '-') {
+          $('#unallocated span, #unallocated-balance-envelope-filler').addClass('negative');
+        } else {
+          $('#unallocated span, #unallocated-balance-envelope-filler').removeClass('negative');
         };
 
-    // TRANSACTION EDITOR functions and variables
-    // $("#bin").on('mouseup', '.transaction', function() {
+        envelope_fill_editor.appendTo('#editor-row'); //Has to be added back to DOM before replacing HTML
+        $('.envelope-fill-editor-bin').replaceWith(o['envelope_fill_editor_rows_html']);
+        $('#fill-total').text("$0.00").removeClass("negative")
+
+        editor_binds()
+
+        unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
+        envelope_balances = []
+        $('#envelopes-bin .scroller').children().each( function() {
+          envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
+        });
+        envelope_fill_balances_array = [];
+
+        budget_bars()
+        none_checked = true
+
+        // Hides scheduled tabs in modals and resets the message value
+        $('.schedule-content').hide();
+        $('.schedule-select').each(function() { schedule_toggle($(this)) });
+
+        M.updateTextFields();
+
+        console.log("Page data reloaded!")
+      });
+    };
+
+    // Submits form data, closes the modal, clears the form, and reloads the data
+    $('#transaction-modal form, #edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form').submit(function(e) {
+      e.preventDefault()
+      var url = $(this).attr('action');
+      var current_url = $(location).attr("href");
+      var method = $(this).attr('method');
+      var id = '#' + $(this).attr('id');
+
+      $.ajax({
+        type: method,
+        url: url,
+        data: $(this).serialize(),
+      }).done(function( o ) {
+        $('.modal').modal("close")
+        $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
+        $(id)[0].reset();
+        data_reload(current_url);
+        M.toast({html: o})
+      });
+    });
+
+    // Sends delete ID(s) via form, the reloads data
+    $('.deleter-form, #multi-delete-form').submit(function(e) {
+      e.preventDefault()
+      var url = $(this).attr('action');
+      var current_url = $(location).attr("href");
+      var method = $(this).attr('method');
+
+      $.ajax({
+        type: method,
+        url: url,
+        data: $(this).serialize(),
+      }).done(function( o ) {
+        $(".modal").modal("close")
+        data_reload(current_url);
+        M.toast({html: o})
+      });
+    });
+
+    function transaction_modal_open(e) {
       // gets and format data from html data tags
-      // var id = $(this).data('id');
-      // var name = $(this).data('name');
-      // var type = $(this).data('type');
-      // var date = $(this).data('date');
-      // var envelope_name = $(this).data('envelope_name');
-      // var envelope_id = $(this).data('envelope_id');
-      // var account_name = $(this).data('account_name');
-      // var account_id = $(this).data('account_id');
-      // var grouping = $(this).data('grouping');
-      // var note = $(this).data('note');
-      // var amt = -1 * parseFloat($(this).data('amt').replace("$",""));
-      // var to_envelope = null;
-      // var from_envelope = null;
+      var id = e.data('id');
+      var name = e.data('name');
+      var type = e.data('type');
+      var date = e.data('date');
+      var envelope_name = e.data('envelope_name');
+      var envelope_id = e.data('envelope_id');
+      var account_name = e.data('account_name');
+      var account_id = e.data('account_id');
+      var grouping = e.data('grouping');
+      var note = e.data('note');
+      var amt = -1 * parseFloat(e.data('amt').replace("$",""));
+      var to_envelope = null;
+      var from_envelope = null;
+      var schedule = e.data('schedule')
+      var status = e.data('status')
 
-      // //if it's a grouped transaction, use ajax to get data from all grouped transaction
-      // if (type != 0 || type != 3 ) {
-      //   $.ajax({
-      //     async: false,
-      //     type: "GET",
-      //     url: "/api/transaction/" + id + "/group",
-      //   }).done(function( o ) {
-      //     var t_data = o["transactions"];
+      //if it's a grouped transaction, use ajax to get data from all grouped transaction
+      if (type != 0 || type != 3 ) {
+        $.ajax({
+          async: false,
+          type: "GET",
+          url: "/api/transaction/" + id + "/group",
+        }).done(function( o ) {
+          var t_data = o["transactions"];
 
-      //     // depending on the type, get/format different transaction data
-      //     if (type == 1) {
-      //       var t1 = t_data[0];
-      //       var t2 = t_data[1];
-      //       if (t1["amt"] > 0) {
-      //         to_envelope = t1["envelope_id"];
-      //         from_envelope = t2["envelope_id"];
-      //       } else {
-      //         to_envelope = t2["envelope_id"];
-      //         from_envelope = t1["envelope_id"];
-      //       }
-      //     } else if (type == 2) {
-      //       var t1 = t_data[0];
-      //       var t2 = t_data[1];
-      //       if (t1["amt"] > 0) {
-      //         to_account = t1["account_id"];
-      //         from_account = t2["account_id"];
-      //       } else {
-      //         to_account = t2["account_id"];
-      //         from_account = t1["account_id"];
-      //       }
-      //     } else if (type == 4) {
-      //       envelope_ids = [];
-      //       amounts = [];
-      //       $.each(t_data, function(key, t) {
-      //           envelope_ids.push(t['envelope_id']);
-      //           amounts.push(t['amt']);
-      //       });
-      //       amt = amounts[0];
-      //       envelope_id = envelope_ids[0];
-      //     } else if (type == 5) {
-      //       envelope_ids = [];
-      //       amounts = [];
-      //       $.each(t_data, function(key, t) {
-      //           if (t['envelope_id'] != 1) {
-      //             envelope_ids.push(t['envelope_id']);
-      //             amounts.push(t['amt'] * -1);
-      //           }
-      //       });
-      //     };
-      //   });
-      // }
+          // depending on the type, get/format different transaction data
+          if (type == 1) {
+            var t1 = t_data[0];
+            var t2 = t_data[1];
+            if (t1["amt"] > 0) {
+              to_envelope = t1["envelope_id"];
+              from_envelope = t2["envelope_id"];
+            } else {
+              to_envelope = t2["envelope_id"];
+              from_envelope = t1["envelope_id"];
+            }
+          } else if (type == 2) {
+            var t1 = t_data[0];
+            var t2 = t_data[1];
+            if (t1["amt"] > 0) {
+              to_account = t1["account_id"];
+              from_account = t2["account_id"];
+            } else {
+              to_account = t2["account_id"];
+              from_account = t1["account_id"];
+            }
+          } else if (type == 4) {
+            envelope_ids = [];
+            amounts = [];
+            $.each(t_data, function(key, t) {
+                envelope_ids.push(t['envelope_id']);
+                amounts.push(t['amt']);
+            });
+            amt = amounts[0];
+            envelope_id = envelope_ids[0];
+          } else if (type == 5) {
+            envelope_ids = [];
+            amounts = [];
+            $.each(t_data, function(key, t) {
+                if (t['envelope_id'] != 1) {
+                  envelope_ids.push(t['envelope_id']);
+                  amounts.push(t['amt'] * -1);
+                }
+            });
+          };
+        });
+      }
 
-      // // Check which editor to show, detatch the others, and update the special fields
-      // if (type == 0) {
-      //   transaction_editor.appendTo('#editor-row');
-      //   $("#edit-transfer").detach();
-      //   $("#edit-income").detach();
-      //   $("#edit-envelope-fill").detach();
-      // } else if (type == 1 || type == 2) {
-      //   transfer_editor.appendTo('#editor-row');
-      //   $("#edit-expense").detach();
-      //   $("#edit-income").detach();
-      //   $("#edit-envelope-fill").detach();
-      //   $('#edit-transfer_type').val(type).formSelect();
-      //   amt = Math.abs(amt);
-      //   if (type == 1) {
-      //     $('.account-transfer').addClass('hide');
-      //     $('.envelope-transfer').removeClass('hide');
-      //     $('#edit-from_envelope').val(from_envelope).formSelect();
-      //     $('#edit-to_envelope').val(to_envelope).formSelect();
-      //   } else if (type == 2) {
-      //     $('.envelope-transfer').addClass('hide');
-      //     $('.account-transfer').removeClass('hide');
-      //     $('#edit-to_account').val(to_account).formSelect();
-      //     $('#edit-from_account').val(from_account).formSelect();
-      //   }
-      // } else if (type == 3) {
-      //   income_editor.appendTo('#editor-row');
-      //   $("#edit-expense").detach();
-      //   $("#edit-transfer").detach();
-      //   $("#edit-envelope-fill").detach();
-      //   amt = amt * -1;
-      // } else if (type == 4) {
-      //   transaction_editor.appendTo('#editor-row');
-      //   $("#edit-transfer").detach();
-      //   $("#edit-income").detach();
-      //   $("#edit-envelope-fill").detach();
-      //   for (i=1 ; i<envelope_ids.length ; i++) {
-      //     var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
-      //     $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
-      //     $(".aclass").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect();
-      //   }
-      // } else if (type == 5) {
-      //   envelope_fill_editor.appendTo('#editor-row');
-      //   $("#edit-transfer").detach();
-      //   $("#edit-income").detach();
-      //   $("#edit-expense").detach();
-      //   // Fills input fields
-      //   var $inputs = $('#edit-envelope-fill-form .envelope-fill-editor-bin :input[type=text]');
-      //   envelope_fill_balances_array = [];
-      //   $inputs.each(function(index) {
-      //     // this code exists so that if you change a value, close the editor,
-      //     // then reopen it, the envelope balances will always be correct
-      //     var $span = $(this).parent().siblings(".envelope-balance").children();
-      //     $span.text(balance_format(envelope_balances[index])).negative_check(envelope_balances[index])
-      //     // Fills input fields and creates envelope_fill_balances_array for data processing
-      //     if (envelope_ids.includes($(this).data("envelope-id"))) {
-      //       $(this).val(amounts[envelope_ids.indexOf($(this).data("envelope-id"))].toFixed(2));
-      //       envelope_fill_balances_array.push(parseFloat(amounts[envelope_ids.indexOf($(this).data("envelope-id"))]));
-      //     } else {
-      //       envelope_fill_balances_array.push(0.00)
-      //     }
-      //   });
-      //   if (envelope_fill_balances_array.length == 0) { //if you've deleted all the envelopes this prevents it from crashing
-      //     envelope_fill_balances_array.push(0.00)
-      //   }
-      //   $('#edit-fill-total').text(balance_format(envelope_fill_balances_array.reduce(getSum))).negative_check(parseFloat(envelope_fill_balances_array.reduce(getSum)));
-      //   $('#edit-unallocated-balance-envelope-filler').text(balance_format(parseFloat(unallocated_balance))).negative_check(unallocated_balance)
-      // }
+      // Check which editor to show, detatch the others, and update the special fields
+      if (type == 0) {
+        transaction_editor.appendTo('#editor-row');
+        $("#edit-transfer").detach();
+        $("#edit-income").detach();
+        $("#edit-envelope-fill").detach();
+      } else if (type == 1 || type == 2) {
+        transfer_editor.appendTo('#editor-row');
+        $("#edit-expense").detach();
+        $("#edit-income").detach();
+        $("#edit-envelope-fill").detach();
+        $('#edit-transfer_type').val(type).formSelect();
+        amt = Math.abs(amt);
+        if (type == 1) {
+          $('.account-transfer').addClass('hide');
+          $('.envelope-transfer').removeClass('hide');
+          $('#edit-from_envelope').val(from_envelope).formSelect();
+          $('#edit-to_envelope').val(to_envelope).formSelect();
+        } else if (type == 2) {
+          $('.envelope-transfer').addClass('hide');
+          $('.account-transfer').removeClass('hide');
+          $('#edit-to_account').val(to_account).formSelect();
+          $('#edit-from_account').val(from_account).formSelect();
+        }
+      } else if (type == 3) {
+        income_editor.appendTo('#editor-row');
+        $("#edit-expense").detach();
+        $("#edit-transfer").detach();
+        $("#edit-envelope-fill").detach();
+        amt = amt * -1;
+      } else if (type == 4) {
+        transaction_editor.appendTo('#editor-row');
+        $("#edit-transfer").detach();
+        $("#edit-income").detach();
+        $("#edit-envelope-fill").detach();
+        for (i=1 ; i<envelope_ids.length ; i++) {
+          var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
+          $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
+          $(".aclass").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect();
+        }
+      } else if (type == 5) {
+        envelope_fill_editor.appendTo('#editor-row');
+        $("#edit-transfer").detach();
+        $("#edit-income").detach();
+        $("#edit-expense").detach();
+        // Fills input fields
+        var $inputs = $('#edit-envelope-fill-form .envelope-fill-editor-bin :input[type=text]');
+        envelope_fill_balances_array = [];
+        $inputs.each(function(index) {
+          // this code exists so that if you change a value, close the editor,
+          // then reopen it, the envelope balances will always be correct
+          var $span = $(this).parent().siblings(".envelope-balance").children();
+          $span.text(balance_format(envelope_balances[index])).negative_check(envelope_balances[index]);
+          // Fills input fields and creates envelope_fill_balances_array for data processing
+          if (envelope_ids.includes($(this).data("envelope-id"))) {
+            $(this).val(amounts[envelope_ids.indexOf($(this).data("envelope-id"))].toFixed(2));
+            envelope_fill_balances_array.push(parseFloat(amounts[envelope_ids.indexOf($(this).data("envelope-id"))]));
+          } else {
+            envelope_fill_balances_array.push(0.00)
+          }
+        });
+        if (envelope_fill_balances_array.length == 0) { //if you've deleted all the envelopes this prevents it from crashing
+          envelope_fill_balances_array.push(0.00)
+        }
+        $('#edit-fill-total').text(balance_format(envelope_fill_balances_array.reduce(getSum))).negative_check(parseFloat(envelope_fill_balances_array.reduce(getSum)));
+        $('#edit-unallocated-balance-envelope-filler').text(balance_format(parseFloat(unallocated_balance))).negative_check(unallocated_balance)
+      }
 
-      // // update the rest of the common fields
-      // $("#edit-amount").val(amt.toFixed(2));
-      // $("#edit-date").val(date).datepicker({
-      //   autoClose: true,
-      //   format: 'mm/dd/yyyy',
-      //   container: 'body'
-      // });
-      // $('#edit-date').datepicker('setDate', new Date(date));
-      // $("#edit-name").val(name);
-      // $("#edit-note").val(note);
-      // $('#edit-envelope_id').val(envelope_id).formSelect();
-      // $('#edit-account_id').val(account_id).formSelect();
-      // $('#dtid').attr('value', id);
-      // $('#edit-id').attr('value', id);
-      // $('#type').attr('value', type);
-      // M.updateTextFields();
-    // });
+      // update the rest of the common fields
+      $("#edit-amount").val(amt.toFixed(2));
+      $("#edit-date").val(date).datepicker({
+        autoClose: true,
+        format: 'mm/dd/yyyy',
+        container: 'body'
+      });
+      $('#edit-date').datepicker('setDate', new Date(date));
+      $("#edit-name").val(name);
+      $("#edit-note").val(note);
+      $('#edit-envelope_id').val(envelope_id).formSelect();
+      $('#edit-account_id').val(account_id).formSelect();
+      $('#dtid').attr('value', id);
+      $('#edit-id').attr('value', id);
+      $('#type').attr('value', type);
+      if (schedule !== "None") {
+        // update scheduled values and show the section
+        $('#edit-schedule').val(schedule).formSelect();
+        schedule_toggle($('#edit-schedule'));
+        $checkbox = ($('#' + $('#edit-schedule').data('checkbox-id')));
+        if (!($checkbox.is(':checked'))) {
+          $checkbox.siblings().click()
+        };
+      } else {
+        // set to default
+        $('#edit-schedule').val('daily').formSelect();
+        schedule_toggle($('#edit-schedule'));
+        $checkbox = ($('#' + $('#edit-schedule').data('checkbox-id')));
+        if ($checkbox.is(':checked')) {
+          $checkbox.siblings().click()
+        }
+      }
+      M.updateTextFields();
+    }; // End of transaction_modal_open
 
   });
-
-  $('.transaction').bind('contextmenu', function(e) {
-    return false;
-  });
-
 })(jQuery); // end of jQuery name space
-
-// function absorbEvent_(event) {
-//   var e = event || window.event;
-//   e.preventDefault && e.preventDefault();
-//   e.stopPropagation && e.stopPropagation();
-//   e.cancelBubble = true;
-//   e.returnValue = false;
-//   return false;
-// }
-
-// function preventLongPressMenu(node) {
-//   node.ontouchstart = node.onclick;
-//   node.ontouchmove = absorbEvent_;
-//   node.ontouchend = absorbEvent_;
-//   node.ontouchcancel = absorbEvent_;
-// }
-
-// function init() {
-//   preventLongPressMenu(document.getElementsByClass('transaction'));
-// }
