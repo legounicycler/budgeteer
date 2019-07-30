@@ -439,6 +439,8 @@
         $('#transactions-bin').replaceWith(o['transactions_html']);
         $('#accounts-bin').replaceWith(o['accounts_html']);
         $('#envelopes-bin').replaceWith(o['envelopes_html']);
+
+        transfer_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
         $('.envelope-transfer select').first().attr('name', 'from_envelope');
@@ -446,6 +448,7 @@
         $('.account-transfer select').first().attr('name', 'from_account');
         $('.account-transfer select').last().attr('name', 'to_account');
         $('select').formSelect({dropdownOptions: {container: 'body'}});
+        transfer_editor.detach()
         $('#envelope-modal').replaceWith(o['envelope_editor_html']);
         $('#account-modal').replaceWith(o['account_editor_html']);
         $('#envelope-modal, #account-modal').modal();
@@ -561,21 +564,21 @@
             var t1 = t_data[0];
             var t2 = t_data[1];
             if (t1["amt"] > 0) {
-              to_envelope = t1["envelope_id"];
-              from_envelope = t2["envelope_id"];
-            } else {
               to_envelope = t2["envelope_id"];
               from_envelope = t1["envelope_id"];
+            } else {
+              to_envelope = t1["envelope_id"];
+              from_envelope = t2["envelope_id"];
             }
           } else if (type == 2) {
             var t1 = t_data[0];
             var t2 = t_data[1];
             if (t1["amt"] > 0) {
-              to_account = t1["account_id"];
-              from_account = t2["account_id"];
-            } else {
               to_account = t2["account_id"];
               from_account = t1["account_id"];
+            } else {
+              to_account = t1["account_id"];
+              from_account = t2["account_id"];
             }
           } else if (type == 4) {
             envelope_ids = [];

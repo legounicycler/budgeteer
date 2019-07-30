@@ -4,6 +4,7 @@
   # Ajax for accounts/envelopes views
   # Quick fill for envelopes based on budget
   # Accounts/login functions
+  # report a bug feature for users (probably using formspree)
   # hoverable note function
   # sort transaction lists (multiple ways date, amount, name, etc.)
   # Transaction search

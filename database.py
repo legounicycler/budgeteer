@@ -320,9 +320,9 @@ def edit_accounts(old_accounts, new_accounts):
 def account_transfer(name, amount, date, to_account, from_account, note, schedule, user_id):
     # Creates one transaction draining an account, and one transaction filling another
     grouping = gen_grouping_num()
-    fill = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, to_account, grouping, note, schedule, False, user_id)
+    fill = Transaction(ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id)
     insert_transaction(fill)
-    empty = Transaction(ACCOUNT_TRANSFER, name, -1* amount, date, None, from_account, grouping, note, schedule, False, user_id)
+    empty = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id)
     insert_transaction(empty)
 
 
@@ -406,9 +406,9 @@ def edit_envelopes(old_envelopes, new_envelopes):
 def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedule, user_id):
     # Creates a transaction to fill one envelope and another to empty the other
     grouping = gen_grouping_num()
-    fill = Transaction(ENVELOPE_TRANSFER, name, amt, date, to_envelope, None, grouping, note, schedule, False, user_id)
+    fill = Transaction(ENVELOPE_TRANSFER, name, -1*amt, date, to_envelope, None, grouping, note, schedule, False, user_id)
     insert_transaction(fill)
-    empty = Transaction(ENVELOPE_TRANSFER, name, -1 * amt, date, from_envelope, None, grouping, note, schedule, False, user_id)
+    empty = Transaction(ENVELOPE_TRANSFER, name, amt, date, from_envelope, None, grouping, note, schedule, False, user_id)
     insert_transaction(empty)
 
 def envelope_fill(t):

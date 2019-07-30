@@ -141,7 +141,7 @@
               <div class="account-transfer">
                 <div class="row">
                   <div class="input-field col s6">
-                    <select name="to_account" class="account-selector" required>
+                    <select name="from_account" class="account-selector" required>
                       <option value="" disabled selected>Choose an Account</option>
                       {% for id, account in accounts_data.items() %}
                        {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance}}</option>{% endif %}
@@ -150,7 +150,7 @@
                     <label>From</label>
                   </div>
                   <div class="input-field col s6">
-                    <select name="from_account" class="account-selector" required>
+                    <select name="to_account" class="account-selector" required>
                       <option value="" disabled selected>Choose an Account</option>
                       {% for id, account in accounts_data.items() %}
                         {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance}}</option>{% endif %}
@@ -164,7 +164,7 @@
               <div class="envelope-transfer">
                 <div class="row">
                   <div class="input-field col s6">
-                    <select name="to_envelope" class="envelope-selector" required>
+                    <select name="from_envelope" class="envelope-selector" required>
                       <option value="" disabled selected>Choose an Envelope</option>
                       {% for id, envelope in envelopes_data.items() %}
                         {% if envelope.deleted == false and envelope.id != 1 %}
@@ -175,7 +175,7 @@
                     <label>From</label>
                   </div>
                   <div class="input-field col s6">
-                    <select name="from_envelope" class="envelope-selector" required>
+                    <select name="to_envelope" class="envelope-selector" required>
                       <option value="" disabled selected>Choose an Envelope</option>
                       {% for id, envelope in envelopes_data.items() %}
                         {% if envelope.deleted == false and envelope.id != 1 %}
