@@ -19,8 +19,9 @@
   #
   # Link to other transactions in descriptions??
   # envelope average spending /spent last month
+  # Saving goals (how much to put in an envelope each week to reach
+  # a goal balance by a ceratin date)
   # cover overspending button
-  # goals function (target category balance / balance by date)
   # average spent in each envelope
   # one click reconcile button
   # use join clause on get_trasactions() to get account name and envelope name
@@ -171,7 +172,6 @@ def new_income():
 def fill_envelopes():
     name = request.form['name']
     amounts = request.form.getlist('fill-amount')
-    print(amounts)
     envelope_ids = request.form.getlist('envelope_id')
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']

@@ -1,10 +1,11 @@
 import sqlite3
 import datetime
 from datetime import datetime
+from datetime import date
 import json
 
-database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
-# database = '/home/anthony/database.sqlite'
+# database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
+database = '/home/alimiero/database.sqlite'
 conn = sqlite3.connect(database, check_same_thread=False)
 c = conn.cursor()
 
@@ -71,7 +72,7 @@ def create_db():
             account_id INTEGER,
             grouping INTEGER NOT NULL,
             note TEXT NOT NULL DEFAULT '',
-            schdeule TEXT,
+            schedule TEXT,
             status BOOLEAN NOT NULL DEFAULT 0,
             user_id NOT NULL
             -- current_account_balance
@@ -243,7 +244,7 @@ def insert_account(name, balance, user_id):
         c.execute("INSERT INTO accounts (name, balance, user_id) VALUES (?, ?, ?)", (name, 0, user_id))
         account_id = c.lastrowid
         income_name = 'Initial Account Balance: ' + name
-        t = Transaction(INCOME, income_name, -1 * balance, datetime.date.today(), 1, account_id, gen_grouping_num(), '', None, False, user_id)
+        t = Transaction(INCOME, income_name, -1 * balance, date.today(), 1, account_id, gen_grouping_num(), '', None, False, user_id)
         insert_transaction(t)
 
 def get_account(id):
@@ -529,7 +530,7 @@ def print_database():
 
 def main():
 
-    # create_db()
+    create_db()
 
     print_database()
 
