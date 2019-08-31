@@ -47,10 +47,12 @@
       });
 
       $('.scheduler').click(function() {
-        if($(this).siblings().is(':checked')) {
-          $(this).parent().parent().parent().parent().siblings('.schedule-content').hide()
-        } else {
-          $(this).parent().parent().parent().parent().siblings('.schedule-content').show()
+        if (!$(this).siblings().is(':disabled')) {
+          if($(this).siblings().is(':checked')) {
+            $(this).parent().parent().parent().parent().siblings('.schedule-content').hide()
+          } else {
+            $(this).parent().parent().parent().parent().siblings('.schedule-content').show()
+          }
         }
       });
 
@@ -549,6 +551,7 @@
       var from_envelope = null;
       var schedule = e.data('schedule')
       var status = e.data('status')
+      var checkbox_id
 
       //if it's a grouped transaction, use ajax to get data from all grouped transaction
       if (type != 0 || type != 3 ) {
@@ -608,6 +611,7 @@
         $("#edit-transfer").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
+        checkbox_id = '#edit-expense-schedule'
       } else if (type == 1 || type == 2) {
         transfer_editor.appendTo('#editor-row');
         $("#edit-expense").detach();
@@ -626,12 +630,14 @@
           $('#edit-to_account').val(to_account).formSelect();
           $('#edit-from_account').val(from_account).formSelect();
         }
+        checkbox_id = '#edit-transfer-schedule'
       } else if (type == 3) {
         income_editor.appendTo('#editor-row');
         $("#edit-expense").detach();
         $("#edit-transfer").detach();
         $("#edit-envelope-fill").detach();
         amt = amt * -1;
+        checkbox_id = '#edit-income-schedule'
       } else if (type == 4) {
         transaction_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
@@ -642,6 +648,7 @@
           $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
           $(".aclass").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect();
         }
+        checkbox_id = '#edit-expense-schedule'
       } else if (type == 5) {
         envelope_fill_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
@@ -668,6 +675,7 @@
         }
         $('#edit-fill-total').text(balance_format(envelope_fill_balances_array.reduce(getSum))).negative_check(parseFloat(envelope_fill_balances_array.reduce(getSum)));
         $('#edit-unallocated-balance-envelope-filler').text(balance_format(parseFloat(unallocated_balance))).negative_check(unallocated_balance)
+        checkbox_id = '#edit-envelope-fill-schedule'
       }
 
       // update the rest of the common fields
@@ -685,20 +693,21 @@
       $('#dtid').attr('value', id);
       $('#edit-id').attr('value', id);
       $('#type').attr('value', type);
-      if (schedule !== "None") {
+      if (schedule == 'None') {
+        // set to default (disabled)
+        if ($(checkbox_id).is(':checked')) {
+          $(checkbox_id).siblings().click()
+        }
+        $(checkbox_id).attr('disabled', 'disabled')
+        $(checkbox_id).siblings().addClass('checkbox-disabled')
+      } else {
+        $(checkbox_id).removeAttr('disabled')
+        $(checkbox_id).siblings().removeClass('checkbox-disabled')
         // update scheduled values and show the section
         $('#edit-schedule').val(schedule).formSelect();
         schedule_toggle($('#edit-schedule'));
         $checkbox = ($('#' + $('#edit-schedule').data('checkbox-id')));
         if (!($checkbox.is(':checked'))) {
-          $checkbox.siblings().click()
-        };
-      } else {
-        // set to default
-        $('#edit-schedule').val('daily').formSelect();
-        schedule_toggle($('#edit-schedule'));
-        $checkbox = ($('#' + $('#edit-schedule').data('checkbox-id')));
-        if ($checkbox.is(':checked')) {
           $checkbox.siblings().click()
         }
       }

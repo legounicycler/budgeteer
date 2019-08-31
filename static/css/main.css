@@ -96,8 +96,20 @@
   height: 20px !important;
 }
 
+.checkbox-disabled {
+  cursor: default !important;
+}
+
 .schedule-label {
   color: gray;
+}
+
+.pending {
+  color: gray !important;
+}
+
+.pending .balance {
+  background-color: gray;
 }
 
 #bin {

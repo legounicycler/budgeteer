@@ -10,7 +10,7 @@
     <div class="scroller">
       {% for transaction in transactions_data %}
         <a class="collection-item">
-          <li class="row transaction-row">
+          <li class="row transaction-row {% if transaction.schedule is not none %}pending{% endif %}">
             <div class="col s2 valign-wrapper transaction-date">
               <div class="date-bucket">
                 <span class="long-date">{{transaction.date|datetimeformat}}</span><span class="short-date hide">{{transaction.date|datetimeformatshort}}</span>

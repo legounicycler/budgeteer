@@ -4,8 +4,8 @@ from datetime import datetime
 from datetime import date
 import json
 
-# database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
-database = '/home/alimiero/database.sqlite'
+database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
+# database = '/home/alimiero/database.sqlite'
 conn = sqlite3.connect(database, check_same_thread=False)
 c = conn.cursor()
 
@@ -152,7 +152,6 @@ def get_transactions(start, amount):
         elif t.type == ENVELOPE_FILL:
             c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=1", (t.grouping,))
             t.amt = c.fetchone()[0] * -1
-        # t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
         t.amt = stringify(t.amt * -1)
         tlist.append(t)
     # offset specifies where to start from on the next call
@@ -172,7 +171,6 @@ def get_envelope_transactions(envelope_id, start, amount):
     tlist = []
     for id in ids:
         t = get_transaction(id[0])
-        # t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
         t.amt = stringify(t.amt * -1)
         tlist.append(t)
     # offset specifies where to start from on the next call
@@ -192,7 +190,6 @@ def get_account_transactions(account_id, start, amount):
     tlist = []
     for thing in ids:
         t = get_transaction(thing[0])
-        # t.date =  t.date[5:7] + '/' + t.date[8:10] + '/' + t.date[0:4]
         t.amt = stringify(thing[1] * -1)
         tlist.append(t)
     # offset specifies where to start from on the next call
@@ -203,6 +200,9 @@ def get_account_transactions(account_id, start, amount):
     else:
         limit = False
     return tlist, offset, limit
+
+def get_scheduled_transactions(start, amount):
+    c
 
 def delete_transaction(id):
     # deletes transaction and associated grouped transactions and updates appropriate envelope/account balances

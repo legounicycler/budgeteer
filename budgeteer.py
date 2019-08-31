@@ -1,6 +1,10 @@
   # FEATURES TO ADD
   #
+  # database login
   # Scheduled transactions (chrontab?)
+  # instance count for scheduler
+  # error throwing instead of server crashing
+  # Autoselect first form field on new envelope/account editor
   # Ajax for accounts/envelopes views
   # Quick fill for envelopes based on budget
   # Accounts/login functions
@@ -18,6 +22,7 @@
   # Photo of recipt (maybe until reconciled)
   #
   # Link to other transactions in descriptions??
+  # quick edit on date for reconciling?
   # envelope average spending /spent last month
   # Saving goals (how much to put in an envelope each week to reach
   # a goal balance by a ceratin date)
@@ -30,17 +35,26 @@
   #
   # BUG FIXES:
   # Helper text overflow on medium screen envelope editor
+  # Scrollbar on envelope/account horizontal overflow
   # Context menu not available on non-mobile transactions right click
+  # if database doesn't exist run create_db
+  # income edit modal doesn't update account_id select
+  # -0.00 and negative class on unallocated balance (envelope filler)
+  # position of delete button on multiselect
   #
   # THINGS TO MAYBE DO:
   #
   # Update get_transactions to use join clause for account_name and deleted info
   # fix template structure for transactions and envelope/selectors
   # customization of date option
+  # shift select on multiselect checkboxes
+  # replace the jquery weird find structures with "for" attributes and IDS?
 
 from flask import Flask, render_template, url_for, request, redirect, jsonify
 from database import *
 from datetime import datetime
+from datetime import timedelta
+import calendar
 import re
 
 app = Flask(__name__)
@@ -72,6 +86,34 @@ def datetimeformat(value, format='%m/%d/%Y'):
 def datetimeformatshort(value, format='%b %d\n%Y'):
     return value.strftime(format)
 
+def add_months(sourcedate, months):
+    month = sourcedate.month - 1 + months
+    year = sourcedate.year + month // 12
+    month = month % 12 + 1
+    day = min(sourcedate.day, calendar.monthrange(year,month)[1])
+    return date(year, month, day)
+
+def schedule_date_calc(tdate, schedule):
+    if (schedule=="daily"):
+        nextdate = tdate + timedelta(days=1)
+    elif (schedule=="weekly"):
+        nextdate = tdate + timedelta(days=7)
+    elif (schedule=="biweekly"):
+        nextdate = tdate + timedelta(days=14)
+    elif (schedule=="monthly"):
+        nextdate = add_months(tdate,1)
+    elif (schedule=="endofmonth"):
+        lastmonthday = calendar.monthrange(tdate.year, tdate.month)[1]
+        if (tdate.day == lastmonthday):
+            nextdate = add_months(tdate,1)
+        else:
+            nextdate = date(tdate.year, tdate.month, lastmonthday)
+    elif (schedule=="semianually"):
+        nextdate = add_months(tdate,6)
+    elif (schedule=="anually"):
+        nextdate = add_months(tdate,12)
+    return nextdate
+
 app.jinja_env.filters['datetimeformat'] = datetimeformat
 app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
 
@@ -83,7 +125,8 @@ def home():
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total(USER_ID)
     current_view = 'All transactions'
-    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, offset=offset, limit=limit)
+    current_total = total_funds
+    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, current_total=current_total, offset=offset, limit=limit)
 
 @app.route("/envelope/<envelope_id>", methods=['GET'], )
 def envelope(envelope_id):
@@ -92,7 +135,8 @@ def envelope(envelope_id):
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total(USER_ID)
     current_view = get_envelope(envelope_id).name
-    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, offset=offset, limit=limit)
+    current_total = stringify(get_envelope(envelope_id).balance)
+    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, current_total=current_total, offset=offset, limit=limit)
 
 @app.route("/account/<account_id>", methods=['GET'], )
 def account(account_id):
@@ -101,7 +145,8 @@ def account(account_id):
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total(USER_ID)
     current_view = get_account(account_id).name
-    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, offset=offset, limit=limit)
+    current_total = stringify(get_account(account_id).balance) #is this the most efficient, or should it be a variable for the envelope rather than 2 functions executing identical sql requests?
+    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, current_total=current_total, offset=offset, limit=limit)
 
 @app.route('/new_expense', methods=['POST'])
 def new_expense():
@@ -113,20 +158,32 @@ def new_expense():
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
     schedule = request.form['schedule']
-    if len(scheduled) == 0:
-      schedule = None
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i]) * 100))
         envelope_ids[i] = int(envelope_ids[i])
-    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, schedule, False, USER_ID)
+    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID)
+    if len(scheduled) != 0:
+        nextdate = schedule_date_calc(date,schedule)
+        scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID)
     if len(envelope_ids) == 1:
         t.grouping = gen_grouping_num()
         t.envelope_id = envelope_ids[0]
         t.amt = amounts[0]
+        print("inserting new transaction without schedule")
         insert_transaction(t)
+        if (len(scheduled) != 0):
+            scheduled_t.grouping = gen_grouping_num()
+            scheduled_t.envelope_id = envelope_ids[0]
+            scheduled_t.amt = amounts[0]
+            print("inserting new transaction with schedule")
+            insert_transaction(scheduled_t)
     else:
         t.type = SPLIT_TRANSACTION
         new_split_transaction(t)
+        if (len(scheduled) != 0):
+            print("inserting new split transaction with schedule")
+            scheduled_t.type = SPLIT_TRANSACTION
+            new_split_transaction(scheduled_t)
     return 'Successfully added new expense!'
 
 @app.route('/new_transfer', methods=['POST'])
@@ -138,16 +195,20 @@ def new_transfer():
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
     schedule = request.form['schedule']
-    if len(scheduled) == 0:
-      schedule = None
     if (transfer_type == 2):
         to_account = request.form['to_account']
         from_account = request.form['from_account']
-        account_transfer(name, amount, date, to_account, from_account, note, schedule, USER_ID)
+        account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID)
+        if len(scheduled) != 0:
+            nextdate = schedule_date_calc(date,schedule)
+            account_transfer(name, amount, nextdate, to_account, from_account, note, schedule, USER_ID)
     elif (transfer_type == 1):
         to_envelope = request.form['to_envelope']
         from_envelope = request.form['from_envelope']
-        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, schedule, USER_ID)
+        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID)
+        if len(scheduled) != 0:
+            nextdate = schedule_date_calc(date,schedule)
+            envelope_transfer(name, amount, nextdate, to_envelope, from_envelope, note, schedule, USER_ID)
     else:
         print('What the heck are you even trying to do you twit?')
     return 'Successfully added new transfer!'
@@ -162,10 +223,12 @@ def new_income():
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
     schedule = request.form['schedule']
-    if len(scheduled) == 0:
-      schedule = None
-    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID)
+    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, None, False, USER_ID)
     insert_transaction(t)
+    if len(scheduled) != 0:
+        nextdate = schedule_date_calc(date,schedule)
+        scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID)
+        insert_transaction(scheduled_t)
     return 'Successfully added new income!'
 
 @app.route('/fill_envelopes', methods=['POST'])
@@ -177,8 +240,6 @@ def fill_envelopes():
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
     schedule = request.form['schedule']
-    if len(scheduled) == 0:
-      schedule = None
     deletes =[]
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i])*100))
@@ -188,8 +249,12 @@ def fill_envelopes():
     for index in reversed(deletes):
         amounts.pop(index)
         envelope_ids.pop(index)
-    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, schedule, False, USER_ID)
+    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID)
     envelope_fill(t)
+    if len(scheduled) != 0:
+        nextdate = schedule_date_calc(date,schedule)
+        scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID)
+        envelope_fill(scheduled_t)
     return 'Envelopes successfully filled!'
 
 @app.route('/edit_transaction', methods=['POST'])
