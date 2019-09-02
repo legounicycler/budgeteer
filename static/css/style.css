@@ -64,3 +64,9 @@ nav {
 nav a.sidenav-trigger {
   display: inline;
 }
+
+/* Changed default, disabled, filled-in checkbox so it's only a gray border */
+[type="checkbox"].filled-in:disabled:not(:checked) + span:not(.lever):after {
+  border-color: #949494;
+  background-color: transparent;
+}

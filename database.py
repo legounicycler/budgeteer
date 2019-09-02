@@ -118,12 +118,13 @@ def insert_transaction(t):
     with conn:
         c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id))
-        if not (t.account_id is None):
-            newaccountbalance = get_account_balance(t.account_id) - t.amt
-            update_account_balance(t.account_id, newaccountbalance)
-        if not (t.envelope_id is None):
-            newenvelopebalance = get_envelope_balance(t.envelope_id) - t.amt
-            update_envelope_balance(t.envelope_id, newenvelopebalance)
+        if (t.date < datetime.now()):
+            if not (t.account_id is None):
+                newaccountbalance = get_account_balance(t.account_id) - t.amt
+                update_account_balance(t.account_id, newaccountbalance)
+            if not (t.envelope_id is None):
+                newenvelopebalance = get_envelope_balance(t.envelope_id) - t.amt
+                update_envelope_balance(t.envelope_id, newenvelopebalance)
 
 def get_transaction(id):
     # Retrieves transaction object from database given its ID
@@ -131,10 +132,7 @@ def get_transaction(id):
     tdata = c.fetchone()
     t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11])
     # converts string to datetime object
-    if len(t.date) < 11:
-        t.date = datetime.strptime(t.date, "%Y-%m-%d")
-    else:
-        t.date = datetime.strptime(t.date, "%Y-%m-%d %H:%M:%S")
+    t.date = date_parse(t.date)
     t.id = tdata[0]
     return t
 
@@ -202,7 +200,7 @@ def get_account_transactions(account_id, start, amount):
     return tlist, offset, limit
 
 def get_scheduled_transactions(start, amount):
-    c
+    return False
 
 def delete_transaction(id):
     # deletes transaction and associated grouped transactions and updates appropriate envelope/account balances
@@ -212,18 +210,19 @@ def delete_transaction(id):
             ids = get_ids_from_grouping(grouping)
             for id in ids:
                 t = get_transaction(id)
-                # Update envelope balance if it references an envelope
-                if not (t.envelope_id is None):
-                    if not (get_envelope(t.envelope_id).deleted == True):
-                        update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
-                    else:
-                        update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + t.amt)
-                # Update account balance if it references an account
-                if not (t.account_id is None):
-                    if not (get_account(t.account_id).deleted == True):
-                        update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
-                    else:
-                        update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
+                if (t.date < datetime.now()):
+                    # Update envelope balance if it references an envelope
+                    if not (t.envelope_id is None):
+                        if not (get_envelope(t.envelope_id).deleted == True):
+                            update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
+                        else:
+                            update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + t.amt)
+                    # Update account balance if it references an account
+                    if not (t.account_id is None):
+                        if not (get_account(t.account_id).deleted == True):
+                            update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
+                        else:
+                            update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
                 c.execute("DELETE FROM transactions WHERE id=?", (id,))
         else:
             print("That transaction doesn't exist you twit")
@@ -244,7 +243,7 @@ def insert_account(name, balance, user_id):
         c.execute("INSERT INTO accounts (name, balance, user_id) VALUES (?, ?, ?)", (name, 0, user_id))
         account_id = c.lastrowid
         income_name = 'Initial Account Balance: ' + name
-        t = Transaction(INCOME, income_name, -1 * balance, date.today(), 1, account_id, gen_grouping_num(), '', None, False, user_id)
+        t = Transaction(INCOME, income_name, -1 * balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, user_id)
         insert_transaction(t)
 
 def get_account(id):
@@ -428,7 +427,7 @@ def envelope_fill(t):
 # ------ OTHER FUNCTIONS ------ #
 
 def get_total(user_id):
-    # Sums the account balances to get a total to display
+    # Sums the account balances for display
     c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (user_id,))
     total = c.fetchone()[0]
     if not total is None:
@@ -504,34 +503,62 @@ def stringify(number):
         string = '-' + string
     return string
 
+def date_parse(date_str):
+    # converts string to datetime object
+    if len(date_str) == 10:
+        date = datetime.strptime(date_str, "%Y-%m-%d")
+    elif len(date_str)==19:
+        date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+    elif len(date_str)==26:
+        date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S.%f")
+    else:
+        # Change to actually throw an error instead of just crashing things by
+        # returning the wrong data type
+        date = None
+        print("DATE PARSE ERROR: ", date_str)
+    return date
+
 def print_database():
     print()
-    print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+    print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
+    print("TRANSACTIONS:")
+    c.execute("PRAGMA table_info(transactions)")
+    colnames = ''
+    for row in c:
+        colnames = colnames + row[1] + ', '
+    print("(" + colnames[:-2] + ")\n")
     c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
-    print("Transactions:")
     for row in c:
         print(row)
     print()
 
-    print('Accounts:')
+    print('ACCOUNTS:')
+    c.execute("PRAGMA table_info(accounts)")
+    colnames = ''
+    for row in c:
+        colnames = colnames + row[1] + ', '
+    print("(" + colnames[:-2] + ")\n")
     c.execute("SELECT * FROM accounts")
     for row in c:
         print(row)
     print()
 
-    print('Envelopes:')
+    print('ENVELOPES:')
+    c.execute("PRAGMA table_info(envelopes)")
+    colnames = ''
+    for row in c:
+        colnames = colnames + row[1] + ', '
+    print("(" + colnames[:-2] + ")\n")
     c.execute("SELECT * FROM envelopes")
     for row in c:
         print(row)
     print()
     print("TOTAL FUNDS: ", get_total(USER_ID))
-    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-    print()
+    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
 
 def main():
 
-    create_db()
-
+    # create_db()
     print_database()
 
     conn.close()

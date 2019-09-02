@@ -17,3 +17,7 @@ c.execute("SELECT * FROM transactions WHERE schedule IS NOT NULL AND schedule !=
 for row in c:
     print(row)
 print()
+
+transactions = c.fetchall()
+print(transactions)
+

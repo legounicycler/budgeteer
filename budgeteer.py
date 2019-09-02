@@ -112,6 +112,7 @@ def schedule_date_calc(tdate, schedule):
         nextdate = add_months(tdate,6)
     elif (schedule=="anually"):
         nextdate = add_months(tdate,12)
+    nextdate = datetime.combine(nextdate, datetime.min.time())
     return nextdate
 
 app.jinja_env.filters['datetimeformat'] = datetimeformat
