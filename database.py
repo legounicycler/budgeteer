@@ -41,6 +41,11 @@ class Transaction:
         self.status = status
         self.user_id = user_id
         # current account balance (for easier reconciling)
+    def __repr__(self):
+        return "{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id)
+    def __str__(self):
+        return "{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id)
+
 
 class Account:
     def __init__(self, name, balance, deleted, user_id):
@@ -49,6 +54,11 @@ class Account:
         self.balance = balance
         self.deleted = deleted
         self.user_id = user_id
+    def __repr__(self):
+        return "{}, {}, {}, {}, {}, {}".format(self.id,self.name,self.balance,self.deleted,self.user_id)
+    def __str__(self):
+        return "{}, {}, {}, {}, {}, {}".format(self.id,self.name,self.balance,self.deleted,self.user_id)
+
 
 class Envelope:
     def __init__(self, name, balance, budget, deleted, user_id):
@@ -58,6 +68,11 @@ class Envelope:
         self.budget = budget
         self.deleted = deleted
         self.user_id = user_id
+    def __repr__(self):
+        return "{}, {}, {}, {}, {}, {}, {}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
+    def __str__(self):
+        return "{}, {}, {}, {}, {}, {}, {}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
+
 
 # Creates the database file
 def create_db():
@@ -199,8 +214,14 @@ def get_account_transactions(account_id, start, amount):
         limit = False
     return tlist, offset, limit
 
-def get_scheduled_transactions(start, amount):
-    return False
+def get_scheduled_transactions(user_id):
+    c.execute("SELECT id FROM transactions WHERE schedule IS NOT NULL AND user_id=? ORDER by day DESC, id DESC", (user_id,))
+    ids = c.fetchall()
+    tlist = []
+    for id in ids:
+        t = get_transaction(id[0])
+        tlist.append(t)
+    return tlist
 
 def delete_transaction(id):
     # deletes transaction and associated grouped transactions and updates appropriate envelope/account balances
