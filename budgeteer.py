@@ -18,9 +18,12 @@
   # Spending graphs/budgeting tracking
   # Add cash back feature
   # Photo of recipt (maybe until reconciled)
+  # Total envelope budget (on envelope editor) (monthly or biweekly??)
   #
   # BUG FIXES:
   # SELECTING 19 OR MORE ON MULTISELECT BREAKS THE VISUALS ON THE SCROLLER
+  # unchecking schedule box does not remove schedule when updating transactions
+  # (INVESTIGATE) Scheduled checkboxes are still active on old scheduled transactions sometimes
   # UPDATED ENVELOPE/ACCOUNT rows don't get added to transaction editors
   # Submitting new expense form without checking doesn't bring up visual warning,
   #     just console error message
@@ -33,6 +36,7 @@
   # income edit modal doesn't update account_id select
   # -0.00 and negative class on unallocated balance (envelope filler)
   # position of delete button on multiselect
+  # Envelopes area missing bottom padding on mobile
   #
   # THINGS TO MAYBE DO:
   #

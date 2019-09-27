@@ -106,7 +106,7 @@
 
 #bin {
   position: sticky;
-  height: calc(100% - 164px);
+  height: calc(100% - 100px);
   top: 154px;
 }
 
@@ -253,6 +253,10 @@ html, body, .content, .left-content {
   height: 100%;
 }
 
+main {
+  height: calc(100% - 64px);
+}
+
 .content {
   position: fixed;
   width: 100%;
@@ -299,7 +303,7 @@ h5 {
 
 #transactions-column {
   padding: 0 !important;
-  height: 100%;
+  height: calc(100% - 64px);
 }
 
 #transactions-list {
@@ -328,6 +332,10 @@ h5 {
     height: auto;
   }
 
+  main {
+    height: 100%;
+  }
+
   .content {
     position: relative;
   }
@@ -338,6 +346,10 @@ h5 {
 
   #delete-modal {
     max-width: 50%;
+  }
+
+  #envelopes, #accounts {
+    padding-bottom: 1em;
   }
 
 }
