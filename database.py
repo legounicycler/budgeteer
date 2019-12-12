@@ -4,8 +4,12 @@ from datetime import datetime
 from datetime import date
 import json
 
-database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
-# database = '/home/alimiero/database.sqlite'
+platform = platform.system()
+if platform == 'Windows':
+    database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
+else:
+    database = '/home/anthony/database.sqlite'
+
 conn = sqlite3.connect(database, check_same_thread=False)
 c = conn.cursor()
 

@@ -2,6 +2,9 @@
   #
   # Scheduled transactions (chrontab?)
   # instance count for scheduler
+  # remember which tab you're on (envelopes or accounts) for data_reload
+  # submit and new button
+  # don't show suggested values for numeric fields
   # error throwing instead of server crashing
   # Autoselect first form field on new envelope/account editor
   # Ajax for accounts/envelopes views
@@ -21,7 +24,8 @@
   # Total envelope budget (on envelope editor) (monthly or biweekly??)
   #
   # BUG FIXES:
-  # SELECTING 19 OR MORE ON MULTISELECT BREAKS THE VISUALS ON THE SCROLLER
+  # Fix get_total() in database.py
+  # What happens when you do negative values on an envelope fill?
   # unchecking schedule box does not remove schedule when updating transactions
   # (INVESTIGATE) Scheduled checkboxes are still active on old scheduled transactions sometimes
   # UPDATED ENVELOPE/ACCOUNT rows don't get added to transaction editors
