@@ -1,9 +1,10 @@
   # FEATURES TO ADD
   #
   # Scheduled transactions (chrontab?)
-  # instance count for scheduler
+  # loading spinners
+  # specific number of instances for scheduled transactions
   # remember which tab you're on (envelopes or accounts) for data_reload
-  # submit and new button
+  # "submit and new" button for faster transaction creations
   # don't show suggested values for numeric fields
   # error throwing instead of server crashing
   # Autoselect first form field on new envelope/account editor
@@ -13,8 +14,7 @@
   # hoverable note function
   # sort transaction lists (multiple ways date, amount, name, etc.)
   # Transaction search
-  # loading spinners
-  # Accounts/login functions
+    # Accounts/login functions
   # report a bug feature for users (probably using formspree)
   # Placeholder transactions (for deleted/edited accounts/envelopes)
   # import transactions from bank
@@ -24,11 +24,11 @@
   # Total envelope budget (on envelope editor) (monthly or biweekly??)
   #
   # BUG FIXES:
-  # Fix get_total() in database.py
+  # Fix get_total() in database.py (specifically in print_database())
   # What happens when you do negative values on an envelope fill?
   # unchecking schedule box does not remove schedule when updating transactions
   # (INVESTIGATE) Scheduled checkboxes are still active on old scheduled transactions sometimes
-  # UPDATED ENVELOPE/ACCOUNT rows don't get added to transaction editors
+  # UPDATED ENVELOPE/ACCOUNT rows don't get added to transaction editors dropdown lists
   # Submitting new expense form without checking doesn't bring up visual warning,
   #     just console error message
   # schedule checkbox and tab stays selected between transaction creations
@@ -36,7 +36,6 @@
   # Scrollbar on envelope/account horizontal overflow
   # Context menu not available on non-mobile transactions right click
   # if database doesn't exist run create_db
-  # smart choose database file to open based on what system you're running on
   # income edit modal doesn't update account_id select
   # -0.00 and negative class on unallocated balance (envelope filler)
   # position of delete button on multiselect

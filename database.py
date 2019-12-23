@@ -9,7 +9,7 @@ platform = platform.system()
 if platform == 'Windows':
     database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
 else:
-    database = '/home/anthony/database.sqlite'
+    database = '/home/alimiero/database.sqlite'
 
 conn = sqlite3.connect(database, check_same_thread=False)
 c = conn.cursor()
