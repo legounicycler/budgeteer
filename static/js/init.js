@@ -77,6 +77,9 @@
       $('#multi-delete-submit').click(function() {
         $('#multi-delete-form').submit();
       });
+
+      //Ensures that the material selects show an error message if no option is chosen on submit
+      $("select[required]").css({display: "block", height: 0, padding: 0, width: 0, position: 'absolute'});
     }); // end of document ready
 
 
@@ -248,21 +251,21 @@
     // Adds envelope row for transaction creator and initializes Material Select
     $("#add-envelope").click(function() {
       var $envelope_selector = $('#envelope-selector-row').find('select[name="envelope_id"]').clone();
-      $('#envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount-">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
+      $('#envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s5 input-field"><input id="amount" required class="validate" type="text" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount-">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
       $(".aclass").last().prepend($envelope_selector).find("select").last().formSelect();
     });
 
     // Adds envelope row for transaction editor and initializes Material Select
     $("#edit-add-envelope").click(function() {
       var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
-      $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
+      $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s5 input-field"><input id="amount" required class="validate" type="text" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
       $(".aclass").last().prepend($envelope_selector).find("select").last().formSelect();
     });
 
-    // // Removes new envelope row in transaction builder
-    // $("#remove-envelope").click(function() {
-    //   // add something here eventually
-    // });
+    // Removes new envelope row in transaction builder
+    $("#envelopes-and-amounts, #edit-envelopes-and-amounts").on('click','.remove-envelope-button', function() {
+      $(this).closest('.new-envelope-row').remove()
+    });
 
     // Load more transactions button
     $('#bin').on('click', '#load-more', function() {

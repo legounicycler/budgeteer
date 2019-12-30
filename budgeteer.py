@@ -1,6 +1,7 @@
   # FEATURES TO ADD
   #
-  # Scheduled transactions (chrontab?)
+  # Scheduled transactions documentation
+  # Show both accounts/envelopes on transaction list for transfers (with an arrow)
   # loading spinners
   # specific number of instances for scheduled transactions
   # remember which tab you're on (envelopes or accounts) for data_reload
@@ -19,15 +20,13 @@
   # Placeholder transactions (for deleted/edited accounts/envelopes)
   # import transactions from bank
   # Spending graphs/budgeting tracking
+  # allow empty values for numeric fields and have them fill as 0 (maybe with inline math)
   # Add cash back feature
   # Photo of recipt (maybe until reconciled)
   # Total envelope budget (on envelope editor) (monthly or biweekly??)
   #
   # BUG FIXES:
-  # Fix get_total() in database.py (specifically in print_database())
-  # What happens when you do negative values on an envelope fill?
-  # unchecking schedule box does not remove schedule when updating transactions
-  # (INVESTIGATE) Scheduled checkboxes are still active on old scheduled transactions sometimes
+  # Add Remove envelope button from split transactions!!! (trying to submit with blank fields doesn't work)
   # UPDATED ENVELOPE/ACCOUNT rows don't get added to transaction editors dropdown lists
   # Submitting new expense form without checking doesn't bring up visual warning,
   #     just console error message
@@ -40,6 +39,8 @@
   # -0.00 and negative class on unallocated balance (envelope filler)
   # position of delete button on multiselect
   # Envelopes area missing bottom padding on mobile
+  # Empty field values on envelope filler results in NaN in the totals
+  # rename "aclass" in JS
   #
   # THINGS TO MAYBE DO:
   #
@@ -169,15 +170,16 @@ def new_expense(edited=False):
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
+    scheduled = len(scheduled) != 0
     schedule = request.form['schedule']
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i]) * 100))
         envelope_ids[i] = int(envelope_ids[i])
     t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID)
     # Only insert a new scheduled transaction if it's not an edited transaction
-    if edited:
+    if scheduled and edited:
         t.schedule = schedule
-    if (len(scheduled) != 0) and not edited:
+    if scheduled and not edited:
         nextdate = schedule_date_calc(date,schedule)
         scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID)
     if len(envelope_ids) == 1:
@@ -186,7 +188,7 @@ def new_expense(edited=False):
         t.amt = amounts[0]
         print("inserting new transaction without schedule")
         insert_transaction(t)
-        if (len(scheduled) != 0) and not edited:
+        if scheduled and not edited:
             scheduled_t.grouping = gen_grouping_num()
             scheduled_t.envelope_id = envelope_ids[0]
             scheduled_t.amt = amounts[0]
@@ -195,7 +197,7 @@ def new_expense(edited=False):
     else:
         t.type = SPLIT_TRANSACTION
         new_split_transaction(t)
-        if (len(scheduled) != 0) and not edited:
+        if scheduled and not edited:
             print("inserting new split transaction with schedule")
             scheduled_t.type = SPLIT_TRANSACTION
             new_split_transaction(scheduled_t)
@@ -209,6 +211,7 @@ def new_transfer(edited=False):
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
+    scheduled = len(scheduled) != 0
     schedule = request.form['schedule']
     if (transfer_type == 2):
         to_account = request.form['to_account']
@@ -217,7 +220,7 @@ def new_transfer(edited=False):
             account_transfer(name, amount, date, to_account, from_account, note, schedule, USER_ID)
         else:
             account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID)
-        if (len(scheduled) != 0) and not edited:
+        if scheduled and not edited:
             nextdate = schedule_date_calc(date,schedule)
             account_transfer(name, amount, nextdate, to_account, from_account, note, schedule, USER_ID)
     elif (transfer_type == 1):
@@ -227,7 +230,7 @@ def new_transfer(edited=False):
             envelope_transfer(name, amount, date, to_envelope, from_envelope, note, schedule, USER_ID)
         else:
             envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID)
-        if (len(scheduled) != 0) and not edited:
+        if scheduled and not edited:
             nextdate = schedule_date_calc(date,schedule)
             envelope_transfer(name, amount, nextdate, to_envelope, from_envelope, note, schedule, USER_ID)
     else:
@@ -243,12 +246,13 @@ def new_income(edited=False):
     account_id = request.form['account_id']
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
+    scheduled = len(scheduled) != 0
     schedule = request.form['schedule']
     t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, None, False, USER_ID)
     if edited:
         t.schedule = schedule
     insert_transaction(t)
-    if (len(scheduled) != 0) and not edited:
+    if scheduled and not edited:
         nextdate = schedule_date_calc(date,schedule)
         scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID)
         insert_transaction(scheduled_t)
@@ -262,6 +266,7 @@ def fill_envelopes(edited=False):
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     note = request.form['note']
     scheduled = request.form.getlist('scheduled')
+    scheduled = len(scheduled) != 0
     schedule = request.form['schedule']
     deletes =[]
     for i in range(len(amounts)):
@@ -276,7 +281,7 @@ def fill_envelopes(edited=False):
     if edited:
         t.schedule = schedule
     envelope_fill(t)
-    if (len(scheduled) != 0) and not edited:
+    if scheduled and not edited:
         nextdate = schedule_date_calc(date,schedule)
         scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID)
         envelope_fill(scheduled_t)

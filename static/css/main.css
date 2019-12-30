@@ -8,6 +8,10 @@
   z-index: 1000;
 }
 
+.remove-envelope-button {
+  margin-bottom: 5px;
+}
+
 .transaction {
   cursor: pointer;
 }
