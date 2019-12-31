@@ -200,37 +200,50 @@
 
     }; //End of editor bind
 
+    //Envelope fill math n' stuff
     $('#envelope-fill-form').on("change", 'input[name="fill-amount"]', function() {
+      var $span = $(this).parent().siblings(".envelope-balance").children()
+      var index = $(this).parent().parent().index() - 1
+      var total_fill = 0;
+      var old_balance = envelope_balances[index];
       if ($(this).is(':valid')) {
-        var $span = $(this).parent().siblings(".envelope-balance").children()
-        var index = $(this).parent().parent().index() - 1
-        var total_fill = 0;
-        var new_balance = Math.round((envelope_balances[index] + parseFloat($(this).val()))*100) / 100
-        $span.text(balance_format(new_balance)).negative_check(new_balance);
-        $('#envelope-fill-form .envelope-budget input').each(function() {
+        new_balance = Math.round((old_balance + parseFloat($(this).val()))*100) / 100;
+      } else {
+        new_balance = old_balance;
+      }
+      $span.text(balance_format(new_balance)).negative_check(new_balance);
+      $('#envelope-fill-form .envelope-budget input').each(function() {
+        console.log("CHANGED")
+        if (!isNaN(parseFloat($(this).val()))) {
           total_fill = total_fill + parseFloat($(this).val());
-        });
-        $('#fill-total').text(balance_format(total_fill)).negative_check(total_fill);
-        var new_unallocated_balance = unallocated_balance - total_fill;
-        $('#unallocated-balance-envelope-filler').text(balance_format(new_unallocated_balance)).negative_check(new_unallocated_balance);
-      };
+        }
+      });
+      $('#fill-total').text(balance_format(total_fill)).negative_check(total_fill);
+      var new_unallocated_balance = unallocated_balance - total_fill;
+      $('#unallocated-balance-envelope-filler').text(balance_format(new_unallocated_balance)).negative_check(new_unallocated_balance);
     });
 
+    //Envelope fill editor math n' stuff
     $('#edit-envelope-fill-form').on("change", 'input[name="fill-amount"]', function() {
+      var $span = $(this).parent().siblings(".envelope-balance").children()
+      var index = $(this).parent().parent().index() - 1
+      var total_fill = 0;
+      var old_balance = envelope_balances[index];
       if ($(this).is(':valid')) {
-        var $span = $(this).parent().siblings(".envelope-balance").children()
-        var index = $(this).parent().parent().index() - 1
-        var total_fill = 0;
-        var new_balance = Math.round((envelope_balances[index] + (parseFloat($(this).val()))-envelope_fill_balances_array[index])*100) / 100;
-        $span.text(balance_format(new_balance)).negative_check(new_balance)
-        $('#edit-envelope-fill-form .envelope-budget input').each(function() {
-          total_fill = total_fill + parseFloat($(this).val())
-        });
-        var original_fill = envelope_fill_balances_array.reduce(getSum)
-        $('#edit-fill-total').text(balance_format(total_fill)).negative_check(total_fill);
-        var new_unallocated_balance = unallocated_balance - (total_fill - original_fill)
-        $('#edit-unallocated-balance-envelope-filler').text(balance_format(new_unallocated_balance)).negative_check(new_unallocated_balance);
-      };
+        new_balance = Math.round((old_balance + (parseFloat($(this).val()))-envelope_fill_balances_array[index])*100) / 100;
+      } else {
+        new_balance = old_balance;
+      }
+      $span.text(balance_format(new_balance)).negative_check(new_balance)
+      $('#edit-envelope-fill-form .envelope-budget input').each(function() {
+        if (!isNaN(parseFloat($(this).val()))) {
+          total_fill = total_fill + parseFloat($(this).val());
+        }
+      });
+      var original_fill = envelope_fill_balances_array.reduce(getSum)
+      $('#edit-fill-total').text(balance_format(total_fill)).negative_check(total_fill);
+      var new_unallocated_balance = unallocated_balance - (total_fill - original_fill)
+      $('#edit-unallocated-balance-envelope-filler').text(balance_format(new_unallocated_balance)).negative_check(new_unallocated_balance);
     });
 
     // Toggler code for transfer tab of transaction creator/editor
@@ -251,15 +264,15 @@
     // Adds envelope row for transaction creator and initializes Material Select
     $("#add-envelope").click(function() {
       var $envelope_selector = $('#envelope-selector-row').find('select[name="envelope_id"]').clone();
-      $('#envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s5 input-field"><input id="amount" required class="validate" type="text" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount-">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
-      $(".aclass").last().prepend($envelope_selector).find("select").last().formSelect();
+      $('#envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s5 input-field"><input id="amount" required class="validate" type="text" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount-">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper remove-envelope-button-col"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
+      $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect();
     });
 
     // Adds envelope row for transaction editor and initializes Material Select
     $("#edit-add-envelope").click(function() {
       var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
-      $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s5 input-field"><input id="amount" required class="validate" type="text" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
-      $(".aclass").last().prepend($envelope_selector).find("select").last().formSelect();
+      $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s5 input-field"><input id="amount" required class="validate" type="text" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper remove-envelope-button-col"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
+      $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect();
     });
 
     // Removes new envelope row in transaction builder
@@ -349,9 +362,10 @@
       $('#editor-modal').modal('open');
     });
 
-    $('.transaction').bind('contextmenu', function(e) {
-      return false;
-    });
+    //disables context menu for long press in mobile browsers
+    // $('.transaction').bind('contextmenu', function(e) {
+    //   return false;
+    // });
 
     $(document).on('change', '.schedule-select', function() {
       schedule_toggle($(this))
@@ -454,6 +468,13 @@
         $('.account-transfer select').last().attr('name', 'to_account');
         $('select').formSelect({dropdownOptions: {container: 'body'}});
         transfer_editor.detach()
+
+        //Ensures that selects update in income editor when accounts are changed
+        income_editor.appendTo('#editor-row');
+        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
+        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
+        income_editor.detach()
+
         $('#envelope-modal').replaceWith(o['envelope_editor_html']);
         $('#account-modal').replaceWith(o['account_editor_html']);
         $('#envelope-modal, #account-modal').modal();
@@ -648,8 +669,8 @@
         $("#edit-envelope-fill").detach();
         for (i=1 ; i<envelope_ids.length ; i++) {
           var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
-          $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 aclass"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
-          $(".aclass").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect();
+          $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="text" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
+          $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect();
         }
         checkbox_id = '#edit-expense-schedule'
       } else if (type == 5) {

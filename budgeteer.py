@@ -26,21 +26,7 @@
   # Total envelope budget (on envelope editor) (monthly or biweekly??)
   #
   # BUG FIXES:
-  # Add Remove envelope button from split transactions!!! (trying to submit with blank fields doesn't work)
-  # UPDATED ENVELOPE/ACCOUNT rows don't get added to transaction editors dropdown lists
-  # Submitting new expense form without checking doesn't bring up visual warning,
-  #     just console error message
-  # schedule checkbox and tab stays selected between transaction creations
-  # Helper text overflow on medium screen envelope editor
   # Scrollbar on envelope/account horizontal overflow
-  # Context menu not available on non-mobile transactions right click
-  # if database doesn't exist run create_db
-  # income edit modal doesn't update account_id select
-  # -0.00 and negative class on unallocated balance (envelope filler)
-  # position of delete button on multiselect
-  # Envelopes area missing bottom padding on mobile
-  # Empty field values on envelope filler results in NaN in the totals
-  # rename "aclass" in JS
   #
   # THINGS TO MAYBE DO:
   #

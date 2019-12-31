@@ -12,6 +12,22 @@
   margin-bottom: 5px;
 }
 
+.helper-text {
+  height: 22px;
+}
+
+#title-row {
+  height: 65px;
+}
+
+#title-options-row {
+  height: 25px;
+}
+
+input[type="text"] {
+  margin-bottom: 0px !important;
+}
+
 .transaction {
   cursor: pointer;
 }
@@ -302,6 +318,7 @@ h5 {
 
 #transaction-title {
   margin-left: 10px;
+  margin-bottom: 0px;
   padding-bottom: .1em; /* so the header doesn't clip in the y-direction */
 }
 
@@ -354,6 +371,15 @@ h5 {
 
   #envelopes, #accounts {
     padding-bottom: 1em;
+  }
+
+  .s6 .helper-text, .s4 .helper-text, .s3 .helper-text, .m2 .helper-text {
+    font-size: .68em !important;
+    margin-top: .2em;
+  }
+
+  input.validate {
+    margin-bottom: 0px !important;
   }
 
 }
@@ -479,6 +505,10 @@ h5 {
 
   .schedule-label {
     font-size: .75em;
+  }
+
+  .remove-envelope-button-col {
+    padding: 0 !important;
   }
 
 }
