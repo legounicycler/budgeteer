@@ -8,6 +8,10 @@
   z-index: 1000;
 }
 
+.checked-background {
+  background-color: #ddd !important;
+}
+
 .remove-envelope-button {
   margin-bottom: 5px;
 }
@@ -175,6 +179,7 @@ i.no-margin.tiny {
   display: flex;
   flex-direction: column;
 }
+
 .scroller {
   overflow-y: scroll;
   overflow: overlay;
@@ -535,7 +540,7 @@ h5 {
     }
 
     #bin {
-      height: calc(100% - 154px);
+      height: calc(100% - 90px);
     }
 
     .transaction-name {

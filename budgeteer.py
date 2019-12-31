@@ -3,6 +3,7 @@
   # Scheduled transactions documentation
   # Show both accounts/envelopes on transaction list for transfers (with an arrow)
   # loading spinners
+  # overlay scrollbar
   # specific number of instances for scheduled transactions
   # remember which tab you're on (envelopes or accounts) for data_reload
   # "submit and new" button for faster transaction creations
@@ -26,7 +27,9 @@
   # Total envelope budget (on envelope editor) (monthly or biweekly??)
   #
   # BUG FIXES:
-  # Scrollbar on envelope/account horizontal overflow
+  # hover class left over on mobile long press select of transactions, which means
+  #     the background is darker than normal even when it's unchecked
+  # transactions header doesn't scroll all the way to top on mobile after first scroll down
   #
   # THINGS TO MAYBE DO:
   #

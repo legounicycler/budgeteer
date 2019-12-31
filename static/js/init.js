@@ -80,6 +80,7 @@
 
       //Ensures that the material selects show an error message if no option is chosen on submit
       $("select[required]").css({display: "block", height: 0, padding: 0, width: 0, position: 'absolute'});
+
     }); // end of document ready
 
 
@@ -213,7 +214,6 @@
       }
       $span.text(balance_format(new_balance)).negative_check(new_balance);
       $('#envelope-fill-form .envelope-budget input').each(function() {
-        console.log("CHANGED")
         if (!isNaN(parseFloat($(this).val()))) {
           total_fill = total_fill + parseFloat($(this).val());
         }
@@ -320,12 +320,14 @@
           none_checked = false;
         }
       });
+      if (this.checked) {
+        $(this).closest('.collection-item').addClass('checked-background');
+      } else {
+        $(this).closest('.collection-item').removeClass('checked-background');
+      }
       if (none_checked) {
         $('.checkbox-bucket, #multi-delete-submit').hide();
         $('.date-bucket').show();
-        // show checkbox/hide date for where your cursor is
-        // $(this).parent().parent().show();
-        // $(this).parent().parent().siblings().hide();
       } else {
         $('.checkbox-bucket, #multi-delete-submit').show();
         $('.date-bucket').hide();
@@ -336,27 +338,38 @@
     var start;
     var timer;
     $('#bin').on( 'touchstart', '.transaction', function( e ) {
-        $this = $(this)
-        start = new Date().getTime();
-        timer = setTimeout(function(){
+      $this = $(this);
+      start = new Date().getTime();
+      start_y = event.touches[0].clientY;
+      y = start_y;
+      timer = setTimeout(function(){
+        if (Math.abs(start_y - y) < 30) {
           $this.parent().find('.delete-boxes').click();
           $(this).bind("contextmenu", function(e) {
             e.preventDefault();
           });
-          }, longpress)
+        } else {
+          clearTimeout(timer);
+        }
+      }, longpress)
     }).on( 'mouseleave', '.transaction', function( e ) {
+      start = 0;
+      clearTimeout(timer);
+    }).on( 'touchend', '.transaction', function( e ) {
+      if ( new Date().getTime() < ( start + longpress ) && Math.abs(start_y - y) < 30 ) {
+        $this = $(this)
+        clearTimeout(timer);
+        if (!none_checked) {
+          e.preventDefault();
+          $this.siblings().find('.delete-boxes').click()
+        }
+      } else {
         start = 0;
         clearTimeout(timer);
-    }).on('touchend', '.transaction', function( e ) {
-        if ( new Date().getTime() < ( start + longpress )  ) {
-          $this = $(this)
-          clearTimeout(timer);
-          transaction_modal_open($this)
-          setTimeout(function() {
-            $('#editor-modal').modal('open');
-          }, 1)
-        }
-    }).on('click', '.transaction', function() {
+      }
+    }).on( 'touchmove', '.transaction', function() {
+      y = event.touches[0].clientY;
+    }).on( 'click', '.transaction', function() {
       $this = $(this)
       transaction_modal_open($this);
       $('#editor-modal').modal('open');
