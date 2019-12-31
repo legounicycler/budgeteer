@@ -9,11 +9,11 @@
   {% if transactions_data|length %}
     <div class="scroller">
       {% for transaction in transactions_data %}
-        <a class="collection-item waves-effect">
+        <a class="collection-item">
           <li class="row transaction-row {% if transaction.date > transaction.date.now() %}pending{% endif %}">
             <div class="col s2 valign-wrapper transaction-date">
               <div class="date-bucket">
-                <span class="long-date">{{transaction.date|datetimeformat}}</span><span class="short-date hide">{{transaction.date|datetimeformatshort}}</span>
+                <span class="long-date non-selectable">{{transaction.date|datetimeformat}}</span><span class="short-date hide non-selectable">{{transaction.date|datetimeformatshort}}</span>
               </div>
               <div class="checkbox-bucket">
                 <label>
@@ -26,13 +26,13 @@
               <div class="col m1 hide-on-small-only valign-wrapper transaction-type"><i class="material-icons" title="{{t_type_dict[transaction.type]}}">{{t_type_dict2[transaction.type]}}</i></div>
               <div class="col s7 transaction-name left-align">
                 <div class="row">
-                  <h5 class="truncate no-margin">{{transaction.name}}</h5>
+                  <h5 class="truncate no-margin non-selectable">{{transaction.name}}</h5>
                 </div>
                 <div class="row valign-wrapper transaction-details">
-                  <i class="no-margin tiny truncate {% if transaction.envelope_id is not none and transaction.type != 4 and transaction.type !=5 %}{% if envelopes_data[transaction.envelope_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.envelope_id is not none and transaction.type != 4 and transaction.type != 5%}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}{% if transaction.type == 4 %}Multiple{% elif transaction.type == 5%}Unallocated distribution{% endif %}</i>{% if transaction.envelope_id is not none and transaction.account_id is not none %}<i class="no-margin tiny"><pre> / </pre></i>{% endif %}<i class="no-margin tiny truncate {% if transaction.account_id is not none%}{% if accounts_data[transaction.account_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.account_id is not none %}{{ accounts_data[transaction.account_id].name }}{% endif %}</i>
+                  <i class="no-margin tiny truncate non-selectable {% if transaction.envelope_id is not none and transaction.type != 4 and transaction.type !=5 %}{% if envelopes_data[transaction.envelope_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.envelope_id is not none and transaction.type != 4 and transaction.type != 5%}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}{% if transaction.type == 4 %}Multiple{% elif transaction.type == 5%}Unallocated distribution{% endif %}</i>{% if transaction.envelope_id is not none and transaction.account_id is not none %}<i class="no-margin tiny non-selectable"><pre> / </pre></i>{% endif %}<i class="no-margin tiny truncate non-selectable {% if transaction.account_id is not none%}{% if accounts_data[transaction.account_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.account_id is not none %}{{ accounts_data[transaction.account_id].name }}{% endif %}</i>
                 </div>
               </div>
-              <div class="col s3 m2 valign-wrapper transaction-amount"><span class="{{'negative' if transaction.amt[0] == '-'}}  balance">{{transaction.amt}}</span></div>
+              <div class="col s3 m2 valign-wrapper transaction-amount"><span class="{{'negative' if transaction.amt[0] == '-'}}  balance non-selectable">{{transaction.amt}}</span></div>
               <!-- <div class="col s1 valign-wrapper transaction-status"><i class="small material-icons">{{transaction.status}}</i></div> -->
             </div>
           </li>

@@ -26,10 +26,7 @@
   # Photo of recipt (maybe until reconciled)
   # Total envelope budget (on envelope editor) (monthly or biweekly??)
   #
-  # BUG FIXES:
-  # hover class left over on mobile long press select of transactions, which means
-  #     the background is darker than normal even when it's unchecked
-  # transactions header doesn't scroll all the way to top on mobile after first scroll down
+  # BUG LIST:
   #
   # THINGS TO MAYBE DO:
   #

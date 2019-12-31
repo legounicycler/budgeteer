@@ -9,7 +9,7 @@
 }
 
 .checked-background {
-  background-color: #ddd !important;
+  background-color: #ffe7bb !important;
 }
 
 .remove-envelope-button {
@@ -275,11 +275,11 @@ h5.no-margin {
 
 /* makes the leftside content reach the bottom of the page*/
 html, body, .content, .left-content {
-  height: 100%;
+  height: 100vh;
 }
 
 main {
-  height: calc(100% - 64px);
+  height: calc(100vh - 64px);
 }
 
 .content {
@@ -387,6 +387,16 @@ h5 {
     margin-bottom: 0px !important;
   }
 
+  .non-selectable {
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    -khtml-user-select:none;
+    -moz-user-select:none;
+    -ms-user-select:none;
+    user-select:none;
+    -webkit-tap-highlight-color:rgba(0,0,0,0);
+  }
+
 }
 
 @media only screen and (max-width: 600px) {
@@ -394,6 +404,7 @@ h5 {
   #delete-modal {
     max-width: 75%;
   }
+
 
   #delete-modal .modal-content{
     padding: 0 5px 10px 5px;
