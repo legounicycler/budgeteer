@@ -1,15 +1,12 @@
   # FEATURES TO ADD
   #
-  # loading spinners
   # toast for scheduled transaction created
   # overlay scrollbar (simplebar?)
   # specific number of instances for scheduled transactions
-  # remember which tab you're on (envelopes or accounts) for data_reload
   # "submit and new" button for faster transaction creations
   # don't show suggested values for numeric fields
   # error throwing instead of server crashing
   # Autoselect first form field on new envelope/account editor
-  # Ajax for accounts/envelopes views
   # Quick fill for envelopes based on budget
   # Add keyboard-tab select function on materialize select so that it's more user friendly
   # hoverable note function
