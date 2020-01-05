@@ -2,7 +2,7 @@
   <div class="modal-content">
     <div class="row">
 
-      <ul class="tabs">
+      <ul class="tabs" id="type-tabs">
         <li class="tab col s4"><a href="#expense" class="active">Expense</a></li>
         <li class="tab col s4"><a href="#transfer">Transfer</a></li>
         <li class="tab col s4"><a href="#income">Income</a></li>
@@ -35,7 +35,7 @@
                   <label>Envelope</label>
                 </div>
                 <div class="input-field col s6 ">
-                  <input class="validate" type="number" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                  <input class="validate" type="number" autocomplete="off" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
                   <label for="amount">Amount</label>
                   <span class="helper-text" data-error="Please enter a numeric value"></span>
                 </div>
@@ -197,7 +197,7 @@
                 <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
               </div>
               <div class="input-field col s6 ">
-                <input class="validate" type="number" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                <input class="validate" type="number" autocomplete="off" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
                 <label for="amount">Amount</label>
                 <span class="helper-text" data-error="Please enter a numeric value"></span>
               </div>
@@ -279,7 +279,7 @@
                 <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
               </div>
               <div class="input-field col s6 ">
-                <input class="validate" type="number" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                <input class="validate" type="number" autocomplete="off" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
                 <label for="amount">Amount</label>
                 <span class="helper-text" data-error="Please enter a numeric value"></span>
               </div>

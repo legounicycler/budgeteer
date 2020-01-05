@@ -1,24 +1,25 @@
   # FEATURES TO ADD
   #
-  # overlay scrollbar (simplebar?)
-  # specific number of instances for scheduled transactions
-  # "submit and new" button for faster transaction creations
-  # don't show suggested values for numeric fields
-  # error throwing instead of server crashing
-  # Autoselect first form field on new envelope/account editor
-  # Quick fill for envelopes based on budget
+  # -----USER EXPERIENCE ENHANCEMENTS-----
   # Add keyboard-tab select function on materialize select so that it's more user friendly
-  # hoverable note function
-  # sort transaction lists (multiple ways date, amount, name, etc.)
-  # Transaction search
-  # Accounts/login functions
-  # report a bug feature for users (probably using formspree)
+  # "Submit and new" button for faster transaction creations
+  # Quick fill for envelopes based on budget
+  # Overlay scrollbar (simplebar?)
+  #
+  # -----ACTUAL FEATURES-----
+  # Account balance next to transaction amount
+  # Hoverable note function
   # Placeholder transactions (for deleted/edited accounts/envelopes)
-  # import transactions from bank
+  # Import transactions from bank
+  # Specific number of instances for scheduled transactions
+  # Transaction search/sort (multiple ways date, amount, name, etc.)
+  # Accounts/login functions
   # Spending graphs/budgeting tracking
-  # Add cash back feature
+  # Report a bug feature for users (probably using formspree)
+  # Cash back feature
   # Photo of recipt (maybe until reconciled)
   # Total envelope budget (on envelope editor) (monthly or biweekly??)
+  #
   #
   # BUG LIST:
   #

@@ -52,7 +52,7 @@
                         <input type="hidden" value={{envelope.id}} name="envelope_id">
                       </div>
                       <div class="col s3 envelope-budget editor-col input-field">
-                        <input class="validate" type="number" value="0.00" name="fill-amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                        <input class="validate" type="number" autocomplete="off" value="0.00" name="fill-amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
                         <span class="helper-text" data-error="Must be numeric"></span>
                       </div>
                       <div class="col s4 m3 valign-wrapper envelope-balance editor-col">

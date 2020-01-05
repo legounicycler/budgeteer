@@ -7,12 +7,21 @@
       // Prevent tabs flashing content for a second on document reload
       $('#envelopes, #accounts').removeClass('hide');
 
-      // Initialize tabs indicator on modal open
-      $('.modal').modal({
+      $('.modal').modal({onOpenEnd: $(this).find('.tabs').tabs()});
+
+      $('#transaction-modal').modal({
         onOpenEnd: function () {
-            $('.modal').find('.tabs').tabs();
+          $('#transaction-modal').find('.tabs').tabs();
+          var tab_index = M.Tabs.init(document.getElementById('type-tabs')).index;
+          if (tab_index == 0) {
+            $('#new-expense-form').find('input').first().select();
+          } else if (tab_index == 1) {
+            $('#new-transfer-form').find('input').first().select();
+          } else if (tab_index == 2) {
+            $('#new-income-form').find('input').first().select();
           }
-      });
+        }
+      })
 
       // Initialize sidenav
       $('.sidenav').sidenav({
