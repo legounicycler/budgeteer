@@ -5,6 +5,21 @@
  *
  */
 
+/* Fixes issue where error message on select doesn't show up */
+select:required {
+  display: block;
+  height: 0;
+  padding: 0;
+  width: 0;
+  position: absolute;
+}
+
+/* Fixes issue of text behind carrat in long select messages */
+.select-wrapper input.select-dropdown {
+    padding-right: 25px;
+    box-sizing: border-box;
+    text-overflow: ellipsis;
+}
 
 /*gets rid of background color on focus*/
 .tabs .tab a:focus, .tabs .tab a:focus.active {

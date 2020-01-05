@@ -145,7 +145,7 @@
               <div class="account-transfer">
                 <div class="row">
                   <div class="input-field col s6">
-                    <select id="edit-from_account" class="account-selector" name="from_account">
+                    <select id="edit-from_account" class="account-selector" name="from_account" required>
                       <option value="" disabled selected>Choose an Account</option>
                       {% for id, account in accounts_data.items() %}
                         {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance}}</option>{% endif %}
@@ -154,7 +154,7 @@
                     <label class="no-active">From</label>
                   </div>
                   <div class="input-field col s6">
-                    <select id="edit-to_account" class="account-selector" name="to_account">
+                    <select id="edit-to_account" class="account-selector" name="to_account" required>
                       <option value="" disabled selected>Choose an Account</option>
                       {% for id, account in accounts_data.items() %}
                         {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance}}</option>{% endif %}
@@ -168,7 +168,7 @@
               <div class="envelope-transfer">
                 <div class="row">
                   <div class="input-field col s6">
-                    <select id="edit-from_envelope" class="envelope-selector" name="from_envelope">
+                    <select id="edit-from_envelope" class="envelope-selector" name="from_envelope" required>
                       <option value="" disabled selected>Choose an Envelope</option>
                       {% for id, envelope in envelopes_data.items() %}
                         {% if envelope.deleted == false and envelope.id != 1 %}
@@ -179,7 +179,7 @@
                     <label class="no-active">From</label>
                   </div>
                   <div class="input-field col s6">
-                    <select id="edit-to_envelope" class="envelope-selector" name="to_envelope">
+                    <select id="edit-to_envelope" class="envelope-selector" name="to_envelope" required>
                       <option value="" disabled selected>Choose an Envelope</option>
                       {% for id, envelope in envelopes_data.items() %}
                         {% if envelope.deleted == false and envelope.id != 1 %}

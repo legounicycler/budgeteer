@@ -1,9 +1,8 @@
   # FEATURES TO ADD
   #
-  # Scheduled transactions documentation
-  # Show both accounts/envelopes on transaction list for transfers (with an arrow)
   # loading spinners
-  # overlay scrollbar
+  # toast for scheduled transaction created
+  # overlay scrollbar (simplebar?)
   # specific number of instances for scheduled transactions
   # remember which tab you're on (envelopes or accounts) for data_reload
   # "submit and new" button for faster transaction creations
@@ -27,6 +26,9 @@
   # Total envelope budget (on envelope editor) (monthly or biweekly??)
   #
   # BUG LIST:
+  # Scheduling transactions with their next date in the past
+    # doesn't create a future transaction at all
+  # Envelope/account total in transaction header doesn't update on data_reload()
   #
   # THINGS TO MAYBE DO:
   #
@@ -44,9 +46,11 @@
   # cover overspending button
   # average spent in each envelope
   # one click reconcile button
+  # Show both accounts/envelopes on transaction list for transfers (with an arrow)
   # use join clause on get_trasactions() to get account name and envelope name
   #     This might mot actually be more efficient unless I add a feature where
   #     there's a current account balance associated with every transaction
+  # Scheduled transactions documentation
 
 from flask import Flask, render_template, url_for, request, redirect, jsonify
 from database import *

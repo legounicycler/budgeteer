@@ -49,69 +49,85 @@
   <!-- Content -->
   <main>
 
-  <!--Transaction Buttons-->
-  <div class="fixed-action-btn">
-    <a class="btn-floating btn-large waves-effect waves-light orange darken-3 floater"><i class="material-icons">add</i></a>
-    <ul>
-      <li><a class="btn-floating red modal-trigger tooltipped" id="new-transaction-button" href="#transaction-modal" data-position="top" data-tooltip="Create transaction"><i class="material-icons">edit</i></a></li>
-      <li><a class="btn-floating green darken-1 tooltipped modal-trigger" id="fill-envelopes-button" href="#envelope-fill-modal" data-position="top" data-tooltip="Fill envelopes"><i class="material-icons">input</i></a></li>
-    </ul>
-  </div>
-
-  <div class="row content">
-
-    <!--LEFT CONTENT-->
-    <div class="col m12 l4 s12 left-content blue-grey">
-      <div class="row" id="left-header">
-        <div class="row" id="total">
-          <h4 class="col s4 white-text bold">Total:</h4>
-          <h4 class="col s8"><span class="{{'negative' if total_funds[0] == '-'}} balance">{{total_funds}}</span></h4>
+    <div id="loading-div-div">
+      <div id="loading-div">
+        <div class="preloader-wrapper big active">
+          <div class="spinner-layer spinner-blue-only">
+            <div class="circle-clipper left">
+              <div class="circle"></div>
+            </div><div class="gap-patch">
+              <div class="circle"></div>
+            </div><div class="circle-clipper right">
+              <div class="circle"></div>
+            </div>
+          </div>
         </div>
-        <div class="row" id="unallocated">
-          <h6 class="col s4 white-text bold">Unallocated:</h6>
-          <h6 class="col s8"><span id="unallocated-balance" class="{{'negative' if envelopes_data[1].balance[0] == '-'}} balance">{{envelopes_data[1].balance}}</span></h6>
-        </div>
-      </div>
-
-      <div class="row">
-        <ul class="tabs blue-grey lighten-5">
-          <li class="tab col s6"><a class="active" href="#envelopes">Envelopes</a></li>
-          <li class="tab col s6"><a href="#accounts">Accounts</a></li>
-        </ul>
-      </div>
-      <div id="envelopes" class="col s12 hide">
-        <a href="#envelope-modal" class="btn orange waves-effect modal-trigger" id="edit-envelopes">Edit Envelopes</a>
-          {% include 'envelopes.html'%}
-      </div>
-      <div id="accounts" class="col s12 hide">
-        <a href="#account-modal" class="btn orange waves-effect modal-trigger" id="edit-accounts">Edit Accounts</a>
-          {% include 'accounts.html'%}
       </div>
     </div>
 
+    <!--Transaction Buttons-->
+    <div class="fixed-action-btn">
+      <a class="btn-floating btn-large waves-effect waves-light orange darken-3 floater"><i class="material-icons">add</i></a>
+      <ul>
+        <li><a class="btn-floating red modal-trigger tooltipped" id="new-transaction-button" href="#transaction-modal" data-position="top" data-tooltip="Create transaction"><i class="material-icons">edit</i></a></li>
+        <li><a class="btn-floating green darken-1 tooltipped modal-trigger" id="fill-envelopes-button" href="#envelope-fill-modal" data-position="top" data-tooltip="Fill envelopes"><i class="material-icons">input</i></a></li>
+      </ul>
+    </div>
 
-    <!-- RIGHT CONTENT -->
-    <div class="col s12 m12 l8" id="transactions-column">
-      <form id="multi-delete-form" action="{{ url_for('multi_delete') }}" method="post">
-        <div id="transaction-header" class="orange lighten-1 white-text">
-          <div class="row" id="title-row">
-            <div class="col s12 left-align">
-              <h4 id="transaction-title" class="truncate">{{current_view}} | <i>{{current_total}}</i></h4>
-            </div>
+    <div class="row content">
+
+      <!--LEFT CONTENT-->
+      <div class="col m12 l4 s12 left-content blue-grey">
+        <div class="row" id="left-header">
+          <div class="row" id="total">
+            <h4 class="col s4 white-text bold">Total:</h4>
+            <h4 class="col s8"><span class="{{'negative' if total_funds[0] == '-'}} balance">{{total_funds}}</span></h4>
           </div>
-          <div class="row" id="title-options-row">
-            <div class="col s2 push-s10">
-              <a id="multi-delete-submit">Delete</a>
-            </div>
-            <!-- <button class="btn-flat col s4" type="submit" name="action" href="#!">Submit</button> -->
+          <div class="row" id="unallocated">
+            <h6 class="col s4 white-text bold">Unallocated:</h6>
+            <h6 class="col s8"><span id="unallocated-balance" class="{{'negative' if envelopes_data[1].balance[0] == '-'}} balance">{{envelopes_data[1].balance}}</span></h6>
           </div>
         </div>
-        <div id="bin">
-          {% include 'transactions.html' %}
+
+        <div class="row">
+          <ul class="tabs blue-grey lighten-5">
+            <li class="tab col s6"><a class="active" href="#envelopes">Envelopes</a></li>
+            <li class="tab col s6"><a href="#accounts">Accounts</a></li>
+          </ul>
+        </div>
+        <div id="envelopes" class="col s12 hide">
+          <a href="#envelope-modal" class="btn orange waves-effect modal-trigger" id="edit-envelopes">Edit Envelopes</a>
+            {% include 'envelopes.html'%}
+        </div>
+        <div id="accounts" class="col s12 hide">
+          <a href="#account-modal" class="btn orange waves-effect modal-trigger" id="edit-accounts">Edit Accounts</a>
+            {% include 'accounts.html'%}
         </div>
       </div>
-    </form>
-  </div>
+
+
+      <!-- RIGHT CONTENT -->
+      <div class="col s12 m12 l8" id="transactions-column">
+        <form id="multi-delete-form" action="{{ url_for('multi_delete') }}" method="post">
+          <div id="transaction-header" class="orange lighten-1 white-text">
+            <div class="row" id="title-row">
+              <div class="col s12 left-align">
+                <h4 id="transaction-title" class="truncate">{{current_view}} | <i>{{current_total}}</i></h4>
+              </div>
+            </div>
+            <div class="row" id="title-options-row">
+              <div class="col s2 push-s10">
+                <a id="multi-delete-submit">Delete</a>
+              </div>
+              <!-- <button class="btn-flat col s4" type="submit" name="action" href="#!">Submit</button> -->
+            </div>
+          </div>
+          <div id="bin">
+            {% include 'transactions.html' %}
+          </div>
+        </div>
+      </form>
+    </div>
   </main>
 
   {% include 'envelope_editor.html' %}

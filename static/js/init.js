@@ -33,6 +33,7 @@
         container: 'body'
       });
 
+      //DOES THIS WORK AFTER A DATA RELOAD?
       $('#editor-modal').modal({
         onCloseEnd: function() {
           // Removes user-added rows in editor when the modal is closed
@@ -46,6 +47,7 @@
         hoverEnabled: false
       });
 
+      //CLEAN THIS UP
       $('.scheduler').click(function() {
         if (!$(this).siblings().is(':disabled')) {
           if($(this).siblings().is(':checked')) {
@@ -63,23 +65,38 @@
 
       $('.tooltipped').tooltip();
 
+      //Editor modal setup
       editor_binds()
       transaction_editor = $("#edit-expense").detach();
       transfer_editor = $("#edit-transfer").detach();
       income_editor = $("#edit-income").detach();
       envelope_fill_editor = $("#edit-envelope-fill").detach();
 
+      //Does this work after data-reload???
+      //Allows selects to overflow modals
       var elem = document.getElementsByClassName('select_dropdown');
       M.FormSelect.init(elem, {dropdownOptions:{container:document.body}});
 
       budget_bars()
 
+      //Initializes the multidelete button
       $('#multi-delete-submit').click(function() {
         $('#multi-delete-form').submit();
       });
 
       //Ensures that the material selects show an error message if no option is chosen on submit
-      $("select[required]").css({display: "block", height: 0, padding: 0, width: 0, position: 'absolute'});
+      //DOES THIS STILL WORK ON DATA RELOAD?
+      // $("select[required]").css({display: "block", height: 0, padding: 0, width: 0, position: 'absolute'});
+
+      //LOADING SPINNERS
+      var $loading = $('#loading-div-div').hide();
+      $(document)
+        .ajaxStart(function () {
+          $loading.show();
+        })
+        .ajaxStop(function () {
+          $loading.hide();
+        });
 
     }); // end of document ready
 
@@ -251,8 +268,9 @@
       var target = $(this).data('target');
       var show = $("option:selected", this).data('show');
       $(target).children().addClass('hide');
+      $(show).removeClass('hide');
       $(target).find('select').removeAttr('required');
-      $(show).removeClass('hide').attr('required');
+      $(show).find('select').attr('required', true);
     });
 
     // If the yes button is clicked in the delete modal, delete the appropriate row
@@ -383,6 +401,7 @@
     $(document).on('change', '.schedule-select', function() {
       schedule_toggle($(this))
     }).on('change', '.datepicker', function() {
+      //CLEAN THIS UP
       $schedule_select = $(this).parent().parent().parent().find('.schedule-select');
       schedule_toggle($schedule_select)
     });
@@ -472,6 +491,14 @@
         $('#accounts-bin').replaceWith(o['accounts_html']);
         $('#envelopes-bin').replaceWith(o['envelopes_html']);
 
+        //Update selects in transaction editor
+        transaction_editor.appendTo('#editor-row');
+        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
+        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
+        $('select').formSelect({dropdownOptions: {container: 'body'}});
+        transaction_editor.detach();
+
+        //Update selects in transfer editor
         transfer_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
@@ -480,12 +507,13 @@
         $('.account-transfer select').first().attr('name', 'from_account');
         $('.account-transfer select').last().attr('name', 'to_account');
         $('select').formSelect({dropdownOptions: {container: 'body'}});
-        transfer_editor.detach()
+        transfer_editor.detach();
 
-        //Ensures that selects update in income editor when accounts are changed
+        //Update selects in the income editor
         income_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
+        $('select').formSelect({dropdownOptions: {container: 'body'}});
         income_editor.detach()
 
         $('#envelope-modal').replaceWith(o['envelope_editor_html']);
@@ -527,6 +555,7 @@
         $('.schedule-select').each(function() { schedule_toggle($(this)) });
 
         M.updateTextFields();
+        $('select').formSelect({dropdownOptions: {container: 'body'}});
 
         console.log("Page data reloaded!")
       });
@@ -586,9 +615,9 @@
       var amt = -1 * parseFloat(e.data('amt').replace("$",""));
       var to_envelope = null;
       var from_envelope = null;
-      var schedule = e.data('schedule')
-      var status = e.data('status')
-      var checkbox_id
+      var schedule = e.data('schedule');
+      var status = e.data('status');
+      var checkbox_id;
 
       //if it's a grouped transaction, use ajax to get data from all grouped transaction
       if (type != 0 || type != 3 ) {
@@ -725,11 +754,13 @@
       $('#edit-date').datepicker('setDate', new Date(date));
       $("#edit-name").val(name);
       $("#edit-note").val(note);
+      //vvv Do these selects need to be in the body to prevent overflow from modal? vvv
       $('#edit-envelope_id').val(envelope_id).formSelect();
       $('#edit-account_id').val(account_id).formSelect();
       $('#dtid').attr('value', id);
       $('#edit-id').attr('value', id);
       $('#type').attr('value', type);
+      //Logic for whether or not schedule checkbox/info shows or is disabled
       if (schedule == 'None') {
         // set to default (disabled)
         if ($(checkbox_id).is(':checked')) {
