@@ -98,6 +98,38 @@
           $loading.hide();
         });
 
+      $(document).on('click', '.envelope-link', function() {
+        var url = $(this).data('url');
+        var current_url = $(location).attr("href");
+        var envelope_id = $(this).data("envelope-id");
+        $.ajax({
+          type: "post",
+          url: url,
+          data: JSON.stringify({"envelope_id": envelope_id}),
+          contentType: 'application/json'
+        }).done(function( o ) {
+          $('#transactions-bin').replaceWith(o['transactions_html']);
+          $('#page-total').text(o['page_total']);
+          $('#current-view').text(o['envelope_name']);
+        });
+      });
+
+      $(document).on('click', '.account-link', function() {
+        var url = $(this).data('url');
+        var current_url = $(location).attr("href");
+        var account_id = $(this).data("account-id");
+        $.ajax({
+          type: "post",
+          url: url,
+          data: JSON.stringify({"account_id": account_id}),
+          contentType: 'application/json'
+        }).done(function( o ) {
+          $('#transactions-bin').replaceWith(o['transactions_html']);
+          $('#page-total').text(o['page_total']);
+          $('#current-view').text(o['account_name']);
+        });
+      });
+
     }); // end of document ready
 
 
@@ -556,7 +588,6 @@
 
         M.updateTextFields();
         $('select').formSelect({dropdownOptions: {container: 'body'}});
-        console.log(o['page_total'])
         $('#page-total').text(o['page_total'])
 
         console.log("Page data reloaded!")

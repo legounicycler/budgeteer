@@ -131,25 +131,35 @@ def home():
     current_total = total_funds
     return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, current_total=current_total, offset=offset, limit=limit)
 
-@app.route("/envelope/<envelope_id>", methods=['GET'], )
-def envelope(envelope_id):
+@app.route("/get_envelope_page", methods=["POST"], )
+def get_envelope_page():
+    print(request.get_json())
+    envelope_id = request.get_json()['envelope_id']
+    print(envelope_id)
     (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
-    total_funds = get_total(USER_ID)
-    current_view = get_envelope(envelope_id).name
-    current_total = stringify(get_envelope(envelope_id).balance)
-    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, current_total=current_total, offset=offset, limit=limit)
+    page_total = stringify(get_envelope(envelope_id).balance)
+    data = {}
+    data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
+    data['page_total'] = page_total
+    data['envelope_name'] = get_envelope(envelope_id).name
+    return jsonify(data)
 
-@app.route("/account/<account_id>", methods=['GET'], )
-def account(account_id):
+@app.route("/get_account_page", methods=["POST"], )
+def get_account_page():
+    print(request.get_json())
+    account_id = request.get_json()['account_id']
+    print(account_id)
     (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
-    total_funds = get_total(USER_ID)
-    current_view = get_account(account_id).name
-    current_total = stringify(get_account(account_id).balance) #is this the most efficient, or should it be a variable for the envelope rather than 2 functions executing identical sql requests?
-    return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, current_total=current_total, offset=offset, limit=limit)
+    page_total = stringify(get_account(account_id).balance)
+    data = {}
+    data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
+    data['page_total'] = page_total
+    data['account_name'] = get_account(account_id).name
+    return jsonify(data)
 
 @app.route('/new_expense', methods=['POST'])
 def new_expense(edited=False):
@@ -368,7 +378,6 @@ def transactions_function():
     data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
     data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
     data['page_total'] = page_total
-    print(page_total)
     return jsonify(data)
 
 @app.route('/api/load-more', methods=['POST'])
