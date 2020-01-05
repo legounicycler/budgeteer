@@ -1,6 +1,5 @@
   # FEATURES TO ADD
   #
-  # toast for scheduled transaction created
   # overlay scrollbar (simplebar?)
   # specific number of instances for scheduled transactions
   # "submit and new" button for faster transaction creations
@@ -12,19 +11,16 @@
   # hoverable note function
   # sort transaction lists (multiple ways date, amount, name, etc.)
   # Transaction search
-    # Accounts/login functions
+  # Accounts/login functions
   # report a bug feature for users (probably using formspree)
   # Placeholder transactions (for deleted/edited accounts/envelopes)
   # import transactions from bank
   # Spending graphs/budgeting tracking
-  # allow empty values for numeric fields and have them fill as 0 (maybe with inline math)
   # Add cash back feature
   # Photo of recipt (maybe until reconciled)
   # Total envelope budget (on envelope editor) (monthly or biweekly??)
   #
   # BUG LIST:
-  # Scheduling transactions with their next date in the past
-    # doesn't create a future transaction at all
   #
   # THINGS TO MAYBE DO:
   #
@@ -169,6 +165,7 @@ def new_expense(edited=False):
     scheduled = request.form.getlist('scheduled')
     scheduled = len(scheduled) != 0
     schedule = request.form['schedule']
+    scheduled_transaction_submitted = False
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i]) * 100))
         envelope_ids[i] = int(envelope_ids[i])
@@ -183,22 +180,24 @@ def new_expense(edited=False):
         t.grouping = gen_grouping_num()
         t.envelope_id = envelope_ids[0]
         t.amt = amounts[0]
-        print("inserting new transaction without schedule")
+        # insert new transaction without schedule
         insert_transaction(t)
         if scheduled and not edited:
             scheduled_t.grouping = gen_grouping_num()
             scheduled_t.envelope_id = envelope_ids[0]
             scheduled_t.amt = amounts[0]
-            print("inserting new transaction with schedule")
+            # insert new transaction with schedule
             insert_transaction(scheduled_t)
+            scheduled_transaction_submitted = True
     else:
         t.type = SPLIT_TRANSACTION
         new_split_transaction(t)
         if scheduled and not edited:
-            print("inserting new split transaction with schedule")
+            # insert new split transaction with schedule
             scheduled_t.type = SPLIT_TRANSACTION
             new_split_transaction(scheduled_t)
-    return 'Successfully added new expense!'
+            scheduled_transaction_submitted = True
+    return jsonify({'message': 'Successfully added new expense!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})
 
 @app.route('/new_transfer', methods=['POST'])
 def new_transfer(edited=False):
@@ -210,6 +209,7 @@ def new_transfer(edited=False):
     scheduled = request.form.getlist('scheduled')
     scheduled = len(scheduled) != 0
     schedule = request.form['schedule']
+    scheduled_transaction_submitted = False
     if (transfer_type == 2):
         to_account = request.form['to_account']
         from_account = request.form['from_account']
@@ -220,6 +220,7 @@ def new_transfer(edited=False):
         if scheduled and not edited:
             nextdate = schedule_date_calc(date,schedule)
             account_transfer(name, amount, nextdate, to_account, from_account, note, schedule, USER_ID)
+            scheduled_transaction_submitted = True
     elif (transfer_type == 1):
         to_envelope = request.form['to_envelope']
         from_envelope = request.form['from_envelope']
@@ -230,9 +231,10 @@ def new_transfer(edited=False):
         if scheduled and not edited:
             nextdate = schedule_date_calc(date,schedule)
             envelope_transfer(name, amount, nextdate, to_envelope, from_envelope, note, schedule, USER_ID)
+            scheduled_transaction_submitted = True
     else:
         print('What the heck are you even trying to do you twit?')
-    return 'Successfully added new transfer!'
+    return jsonify({'message': 'Successfully added new transfer!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})
 
 
 @app.route('/new_income', methods=['POST'])
@@ -245,6 +247,7 @@ def new_income(edited=False):
     scheduled = request.form.getlist('scheduled')
     scheduled = len(scheduled) != 0
     schedule = request.form['schedule']
+    scheduled_transaction_submitted = False
     t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, None, False, USER_ID)
     if edited:
         t.schedule = schedule
@@ -253,7 +256,8 @@ def new_income(edited=False):
         nextdate = schedule_date_calc(date,schedule)
         scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID)
         insert_transaction(scheduled_t)
-    return 'Successfully added new income!'
+        scheduled_transaction_submitted = True
+    return jsonify({'message': 'Successfully added new income!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})
 
 @app.route('/fill_envelopes', methods=['POST'])
 def fill_envelopes(edited=False):
@@ -265,6 +269,7 @@ def fill_envelopes(edited=False):
     scheduled = request.form.getlist('scheduled')
     scheduled = len(scheduled) != 0
     schedule = request.form['schedule']
+    scheduled_transaction_submitted = False
     deletes =[]
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i])*100))
@@ -282,10 +287,12 @@ def fill_envelopes(edited=False):
         nextdate = schedule_date_calc(date,schedule)
         scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID)
         envelope_fill(scheduled_t)
-    return 'Envelopes successfully filled!'
+        scheduled_transaction_submitted = True
+    return jsonify({'message': 'Envelopes successfully filled!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
+    scheduled_transaction_submitted = False
     id = int(request.form['edit-id'])
     type = int(request.form['type'])
     delete_transaction(id)
@@ -299,7 +306,7 @@ def edit_transaction():
         new_expense(True)
     elif (type == ENVELOPE_FILL):
         fill_envelopes(True)
-    return 'Transaction successfully edited!'
+    return jsonify({'message': 'Transaction successfully edited!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})
 
 @app.route('/delete_transaction_page', methods=['POST'])
 # Change this to use an <id> in the URL instead of using the hidden form thing

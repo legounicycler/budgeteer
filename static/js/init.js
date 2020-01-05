@@ -4,27 +4,29 @@
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
 
-      // Prevents tabs flashing content for a second on document reload
+      // Prevent tabs flashing content for a second on document reload
       $('#envelopes, #accounts').removeClass('hide');
 
-      // Initializes tabs indicator on modal open
+      // Initialize tabs indicator on modal open
       $('.modal').modal({
         onOpenEnd: function () {
             $('.modal').find('.tabs').tabs();
           }
       });
 
+      // Initialize sidenav
       $('.sidenav').sidenav({
         onOpenStart: function() {$('.fixed-action-btn').hide()},
         onCloseEnd: function() {$('.fixed-action-btn').show()}
       });
 
+      // Initialize all materialize tabs
       $('.tabs').tabs();
 
-      $('select').formSelect({
-        dropdownOptions: {container: 'body'}
-      });
+      // Initialize all materializeselects
+      $('select').formSelect({dropdownOptions: {container: 'body'}});
 
+      // Initialize all materialize datapickers
       $('.datepicker').datepicker({
         autoClose: true,
         format: 'mm/dd/yyyy',
@@ -33,7 +35,7 @@
         container: 'body'
       });
 
-      //DOES THIS WORK AFTER A DATA RELOAD?
+      // Initialize the editor modal
       $('#editor-modal').modal({
         onCloseEnd: function() {
           // Removes user-added rows in editor when the modal is closed
@@ -41,13 +43,13 @@
         }
       });
 
-      // initializes FAB
+      // Initialize FAB
       $('.fixed-action-btn').floatingActionButton({
         direction: 'left',
         hoverEnabled: false
       });
 
-      //CLEAN THIS UP
+      // Hide/show scheduler div
       $('.scheduler').click(function() {
         if (!$(this).siblings().is(':disabled')) {
           if($(this).siblings().is(':checked')) {
@@ -58,33 +60,28 @@
         }
       });
 
-      // Sets up toggler for transfer editor
+      // Initialize toggler for transfer editor
       $('.div-toggle').trigger('change');
 
-      $('.button-collapse').sidenav();
-
+      // Initialize materialize tooltips
       $('.tooltipped').tooltip();
 
-      //Editor modal setup
+      // Editor modal setup
       editor_binds()
       transaction_editor = $("#edit-expense").detach();
       transfer_editor = $("#edit-transfer").detach();
       income_editor = $("#edit-income").detach();
       envelope_fill_editor = $("#edit-envelope-fill").detach();
 
-      //Does this work after data-reload???
-      //Allows selects to overflow modals
-      var elem = document.getElementsByClassName('select_dropdown');
-      M.FormSelect.init(elem, {dropdownOptions:{container:document.body}});
-
+      // Calculate budget bar color/area etc.
       budget_bars()
 
-      //Initializes the multidelete button
+      // Initialize the multidelete button
       $('#multi-delete-submit').click(function() {
         $('#multi-delete-form').submit();
       });
 
-      //LOADING SPINNERS
+      // Loading spinners
       var $loading = $('#loading-div-div').hide();
       $(document)
         .ajaxStart(function () {
@@ -94,7 +91,7 @@
           $loading.hide();
         });
 
-      //Establishes AJAX request to load envelope transactions
+      // AJAX request to load envelope transactions
       $(document).on('click', '.envelope-link', function() {
         var url = $(this).data('url');
         var current_url = $(location).attr("href");
@@ -111,7 +108,7 @@
         });
       });
 
-      //Establishes AJAX request to load account transactions
+      // AJAX request to load account transactions
       $(document).on('click', '.account-link', function() {
         var url = $(this).data('url');
         var current_url = $(location).attr("href");
@@ -139,6 +136,8 @@
 
     var none_checked = true;
     var delete_target;
+
+    // Establish arrays of envelope blances etc. for envelope filler
     var envelope_fill_balances_array = [];
     var envelope_balances = [];
     var unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
@@ -146,6 +145,7 @@
       envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
     });
 
+    // Formats a number into a string with a $ and - if necessary
     function balance_format(number) {
       if (number < 0) {
         text = '-$' + Math.abs(number).toFixed(2)
@@ -155,6 +155,7 @@
       return text;
     }
 
+    // Adds/removes negative class based on number
     $.fn.negative_check = function(number) {
       if (number < 0) {
         this.addClass('negative');
@@ -163,10 +164,12 @@
       };
     }
 
+    // Sums a 2 numbers
     function getSum(total, num) {
       return total + num;
     }
 
+    // Calculates/sets color & width of budget bars in envelope pane
     function budget_bars() {
       $('.envelope-row').each(function() {
         balance = parseFloat($(this).parent().data('envelope-balance').replace("$", ""));
@@ -188,7 +191,6 @@
           $budget_measure.css("float","right");
         }
       });
-
     }
 
     // Checks for any current envelopes/accounts. If no, adds a message in editor modal
@@ -201,6 +203,7 @@
       };
     };
 
+    // Various event binds in the transaction/account/envelope editors
     function editor_binds() {
       editor_row_check()
       // Adds new envelope row on button click and clears temporary no-envelopes message if there is one
@@ -208,20 +211,21 @@
         $("#envelope-editor-bin").append('<li class="row edit-envelope-row collection-item flex"><div class="col m1 hide-on-small-only valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div><div class="col s6 m4 envelope-name left-align editor-col input-field"><input required class="validate" type="text" name="new-envelope-name"><span class="helper-text" data-error="Envelope name required"></span></div><div class="col s5 m2 envelope-budget editor-col input-field"><input required class="validate" type="number" name="new-envelope-budget" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><span class="helper-text" data-error="Must be numeric"></span></div><div class="col m3 hide-on-small-only valign-wrapper envelope-balance editor-col"><span class="balance neutral">$0.00</span></div><div class="col s1 m2 valign-wrapper delete-envelope editor-col"><a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a></div></li>');
         $('#no-envelopes').remove();
       });
+
       // Adds new account row on button click and clears temporary no-accounts message if there is one
       $("#new-account-row").click(function() {
         $("#account-editor-bin").append('<li class="row account-row collection-item flex"><div class="col m1 hide-on-small-only valign-wrapper account-icon editor-col"><i class="material-icons">account_balance</i></div><div class="col s7 m6 account-name left-align editor-col input-field"><input required class="validate" type="text" name="new-account-name"><span class="helper-text" data-error="Account name required"></span></div><div class="col s4 m3 account-balance editor-col input-field"><input required class="validate" type="number" name="new-account-balance" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><span class="helper-text" data-error="Must be numeric"></span></div><div class="col s1 m2 valign-wrapper delete-account editor-col"><a href="#!" class="delete-account-button"><i class="material-icons red-text">delete_forever</i></a></div></li>');
         $('#no-accounts').remove();
       });
 
-      // Opens delete warning modal when the delete button is clicked
+      // Opens delete warning modal when the envelope delete button is clicked
       $("#envelope-editor-bin").on("click", ".delete-envelope-button", function() {
         delete_target = $(this);
         $('#delete-modal p').replaceWith('<p>This action cannot be undone. The balance of this envelope will be added to your unallocated balance.</p>');
         $('#delete-modal').modal('open');
       });
 
-      // Opens delete warning modal when the delete button is clicked
+      // Opens delete warning modal when the account delete button is clicked
       $("#account-editor-bin").on("click", ".delete-account-button", function() {
         delete_target = $(this);
         $('#delete-modal p').replaceWith('<p>This action cannot be undone. The balance of this account will be subtracted from your unallocated balance.</p>');
@@ -248,7 +252,17 @@
 
     }; //End of editor bind
 
-    //Envelope fill math n' stuff
+    // Toggler code for transfer tab of transaction creator/editor
+    $(document).on('change', '.div-toggle', function() {
+      var target = $(this).data('target');
+      var show = $("option:selected", this).data('show');
+      $(target).children().addClass('hide');
+      $(show).removeClass('hide');
+      $(target).find('select').removeAttr('required');
+      $(show).find('select').attr('required', true);
+    });
+
+    // Envelope filler math n' stuff
     $('#envelope-fill-form').on("change", 'input[name="fill-amount"]', function() {
       var $span = $(this).parent().siblings(".envelope-balance").children()
       var index = $(this).parent().parent().index() - 1
@@ -270,7 +284,7 @@
       $('#unallocated-balance-envelope-filler').text(balance_format(new_unallocated_balance)).negative_check(new_unallocated_balance);
     });
 
-    //Envelope fill editor math n' stuff
+    // Envelope fill editor math n' stuff
     $('#edit-envelope-fill-form').on("change", 'input[name="fill-amount"]', function() {
       var $span = $(this).parent().siblings(".envelope-balance").children()
       var index = $(this).parent().parent().index() - 1
@@ -293,16 +307,6 @@
       $('#edit-unallocated-balance-envelope-filler').text(balance_format(new_unallocated_balance)).negative_check(new_unallocated_balance);
     });
 
-    // Toggler code for transfer tab of transaction creator/editor
-    $(document).on('change', '.div-toggle', function() {
-      var target = $(this).data('target');
-      var show = $("option:selected", this).data('show');
-      $(target).children().addClass('hide');
-      $(show).removeClass('hide');
-      $(target).find('select').removeAttr('required');
-      $(show).find('select').attr('required', true);
-    });
-
     // If the yes button is clicked in the delete modal, delete the appropriate row
     $('#yes').click(function() {
       delete_target.closest('.collection-item').remove();
@@ -313,14 +317,14 @@
     $("#add-envelope").click(function() {
       var $envelope_selector = $('#envelope-selector-row').find('select[name="envelope_id"]').clone();
       $('#envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s5 input-field"><input id="amount" required class="validate" type="number" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount-">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper remove-envelope-button-col"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
-      $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect();
+      $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect({dropdownOptions: {container: 'body'}});
     });
 
     // Adds envelope row for transaction editor and initializes Material Select
     $("#edit-add-envelope").click(function() {
       var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
       $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s5 input-field"><input id="amount" required class="validate" type="number" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper remove-envelope-button-col"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
-      $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect();
+      $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect({dropdownOptions: {container: 'body'}});
     });
 
     // Removes new envelope row in transaction builder
@@ -421,13 +425,9 @@
       $this = $(this)
       transaction_modal_open($this);
       $('#editor-modal').modal('open');
-    });
+    }); //END OF MULTIDELETE CODE
 
-    //disables context menu for long press in mobile browsers
-    // $('.transaction').bind('contextmenu', function(e) {
-    //   return false;
-    // });
-
+    // Sends date from datepicker and frequency from select to schedule_toggle()
     $(document).on('change', '.schedule-select', function() {
       schedule_toggle($(this))
     }).on('change', '.datepicker', function() {
@@ -436,7 +436,7 @@
       schedule_toggle($schedule_select)
     });
 
-
+    // Sets the example schedule text based on selected date
     function schedule_toggle(e) {
       const months = ["Jan", "Feb", "Mar","Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const weekday = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -609,11 +609,14 @@
         $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
         $(id)[0].reset();
         data_reload(current_url);
-        M.toast({html: o})
+        M.toast({html: o['message']})
+        if (o['scheduled_transaction_submitted']) {
+          M.toast({html: 'New scheduled transaction created!'})
+        }
       });
     });
 
-    // Sends delete ID(s) via form, the reloads data
+    // Sends delete ID(s) via form, then reloads data
     $('.deleter-form, #multi-delete-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
@@ -631,6 +634,7 @@
       });
     });
 
+    // Opens transaction modal
     function transaction_modal_open(e) {
       // gets and format data from html data tags
       var id = e.data('id');
@@ -714,18 +718,18 @@
         $("#edit-expense").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
-        $('#edit-transfer_type').val(type).formSelect();
+        $('#edit-transfer_type').val(type).formSelect({dropdownOptions: {container: 'body'}});
         amt = Math.abs(amt);
         if (type == 1) {
           $('.account-transfer').addClass('hide');
           $('.envelope-transfer').removeClass('hide');
-          $('#edit-from_envelope').val(from_envelope).formSelect();
-          $('#edit-to_envelope').val(to_envelope).formSelect();
+          $('#edit-from_envelope').val(from_envelope).formSelect({dropdownOptions: {container: 'body'}});
+          $('#edit-to_envelope').val(to_envelope).formSelect({dropdownOptions: {container: 'body'}});
         } else if (type == 2) {
           $('.envelope-transfer').addClass('hide');
           $('.account-transfer').removeClass('hide');
-          $('#edit-to_account').val(to_account).formSelect();
-          $('#edit-from_account').val(from_account).formSelect();
+          $('#edit-to_account').val(to_account).formSelect({dropdownOptions: {container: 'body'}});
+          $('#edit-from_account').val(from_account).formSelect({dropdownOptions: {container: 'body'}});
         }
         checkbox_id = '#edit-transfer-schedule'
       } else if (type == 3) {
@@ -743,7 +747,7 @@
         for (i=1 ; i<envelope_ids.length ; i++) {
           var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
           $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="number" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
-          $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect();
+          $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect({dropdownOptions: {container: 'body'}});
         }
         checkbox_id = '#edit-expense-schedule'
       } else if (type == 5) {
@@ -785,9 +789,8 @@
       $('#edit-date').datepicker('setDate', new Date(date));
       $("#edit-name").val(name);
       $("#edit-note").val(note);
-      //vvv Do these selects need to be in the body to prevent overflow from modal? vvv
-      $('#edit-envelope_id').val(envelope_id).formSelect();
-      $('#edit-account_id').val(account_id).formSelect();
+      $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
+      $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
       $('#dtid').attr('value', id);
       $('#edit-id').attr('value', id);
       $('#type').attr('value', type);
@@ -803,7 +806,7 @@
         $(checkbox_id).removeAttr('disabled')
         $(checkbox_id).siblings().removeClass('checkbox-disabled')
         // update scheduled values and show the section
-        $('#edit-schedule').val(schedule).formSelect();
+        $('#edit-schedule').val(schedule).formSelect({dropdownOptions: {container: 'body'}});
         schedule_toggle($('#edit-schedule'));
         $checkbox = ($('#' + $('#edit-schedule').data('checkbox-id')));
         if (!($checkbox.is(':checked'))) {
