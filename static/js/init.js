@@ -556,6 +556,8 @@
 
         M.updateTextFields();
         $('select').formSelect({dropdownOptions: {container: 'body'}});
+        console.log(o['page_total'])
+        $('#page-total').text(o['page_total'])
 
         console.log("Page data reloaded!")
       });

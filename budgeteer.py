@@ -28,11 +28,11 @@
   # BUG LIST:
   # Scheduling transactions with their next date in the past
     # doesn't create a future transaction at all
-  # Envelope/account total in transaction header doesn't update on data_reload()
   #
   # THINGS TO MAYBE DO:
   #
   # Split envelope transfer?
+  # abort ajax request (loading spinner page would have an 'x')
   # Update get_transactions to use join clause for account_name and deleted info
   # fix template structure for transactions and envelope/selectors
   # customization of date option
@@ -345,12 +345,15 @@ def transactions_function():
         regex = re.compile('account/(\d+)')
         account_id = int(regex.findall(url)[0])
         (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
+        page_total = stringify(get_account(account_id).balance)
     elif 'envelope/' in url:
         regex = re.compile('envelope/(\d+)')
         envelope_id = int(regex.findall(url)[0])
         (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
+        page_total = stringify(get_envelope(envelope_id).balance)
     else:
         (transactions_data, offset, limit) = get_transactions(0,50)
+        page_total = get_total(USER_ID)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     data = {}
@@ -364,6 +367,8 @@ def transactions_function():
     data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data)
     data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
     data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
+    data['page_total'] = page_total
+    print(page_total)
     return jsonify(data)
 
 @app.route('/api/load-more', methods=['POST'])
