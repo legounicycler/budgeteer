@@ -5,6 +5,7 @@
   # "Submit and new" button for faster transaction creations
   # Quick fill for envelopes based on budget
   # Overlay scrollbar (simplebar?)
+  # shift select on multiselect checkboxes
   #
   # -----ACTUAL FEATURES-----
   # Account balance next to transaction amount
@@ -22,16 +23,21 @@
   #
   #
   # BUG LIST:
+  # Fix strange scrolling glitch with long selects by changing the container of
+  #     the select from body to something under the nav bar?
+  # Arrow keys don't work in selects
+  # Clicking another input field after an unselected select requires 2 clicks
   #
   # THINGS TO MAYBE DO:
   #
   # Split envelope transfer?
+  # inline math
+  # some kind of venmo feature?
   # abort ajax request (loading spinner page would have an 'x')
   # Update get_transactions to use join clause for account_name and deleted info
   # fix template structure for transactions and envelope/selectors
   # customization of date option
-  # shift select on multiselect checkboxes
-  # replace the jquery weird find structures with "for" attributes and IDS?
+  # replace the jquery weird find structures with .closest()
   # Link to other transactions in descriptions??
   # quick edit on date for reconciling?
   # envelope average spending /spent last month
@@ -45,6 +51,7 @@
   #     This might mot actually be more efficient unless I add a feature where
   #     there's a current account balance associated with every transaction
   # Scheduled transactions documentation
+  # redo css structure to get rid of !important tags
 
 from flask import Flask, render_template, url_for, request, redirect, jsonify
 from database import *

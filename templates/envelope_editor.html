@@ -21,7 +21,7 @@
                   <span class="helper-text" data-error="Envelope name required"></span>
                 </div>
                 <div class="col s5 m2 envelope-budget input-field">
-                  <input class="validate" type="number" autocomplete="off" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" name="edit-envelope-budget" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                  <input class="validate" type="number" step=".01" autocomplete="off" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" name="edit-envelope-budget" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
                   <input name="envelope-id" type="hidden" value="{{envelope.id}}" required>
                   <span class="helper-text" data-error="Must be numeric"></span>
                 </div>

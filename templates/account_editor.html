@@ -22,7 +22,7 @@
                   <span class="helper-text" data-error="Account name required"></span>
                 </div>
                 <div class="col s4 m3 account-balance input-field">
-                  <input class="validate" type="number" autocomplete="off" value="{% if account.balance[0] == '$' %}{{ account.balance[1:] }}{% else %}-{{ account.balance[2:] }}{% endif %}" name="edit-account-balance" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                  <input class="validate" type="number" step=".01" autocomplete="off" value="{% if account.balance[0] == '$' %}{{ account.balance[1:] }}{% else %}-{{ account.balance[2:] }}{% endif %}" name="edit-account-balance" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
                   <input name="account-id" type="hidden" value="{{account.id}}" required>
                   <span class="helper-text" data-error="Must be numeric"></span>
                 </div>
