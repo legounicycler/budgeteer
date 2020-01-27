@@ -103,8 +103,8 @@
       // AJAX request to load envelope transactions
       $(document).on('click', '.envelope-link', function() {
         var url = $(this).data('url');
-        var current_url = $(location).attr("href");
         var envelope_id = $(this).data("envelope-id");
+        current_page = "envelope/".concat(envelope_id);
         $.ajax({
           type: "post",
           url: url,
@@ -120,8 +120,8 @@
       // AJAX request to load account transactions
       $(document).on('click', '.account-link', function() {
         var url = $(this).data('url');
-        var current_url = $(location).attr("href");
         var account_id = $(this).data("account-id");
+        current_page = "account/".concat(account_id);
         $.ajax({
           type: "post",
           url: url,
@@ -151,6 +151,7 @@
     var transfer_editor;
     var income_editor;
     var envelope_fill_editor;
+    var current_page = "";
 
     var none_checked = true;
     var delete_target;
@@ -254,7 +255,6 @@
       $('#account-editor-form, #envelope-editor-form').submit(function(e) {
         e.preventDefault()
         var url = $(this).attr('action');
-        var current_url = $(location).attr("href");
         var method = $(this).attr('method');
         $(".modal").modal("close")
 
@@ -263,7 +263,7 @@
           url: url,
           data: $(this).serialize(),
         }).done(function( o ) {
-          data_reload(current_url);
+          data_reload(current_page);
           M.toast({html: o})
         });
       });
@@ -352,11 +352,10 @@
 
     // Load more transactions button
     $('#bin').on('click', '#load-more', function() {
-      var current_url = $(location).attr("href");
       $.ajax({
         type: 'POST',
         url: '/api/load-more',
-        data: JSON.stringify({"offset": parseInt($(this).attr('data-offset')), "url": current_url}),
+        data: JSON.stringify({"offset": parseInt($(this).attr('data-offset')), "current_page": current_page}),
         contentType: 'application/json'
       }).done(function( o ) {
         $('#load-more').before(o['transactions'])
@@ -527,11 +526,11 @@
 
 
     // Retrieves updated data from database and updates the necessary html
-    function data_reload(current_url) {
+    function data_reload(current_page) {
       $.ajax({
         type: "POST",
         url: "/api/data-reload",
-        data: JSON.stringify({"url": current_url}),
+        data: JSON.stringify({"current_page": current_page}),
         contentType: 'application/json'
       }).done(function( o ) {
         $('#load-more').remove()
@@ -614,7 +613,6 @@
     $('#transaction-modal form, #edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
-      var current_url = $(location).attr("href");
       var method = $(this).attr('method');
       var id = '#' + $(this).attr('id');
 
@@ -626,7 +624,7 @@
         $('.modal').modal("close")
         $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
         $(id)[0].reset();
-        data_reload(current_url);
+        data_reload(current_page);
         M.toast({html: o['message']})
         if (o['scheduled_transaction_submitted']) {
           M.toast({html: 'New scheduled transaction created!'})
@@ -638,7 +636,6 @@
     $('.deleter-form, #multi-delete-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
-      var current_url = $(location).attr("href");
       var method = $(this).attr('method');
 
       $.ajax({
@@ -647,7 +644,7 @@
         data: $(this).serialize(),
       }).done(function( o ) {
         $(".modal").modal("close")
-        data_reload(current_url);
+        data_reload(current_page);
         M.toast({html: o})
       });
     });

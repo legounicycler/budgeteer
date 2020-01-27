@@ -9,6 +9,8 @@
   #
   # -----ACTUAL FEATURES-----
   # Account balance next to transaction amount
+  # Reorderable envelopes
+  # Icons on envelopes
   # Hoverable note function
   # Placeholder transactions (for deleted/edited accounts/envelopes)
   # Import transactions from bank
@@ -23,6 +25,7 @@
   #
   #
   # BUG LIST:
+  # Editing transaction on account reloads transactions bin & header total with wrong data
   # Fix strange scrolling glitch with long selects by changing the container of
   #     the select from body to something under the nav bar?
   # Arrow keys don't work in selects
@@ -362,19 +365,23 @@ def edit_envelopes_page():
 
 @app.route('/api/data-reload', methods=['POST'])
 def transactions_function():
-    url = request.get_json()['url']
-    if 'account/' in url:
+    current_page = request.get_json()['current_page']
+    print(current_page)
+    if 'account/' in current_page:
         regex = re.compile('account/(\d+)')
-        account_id = int(regex.findall(url)[0])
+        account_id = int(regex.findall(current_page)[0])
         (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
+        print("ACCOUNT PAGE")
         page_total = stringify(get_account(account_id).balance)
-    elif 'envelope/' in url:
+    elif 'envelope/' in current_page:
         regex = re.compile('envelope/(\d+)')
-        envelope_id = int(regex.findall(url)[0])
+        envelope_id = int(regex.findall(current_page)[0])
         (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
+        print("ENVELOPE PAGE")
         page_total = stringify(get_envelope(envelope_id).balance)
     else:
         (transactions_data, offset, limit) = get_transactions(0,50)
+        print("TOTAL PAGE")
         page_total = get_total(USER_ID)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
@@ -395,14 +402,14 @@ def transactions_function():
 @app.route('/api/load-more', methods=['POST'])
 def load_more():
     current_offset = request.get_json()['offset']
-    url = request.get_json()['url']
-    if 'account/' in url:
+    current_page = request.get_json()['current_page']
+    if 'account/' in current_page:
         regex = re.compile('account/(\d+)')
-        account_id = int(regex.findall(url)[0])
+        account_id = int(regex.findall(current_page)[0])
         (transactions_data, offset, limit) = get_account_transactions(account_id,current_offset,50)
-    elif 'envelope/' in url:
+    elif 'envelope/' in current_page:
         regex = re.compile('envelope/(\d+)')
-        envelope_id = int(regex.findall(url)[0])
+        envelope_id = int(regex.findall(current_page)[0])
         (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,current_offset,50)
     else:
         (transactions_data, offset, limit) = get_transactions(current_offset,50)
