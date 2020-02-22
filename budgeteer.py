@@ -1,6 +1,9 @@
   # FEATURES TO ADD
   #
+  # DEVELOP UNIT TESTS FOR WHEN PUSHING UPDATES
+  #
   # -----USER EXPERIENCE ENHANCEMENTS-----
+  # Disable autocomplete (autocomplete="off") on mobile
   # Add keyboard-tab select function on materialize select so that it's more user friendly
   # "Submit and new" button for faster transaction creations
   # Quick fill for envelopes based on budget
@@ -25,7 +28,7 @@
   #
   #
   # BUG LIST:
-  # Editing transaction on account reloads transactions bin & header total with wrong data
+  # Schedule box gets autochecked after transaction edit (only on developer version)
   # Fix strange scrolling glitch with long selects by changing the container of
   #     the select from body to something under the nav bar?
   # Arrow keys don't work in selects
@@ -137,9 +140,7 @@ def home():
 
 @app.route("/get_envelope_page", methods=["POST"], )
 def get_envelope_page():
-    print(request.get_json())
     envelope_id = request.get_json()['envelope_id']
-    print(envelope_id)
     (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
@@ -152,9 +153,7 @@ def get_envelope_page():
 
 @app.route("/get_account_page", methods=["POST"], )
 def get_account_page():
-    print(request.get_json())
     account_id = request.get_json()['account_id']
-    print(account_id)
     (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
@@ -366,22 +365,18 @@ def edit_envelopes_page():
 @app.route('/api/data-reload', methods=['POST'])
 def transactions_function():
     current_page = request.get_json()['current_page']
-    print(current_page)
     if 'account/' in current_page:
         regex = re.compile('account/(\d+)')
         account_id = int(regex.findall(current_page)[0])
         (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
-        print("ACCOUNT PAGE")
         page_total = stringify(get_account(account_id).balance)
     elif 'envelope/' in current_page:
         regex = re.compile('envelope/(\d+)')
         envelope_id = int(regex.findall(current_page)[0])
         (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
-        print("ENVELOPE PAGE")
         page_total = stringify(get_envelope(envelope_id).balance)
     else:
         (transactions_data, offset, limit) = get_transactions(0,50)
-        print("TOTAL PAGE")
         page_total = get_total(USER_ID)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()

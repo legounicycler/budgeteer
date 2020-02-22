@@ -134,19 +134,19 @@
         });
       });
 
-      // $(document).on('focus', '.select-dropdown', function() {
-      //   // console.log('FOCUSED');
-      //   // console.log($(this))
-      //   // console.log(this)
-      //   // M.Dropdown.getInstance(this).open();
-      //   // $(this).blur()
-      //   // $(this).dropdown({'autoTrigger': true});
-      // });
-
     }); // end of document ready
 
 
     //------------- FUNCTIONAL JS -------------//
+
+    //TRANSACTION TYPES
+    const BASIC_TRANSACTION = 0;
+    const ENVELOPE_TRANSFER = 1;
+    const ACCOUNT_TRANSFER = 2;
+    const INCOME = 3;
+    const SPLIT_TRANSACTION = 4;
+    const ENVELOPE_FILL = 5;
+
     var transaction_editor;
     var transfer_editor;
     var income_editor;
@@ -670,7 +670,7 @@
       var checkbox_id;
 
       //if it's a grouped transaction, use ajax to get data from all grouped transaction
-      if (type != 0 || type != 3 ) {
+      if (type != BASIC_TRANSACTION || type != INCOME ) {
         $.ajax({
           async: false,
           type: "GET",
@@ -679,7 +679,7 @@
           var t_data = o["transactions"];
 
           // depending on the type, get/format different transaction data
-          if (type == 1) {
+          if (type == ENVELOPE_TRANSFER) {
             var t1 = t_data[0];
             var t2 = t_data[1];
             if (t1["amt"] > 0) {
@@ -689,7 +689,7 @@
               to_envelope = t1["envelope_id"];
               from_envelope = t2["envelope_id"];
             }
-          } else if (type == 2) {
+          } else if (type == ACCOUNT_TRANSFER) {
             var t1 = t_data[0];
             var t2 = t_data[1];
             if (t1["amt"] > 0) {
@@ -699,7 +699,7 @@
               to_account = t1["account_id"];
               from_account = t2["account_id"];
             }
-          } else if (type == 4) {
+          } else if (type == SPLIT_TRANSACTION) {
             envelope_ids = [];
             amounts = [];
             $.each(t_data, function(key, t) {
@@ -708,7 +708,7 @@
             });
             amt = amounts[0];
             envelope_id = envelope_ids[0];
-          } else if (type == 5) {
+          } else if (type == ENVELOPE_FILL) {
             envelope_ids = [];
             amounts = [];
             $.each(t_data, function(key, t) {
@@ -722,39 +722,43 @@
       }
 
       // Check which editor to show, detatch the others, and update the special fields
-      if (type == 0) {
+      if (type == BASIC_TRANSACTION) {
         transaction_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
         checkbox_id = '#edit-expense-schedule'
-      } else if (type == 1 || type == 2) {
+      } else if (type == ENVELOPE_TRANSFER || type == ACCOUNT_TRANSFER) {
         transfer_editor.appendTo('#editor-row');
         $("#edit-expense").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
         $('#edit-transfer_type').val(type).formSelect({dropdownOptions: {container: 'body'}});
         amt = Math.abs(amt);
-        if (type == 1) {
+        if (type == ENVELOPE_TRANSFER) {
           $('.account-transfer').addClass('hide');
           $('.envelope-transfer').removeClass('hide');
+          $('.account-transfer').find('select').removeAttr('required');
+          $('.envelope-transfer').find('select').attr('required', true);
           $('#edit-from_envelope').val(from_envelope).formSelect({dropdownOptions: {container: 'body'}});
           $('#edit-to_envelope').val(to_envelope).formSelect({dropdownOptions: {container: 'body'}});
-        } else if (type == 2) {
+        } else if (type == ACCOUNT_TRANSFER) {
           $('.envelope-transfer').addClass('hide');
           $('.account-transfer').removeClass('hide');
+          $('.envelope-transfer').find('select').removeAttr('required');
+          $('.account-transfer').find('select').attr('required', true);
           $('#edit-to_account').val(to_account).formSelect({dropdownOptions: {container: 'body'}});
           $('#edit-from_account').val(from_account).formSelect({dropdownOptions: {container: 'body'}});
         }
         checkbox_id = '#edit-transfer-schedule'
-      } else if (type == 3) {
+      } else if (type == INCOME) {
         income_editor.appendTo('#editor-row');
         $("#edit-expense").detach();
         $("#edit-transfer").detach();
         $("#edit-envelope-fill").detach();
         amt = amt * -1;
         checkbox_id = '#edit-income-schedule'
-      } else if (type == 4) {
+      } else if (type == SPLIT_TRANSACTION) {
         transaction_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
         $("#edit-income").detach();
@@ -765,13 +769,13 @@
           $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect({dropdownOptions: {container: 'body'}});
         }
         checkbox_id = '#edit-expense-schedule'
-      } else if (type == 5) {
+      } else if (type == ENVELOPE_FILL) {
         envelope_fill_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
         $("#edit-income").detach();
         $("#edit-expense").detach();
         // Fills input fields
-        var $inputs = $('#edit-envelope-fill-form .envelope-fill-editor-bin :input[type=text]');
+        var $inputs = $('#edit-envelope-fill-form .envelope-fill-editor-bin :input[type=number]');
         envelope_fill_balances_array = [];
         $inputs.each(function(index) {
           // this code exists so that if you change a value, close the editor,
