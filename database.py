@@ -32,7 +32,7 @@ USER_ID = 1
 # ------ CLASSES/DATABASE DEFINITIONS ------ #
 
 class Transaction:
-    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id):
+    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id, reconcile_amt):
         self.id = None
         self.type = type
         self.name = name
@@ -45,11 +45,11 @@ class Transaction:
         self.schedule = schedule
         self.status = status
         self.user_id = user_id
-        # current account balance (for easier reconciling)
+        self.reconcile_amt = reconcile_amt
     def __repr__(self):
-        return "{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id)
+        return "{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_amt)
     def __str__(self):
-        return "{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id)
+        return "{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_amt)
 
 
 class Account:
@@ -94,8 +94,8 @@ def create_db():
             note TEXT NOT NULL DEFAULT '',
             schedule TEXT,
             status BOOLEAN NOT NULL DEFAULT 0,
-            user_id NOT NULL
-            -- current_account_balance
+            user_id NOT NULL,
+            reconcile_amt INTEGER NOT NULL DEFAULT 0
             )
         """)
 
@@ -136,8 +136,8 @@ def create_db():
 def insert_transaction(t):
     # Inserts transaction into database, then updates account/envelope balances
     with conn:
-        c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id))
+        c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id, t.reconcile_amt,))
         if (t.date < datetime.now()):
             if not (t.account_id is None):
                 newaccountbalance = get_account_balance(t.account_id) - t.amt
@@ -150,7 +150,8 @@ def get_transaction(id):
     # Retrieves transaction object from database given its ID
     c.execute("SELECT * FROM transactions WHERE id=?", (id,))
     tdata = c.fetchone()
-    t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11])
+    t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11],tdata[12])
+    print(t)
     # converts string to datetime object
     t.date = date_parse(t.date)
     t.id = tdata[0]
@@ -171,6 +172,7 @@ def get_transactions(start, amount):
             c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=1", (t.grouping,))
             t.amt = c.fetchone()[0] * -1
         t.amt = stringify(t.amt * -1)
+        t.reconcile_amt = stringify(t.reconcile_amt)
         tlist.append(t)
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
@@ -190,6 +192,7 @@ def get_envelope_transactions(envelope_id, start, amount):
     for id in ids:
         t = get_transaction(id[0])
         t.amt = stringify(t.amt * -1)
+        t.reconcile_amt = stringify(t.reconcile_amt)
         tlist.append(t)
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
@@ -209,6 +212,7 @@ def get_account_transactions(account_id, start, amount):
     for thing in ids:
         t = get_transaction(thing[0])
         t.amt = stringify(thing[1] * -1)
+        t.reconcile_amt = stringify(t.reconcile_amt)
         tlist.append(t)
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
@@ -257,7 +261,7 @@ def new_split_transaction(t):
     #takes a transaction with arrays of amt and envelope_id and creates individual transactions
     grouping = gen_grouping_num()
     for i in range(len(t.amt)):
-        new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id)
+        new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.reconcile_amt)
         insert_transaction(new_t)
 
 
@@ -346,9 +350,11 @@ def edit_accounts(old_accounts, new_accounts):
 def account_transfer(name, amount, date, to_account, from_account, note, schedule, user_id):
     # Creates one transaction draining an account, and one transaction filling another
     grouping = gen_grouping_num()
-    fill = Transaction(ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id)
+    # CHANGE THIS IN THE FUTURE
+    reconcile_amt = 0
+    fill = Transaction(ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id, reconcile_amt)
     insert_transaction(fill)
-    empty = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id)
+    empty = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id, reconcile_amt)
     insert_transaction(empty)
 
 
@@ -429,12 +435,12 @@ def edit_envelopes(old_envelopes, new_envelopes):
         if not (id[0] in old_ids):
             delete_envelope(id[0])
 
-def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedule, user_id):
+def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedule, user_id, reconcile_amt):
     # Creates a transaction to fill one envelope and another to empty the other
     grouping = gen_grouping_num()
-    fill = Transaction(ENVELOPE_TRANSFER, name, -1*amt, date, to_envelope, None, grouping, note, schedule, False, user_id)
+    fill = Transaction(ENVELOPE_TRANSFER, name, -1*amt, date, to_envelope, None, grouping, note, schedule, False, user_id, reconcile_amt)
     insert_transaction(fill)
-    empty = Transaction(ENVELOPE_TRANSFER, name, amt, date, from_envelope, None, grouping, note, schedule, False, user_id)
+    empty = Transaction(ENVELOPE_TRANSFER, name, amt, date, from_envelope, None, grouping, note, schedule, False, user_id, reconcile_amt)
     insert_transaction(empty)
 
 def envelope_fill(t):
@@ -444,9 +450,9 @@ def envelope_fill(t):
         amts = t.amt
         envelopes = t.envelope_id
         for i in range(len(amts)):
-            empty_unallocated = Transaction(ENVELOPE_FILL, t.name, amts[i], t.date, UNALLOCATED, None, grouping, t.note, t.schedule, False, t.user_id)
+            empty_unallocated = Transaction(ENVELOPE_FILL, t.name, amts[i], t.date, UNALLOCATED, None, grouping, t.note, t.schedule, False, t.user_id, t.reconcile_amt)
             insert_transaction(empty_unallocated)
-            fill_envelope = Transaction(ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id)
+            fill_envelope = Transaction(ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id, t.reconcile_amt)
             insert_transaction(fill_envelope)
 
 
@@ -517,7 +523,8 @@ def get_grouped_json(id):
             'envelope_id': t.envelope_id,
             'account_id': t.account_id,
             'grouping': t.grouping,
-            'note': t.note
+            'note': t.note,
+            'reconcile_amt': t.reconcile_amt
         })
     return data
 
@@ -582,9 +589,56 @@ def print_database():
     print("TOTAL FUNDS: ", get_total(USER_ID))
     print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
 
+
+# TEMPORARY FUNCTIONS
+def add_reconcile_balance_column():
+    c.execute("""
+        ALTER TABLE transactions
+        ADD COLUMN reconcile_balance INTEGER NOT NULL DEFAULT 0
+        """)
+
+def clear_reconcile_balance():
+    with conn:
+        c.execute("UPDATE transactions SET reconcile_balance=0")
+
+def create_reconcile_balance():
+    with conn:
+        account_ids = []
+        c.execute("SELECT account_id FROM transactions GROUP BY account_id")
+        for row in c:
+            if row[0] is not None:
+                    account_ids.append(row[0])
+        for a_id in account_ids:
+            c.execute("SELECT id,amount,reconcile_balance FROM transactions WHERE account_id=? ORDER BY day DESC, id DESC", (a_id,))
+            t_ids = []
+            t_amounts =[]
+            t_r_bals =[]
+            for row in c:
+                t_ids.append(row[0])
+                t_amounts.append(row[1])
+                t_r_bals.append(row[2])
+            t_ids.reverse()
+            t_amounts.reverse()
+            t_r_bals.reverse()
+            t_r_bals[0] = -1* t_amounts[0]
+            for i in range(1,len(t_ids)):
+                t_r_bals[i] = t_r_bals[i-1] - t_amounts[i]
+            for i in range(0,len(t_ids)):
+                t_id = t_ids[i]
+                t_r_bal = t_r_bals[i]
+                c.execute("UPDATE transactions SET reconcile_balance=? WHERE id=?", (t_r_bal,t_id))
+
+
+
+
 def main():
 
     # create_db()
+    # add_account_balance_column()
+
+    # print_database()
+    # create_reconcile_balance()
+    # clear_reconcile_balance()
     print_database()
 
     conn.close()

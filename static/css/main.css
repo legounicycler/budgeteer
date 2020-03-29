@@ -345,7 +345,7 @@ h5 {
 #transaction-title {
   margin-left: 10px;
   margin-bottom: 0px;
-  padding-bottom: .1em; /* so the header doesn't clip in the y-direction */
+  padding-bottom: .2em; /* so the header doesn't clip in the y-direction */
 }
 
 #transactions-column {

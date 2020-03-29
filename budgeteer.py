@@ -4,6 +4,7 @@
   #
   # -----USER EXPERIENCE ENHANCEMENTS-----
   # Disable autocomplete (autocomplete="off") on mobile
+  # Draggable order for transactions with same date
   # Add keyboard-tab select function on materialize select so that it's more user friendly
   # "Submit and new" button for faster transaction creations
   # Quick fill for envelopes based on budget
@@ -28,6 +29,10 @@
   #
   #
   # BUG LIST:
+  # Still having issue on updating account transfers
+  # Make sure debug is false when the system is UBUNTU for running the main app
+  # Title on Son of Time Checking clips
+  # No delete envelope button on editing split transactions!
   # Schedule box gets autochecked after transaction edit (only on developer version)
   # Fix strange scrolling glitch with long selects by changing the container of
   #     the select from body to something under the nav bar?
@@ -131,6 +136,7 @@ app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
 @app.route("/home", methods=['GET'])
 def home():
     (transactions_data, offset, limit) = get_transactions(0,50)
+    print(transactions_data)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total(USER_ID)
@@ -422,5 +428,7 @@ def multi_delete():
     delete_transaction(id)
   return 'Transactions successfully deleted!'
 
+
+#MAKE SURE DEBUG IS TURNED OFF FOR MAIN DEPLOYMENT
 if __name__ == '__main__':
     app.run(debug=True)
