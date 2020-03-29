@@ -8,6 +8,12 @@
   z-index: 1000;
 }
 
+.gone {
+  display: none;
+  height: 0px;
+  width: 0px;
+}
+
 #loading-div-div {
   position:fixed;
   width:100%;
@@ -31,6 +37,16 @@
 
 .checked-background {
   background-color: #ffe7bb !important;
+}
+
+/*Makes balance and reconcile balance look proper in their box*/
+.reconcile-row {
+  margin-top: -5px !important;
+}
+
+/*Makes balance and reconcile balance look proper in their box*/
+.balance-row-adjust {
+  margin-top: 5px !important;
 }
 
 .remove-envelope-button {

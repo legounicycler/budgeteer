@@ -22,8 +22,15 @@
             <i class="no-margin tiny {% if transaction.envelope_id is not none and transaction.type != 4 and transaction.type !=5 %}{% if envelopes_data[transaction.envelope_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.envelope_id is not none and transaction.type != 4 and transaction.type != 5%}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}{% if transaction.type == 4 %}Multiple{% elif transaction.type == 5%}Unallocated distribution{% endif %}</i>{% if transaction.envelope_id is not none and transaction.account_id is not none %}<i class="no-margin tiny"><pre> / </pre></i>{% endif %}<i class="no-margin tiny {% if transaction.account_id is not none%}{% if accounts_data[transaction.account_id].deleted == true %}strikethrough{% endif %}{% endif %}">{% if transaction.account_id is not none %}{{ accounts_data[transaction.account_id].name }}{% endif %}</i>
           </div>
         </div>
-        <div class="col s3 m2 valign-wrapper transaction-amount"><span class="{{'negative' if transaction.amt[0] == '-'}}  balance">{{transaction.amt}}</span></div>
+        <div class="col s3 m2 transaction-amount">
+          <div class='row balance-row'>
+            <span class="{{'negative' if transaction.amt[0] == '-'}}  balance non-selectable">{{transaction.amt}}</span>
+          </div>
+          <div class='row reconcile-row gone'>
+            <span class="tiny">{{transaction.reconcile_amt}}</span>
+          </div>
         <!-- <div class="col s1 valign-wrapper transaction-status"><i class="small material-icons">{{transaction.status}}</i></div> -->
+        </div>
       </div>
     </li>
   </a>

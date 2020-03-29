@@ -131,6 +131,10 @@
           $('#transactions-bin').replaceWith(o['transactions_html']);
           $('#page-total').text(o['page_total']);
           $('#current-view').text(o['account_name']);
+          //Show the reconcile balance
+          $('.reconcile-row').removeClass('gone');
+          $('.transaction-amount').removeClass('valign-wrapper')
+          $('.balance-row').addClass('balance-row-adjust');
         });
       });
 
