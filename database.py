@@ -25,6 +25,8 @@ SPLIT_TRANSACTION = 4
 ENVELOPE_FILL = 5
 PLACEHOLDER = 6
 
+REMOVE = False
+INSERT = True
 
 # Temporary testing user_id
 USER_ID = 1
@@ -136,8 +138,17 @@ def create_db():
 def insert_transaction(t):
     # Inserts transaction into database, then updates account/envelope balances
     with conn:
+        #if there's no account associated, set the reconcile_amt to 0
+        if t.reconcile_amt is None or t.account_id is None:
+            t.reconcile_amt = 0
+        #insert the transaction
         c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id, t.reconcile_amt,))
+        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id, t.reconcile_amt))
+
+        #THIS LINE WILL BREAK THE RECONCILE FUNCTION IF INSERTING A TRANSACTION IS EVER NOT THE TOP ONE IN THE DATABASE
+        c.execute("SELECT id FROM transactions ORDER BY ROWID DESC LIMIT 1")
+        t.id = c.fetchone()[0]
+        #update envelope/account balances if transaction is not scheduled for later
         if (t.date < datetime.now()):
             if not (t.account_id is None):
                 newaccountbalance = get_account_balance(t.account_id) - t.amt
@@ -145,13 +156,15 @@ def insert_transaction(t):
             if not (t.envelope_id is None):
                 newenvelopebalance = get_envelope_balance(t.envelope_id) - t.amt
                 update_envelope_balance(t.envelope_id, newenvelopebalance)
+    # Update the reconciled amounts if there is an account associated with the transaction
+    if t.account_id is not None:
+        update_reconcile_amounts(t.account_id, t.id, INSERT)
 
 def get_transaction(id):
     # Retrieves transaction object from database given its ID
     c.execute("SELECT * FROM transactions WHERE id=?", (id,))
     tdata = c.fetchone()
     t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11],tdata[12])
-    print(t)
     # converts string to datetime object
     t.date = date_parse(t.date)
     t.id = tdata[0]
@@ -253,7 +266,10 @@ def delete_transaction(id):
                             update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
-                c.execute("DELETE FROM transactions WHERE id=?", (id,))
+                # Update the reconciled amounts if there is an account associated with the transaction
+                if t.account_id is not None:
+                    update_reconcile_amounts(t.account_id, t.id, REMOVE)
+                    c.execute("DELETE FROM transactions WHERE id=?", (id,))
         else:
             print("That transaction doesn't exist you twit")
 
@@ -357,6 +373,90 @@ def account_transfer(name, amount, date, to_account, from_account, note, schedul
     empty = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id, reconcile_amt)
     insert_transaction(empty)
 
+def update_reconcile_amounts(account_id, transaction_id, method):
+    #changes the reconcile amounts after a given transaction
+    #maybe optimize later to not change the same way for updating a transaction? this could be hard tho
+    #DOESN'T WORK ON THE FIRST TRANSACTION IN AN ACCOUNT OR ON SPLIT TRANSACTOINS. HAVEN'T TESTED ACCOUNT TRANSFERS
+    with conn:
+        #find the ID of the previous transaction and set it to transaction_id
+        c.execute("SELECT id FROM transactions WHERE (account_id=? AND date(day) == date((SELECT day from transactions where id=?)) AND id<?) OR (account_id=? AND day < date((SELECT day from transactions where id=?))) ORDER BY id DESC LIMIT 1", (account_id,transaction_id,transaction_id,account_id,transaction_id))
+        prev_transaction_id = c.fetchone()
+        if prev_transaction_id is not None:
+            prev_transaction_id = prev_transaction_id[0]
+
+        if (method == INSERT):
+            print("INSERT")
+            # Fetches the transactions whose r_balances need to be updated starting from previous transaction
+            # (special case for when there is no previous transaction?)
+            c.execute("SELECT id,amount,reconcile_balance,name,grouping,type FROM transactions WHERE (account_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (account_id,prev_transaction_id,prev_transaction_id,prev_transaction_id))
+        elif (method == REMOVE):
+            print("REMOVE")
+            # Fetches the transactions whose r_balances need to be updated starting from the current transaction
+            c.execute("SELECT id,amount,reconcile_balance,name,grouping,type FROM transactions WHERE (account_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (account_id,transaction_id,transaction_id,transaction_id))
+
+        # Create lists for the collected transactions
+        t_ids = []
+        t_amounts =[]
+        t_r_bals =[]
+        t_names = []
+        t_grouping = []
+        t_type = []
+        for row in c:
+            t_ids.insert(0,row[0])
+            t_amounts.insert(0,row[1])
+            t_r_bals.insert(0,row[2])
+            t_names.insert(0,row[3])
+            t_grouping.insert(0,row[4])
+            t_type.insert(0,row[5])
+
+        # If the transaction is the first in its account then give it a placeholder one beforehand
+
+        print(t_names)
+        print(t_amounts)
+        print(t_r_bals)
+
+        print("LOOPIN")
+        if (method == INSERT):
+            print(range(1,len(t_ids)))
+            for i in range(1,len(t_ids)):
+                print("i = ", i)
+                if (t_type[i-1] != SPLIT_TRANSACTION):
+                    # If you're inserting any transaction after a normal transaction
+                    # subtract the previous amount from the current r_balance starting from the current transaction (1)
+                    print("any t after normal t")
+                    t_r_bals[i] = t_r_bals[i-1] - t_amounts[i-1]
+                elif (t_type[i] != SPLIT_TRANSACTION and t_type[i-1] == SPLIT_TRANSACTION):
+                    print(t_type[i])
+                    print(t_type[i-1])
+                    #if you're inserting a normal transaction after a split transaction
+                    # Get the total amount of split transaction, then subtract from the normal's r_balance
+                    print("normal t after split t")
+                    c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?",(t_grouping[i-1],))
+                    split_total = c.fetchone()[0]
+                    t_r_bals[i] = t_r_bals[i-1] - split_total
+                elif (t_type[i] == SPLIT_TRANSACTION and t_type[i-1] == SPLIT_TRANSACTION and t_grouping[i] == t_grouping[i-1]):
+                    # If you're inserting the 2nd, 3rd, nth part of a split transaction
+                    print("split t after same split transaction")
+                    t_r_bals[i] = t_r_bals[i-1]
+                elif (t_type[i] == SPLIT_TRANSACTION and t_type[i-1] == SPLIT_TRANSACTION and t_grouping[i] != t_grouping[i-1]):
+                    # If you're inserting the first bit of a split transaction after a different split transaction
+                    # (same code as normal transaction after split transaction)
+                    print("split t after different split transaction")
+                    c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?",(t_grouping[i-1],))
+                    split_total = c.fetchone()[0]
+                    t_r_bals[i] = t_r_bals[i-1] - split_total
+
+            print("NEW VALUES TO BE INSERTED")
+            print(t_r_bals)
+        elif (method == REMOVE):
+            # add the t_amount of given transaction from following r_balances
+            for i in range(1,len(t_ids)):
+                t_r_bals[i] = t_r_bals[i] + t_amounts[0]
+            print("NEW VALUES TO BE INSERTED")
+            print(t_r_bals)
+        for i in range(1,len(t_ids)):
+            c.execute("UPDATE transactions SET reconcile_balance=? WHERE id=?", (t_r_bals[i],t_ids[i]))
+
 
 # ---------------ENVELOPE FUNCTIONS--------------- #
 
@@ -435,12 +535,12 @@ def edit_envelopes(old_envelopes, new_envelopes):
         if not (id[0] in old_ids):
             delete_envelope(id[0])
 
-def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedule, user_id, reconcile_amt):
+def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedule, user_id):
     # Creates a transaction to fill one envelope and another to empty the other
     grouping = gen_grouping_num()
-    fill = Transaction(ENVELOPE_TRANSFER, name, -1*amt, date, to_envelope, None, grouping, note, schedule, False, user_id, reconcile_amt)
+    fill = Transaction(ENVELOPE_TRANSFER, name, -1*amt, date, to_envelope, None, grouping, note, schedule, False, user_id, 0)
     insert_transaction(fill)
-    empty = Transaction(ENVELOPE_TRANSFER, name, amt, date, from_envelope, None, grouping, note, schedule, False, user_id, reconcile_amt)
+    empty = Transaction(ENVELOPE_TRANSFER, name, amt, date, from_envelope, None, grouping, note, schedule, False, user_id, 0)
     insert_transaction(empty)
 
 def envelope_fill(t):
@@ -450,9 +550,9 @@ def envelope_fill(t):
         amts = t.amt
         envelopes = t.envelope_id
         for i in range(len(amts)):
-            empty_unallocated = Transaction(ENVELOPE_FILL, t.name, amts[i], t.date, UNALLOCATED, None, grouping, t.note, t.schedule, False, t.user_id, t.reconcile_amt)
+            empty_unallocated = Transaction(ENVELOPE_FILL, t.name, amts[i], t.date, UNALLOCATED, None, grouping, t.note, t.schedule, False, t.user_id, 0)
             insert_transaction(empty_unallocated)
-            fill_envelope = Transaction(ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id, t.reconcile_amt)
+            fill_envelope = Transaction(ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id, 0)
             insert_transaction(fill_envelope)
 
 

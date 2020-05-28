@@ -10,6 +10,7 @@
   # Quick fill for envelopes based on budget
   # Overlay scrollbar (simplebar?)
   # shift select on multiselect checkboxes
+  # autofill envelope/account on transaction creation if you're on that envelope/account page
   #
   # -----ACTUAL FEATURES-----
   # Account balance next to transaction amount
@@ -38,6 +39,9 @@
   #     the select from body to something under the nav bar?
   # Arrow keys don't work in selects
   # Clicking another input field after an unselected select requires 2 clicks
+  # Editing a split transaction, then immediately deleting it, then immediately editing a normal transaction
+  #   makes the split transaction editor pop up. i.e. it needs to clear the amount of envelopes on every modal open?
+  # scheduled box pops up on income editor sometimes
   #
   # THINGS TO MAYBE DO:
   #
@@ -136,7 +140,6 @@ app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
 @app.route("/home", methods=['GET'])
 def home():
     (transactions_data, offset, limit) = get_transactions(0,50)
-    print(transactions_data)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     total_funds = get_total(USER_ID)
@@ -160,7 +163,7 @@ def get_envelope_page():
 @app.route("/get_account_page", methods=["POST"], )
 def get_account_page():
     account_id = request.get_json()['account_id']
-    (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
+    (transactions_data, offset, limit) = get_account_transactions(account_id,0,20)
     (active_envelopes, envelopes_data) = get_envelope_dict()
     (active_accounts, accounts_data) = get_account_dict()
     page_total = stringify(get_account(account_id).balance)
@@ -185,13 +188,13 @@ def new_expense(edited=False):
     for i in range(len(amounts)):
         amounts[i] = int(round(float(amounts[i]) * 100))
         envelope_ids[i] = int(envelope_ids[i])
-    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID)
+    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID,None)
     # Only insert a new scheduled transaction if it's not an edited transaction
     if scheduled and edited:
         t.schedule = schedule
     if scheduled and not edited:
         nextdate = schedule_date_calc(date,schedule)
-        scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID)
+        scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID,None)
     if len(envelope_ids) == 1:
         t.grouping = gen_grouping_num()
         t.envelope_id = envelope_ids[0]
@@ -264,13 +267,13 @@ def new_income(edited=False):
     scheduled = len(scheduled) != 0
     schedule = request.form['schedule']
     scheduled_transaction_submitted = False
-    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, None, False, USER_ID)
+    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, None, False, USER_ID, None)
     if edited:
         t.schedule = schedule
     insert_transaction(t)
     if scheduled and not edited:
         nextdate = schedule_date_calc(date,schedule)
-        scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID)
+        scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID, None)
         insert_transaction(scheduled_t)
         scheduled_transaction_submitted = True
     return jsonify({'message': 'Successfully added new income!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})
@@ -295,13 +298,13 @@ def fill_envelopes(edited=False):
     for index in reversed(deletes):
         amounts.pop(index)
         envelope_ids.pop(index)
-    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID)
+    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, None)
     if edited:
         t.schedule = schedule
     envelope_fill(t)
     if scheduled and not edited:
         nextdate = schedule_date_calc(date,schedule)
-        scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID)
+        scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID, None)
         envelope_fill(scheduled_t)
         scheduled_transaction_submitted = True
     return jsonify({'message': 'Envelopes successfully filled!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})

@@ -42,6 +42,9 @@
 /*Makes balance and reconcile balance look proper in their box*/
 .reconcile-row {
   margin-top: -5px !important;
+  /*Keeps a single transaction in the bin from creating a scroll bar by overflowing*/
+  height: 19px;
+  overflow: hidden;
 }
 
 /*Makes balance and reconcile balance look proper in their box*/

@@ -368,6 +368,14 @@
         } else {
           $('#load-more').attr('data-offset', o['offset'])
         }
+
+        //If loading more transactions on the accounts page, show the reconcile balances
+        if (current_page.includes("account")) {
+          //Show the reconcile balance
+          $('.reconcile-row').removeClass('gone');
+          $('.transaction-amount').removeClass('valign-wrapper')
+          $('.balance-row').addClass('balance-row-adjust');
+        }
       });
     });
 
@@ -608,6 +616,15 @@
         M.updateTextFields();
         $('select').formSelect({dropdownOptions: {container: 'body'}});
         $('#page-total').text(o['page_total'])
+
+        //If you are on the accounts page, show the reconcile balances
+        ////THIS MIGHT NOT BE NECSSARY HERE BUT IT WAS ADDED IN CAUTION. TEST THIS
+        if (current_page.includes("account")) {
+          //Show the reconcile balance
+          $('.reconcile-row').removeClass('gone');
+          $('.transaction-amount').removeClass('valign-wrapper')
+          $('.balance-row').addClass('balance-row-adjust');
+        }
 
         console.log("Page data reloaded!")
       });
