@@ -405,9 +405,9 @@ def update_reconcile_amounts(account_id, transaction_id, method):
             t_amounts.insert(0,row[1])
             t_r_bals.insert(0,row[2])
 
-        print(t_ids)
-        print(t_amounts)
-        print(t_r_bals)
+        # print(t_ids)
+        # print(t_amounts)
+        # print(t_r_bals)
 
         if (method == INSERT):
             # print("Insert")
