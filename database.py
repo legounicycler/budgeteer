@@ -375,6 +375,7 @@ def update_reconcile_amounts(account_id, transaction_id, method):
     # changes the reconcile amounts after a given transaction
     # maybe optimize later to use the update function with subqueries to avoid doing a for loop
     #   with separate sql calls
+    #   UPDATE transactions SET reconcile_balance = reconcile_balance + ? WHERE (SUB QUERY HERE for transactions past the inserted t)
     with conn:
         #find the ID of the previous transaction and set it to transaction_id
         c.execute("SELECT id FROM transactions WHERE (account_id=? AND date(day) == date((SELECT day from transactions where id=?)) AND id<?) OR (account_id=? AND day < date((SELECT day from transactions where id=?))) ORDER BY id DESC LIMIT 1", (account_id,transaction_id,transaction_id,account_id,transaction_id))
@@ -382,55 +383,41 @@ def update_reconcile_amounts(account_id, transaction_id, method):
         if prev_transaction_id is not None:
             prev_transaction_id = prev_transaction_id[0]
         else:
-            #special case for if you're inserting a transaction at the beginning of the account history
+            #if there is no previous transaction, use the current transaction id
             prev_transaction_id = transaction_id
 
         if (method == INSERT):
             # Fetches the transactions whose r_balances need to be updated starting from previous transaction
-            # (transactions with same account id and greater date OR same date and same account id but greater id)
-            c.execute("SELECT id,amount,reconcile_balance,grouping,type FROM transactions WHERE (account_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND account_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (account_id,prev_transaction_id,prev_transaction_id,account_id,prev_transaction_id))
+            # (transactions with same account id and greater date OR same date and same account id but greater id than previous transaction)
+            c.execute("SELECT id,amount,reconcile_balance FROM transactions WHERE (account_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND account_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (account_id,prev_transaction_id,prev_transaction_id,account_id,prev_transaction_id))
         elif (method == REMOVE):
             # Fetches the transactions whose r_balances need to be updated starting from the current transaction
-            c.execute("SELECT id,amount,reconcile_balance,grouping,type FROM transactions WHERE (account_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND account_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (account_id,transaction_id,transaction_id,account_id,transaction_id))
+            # # (transactions with same account id and greater date OR same date and same account id but greater id than current transaction)
+            c.execute("SELECT id,amount,reconcile_balance FROM transactions WHERE (account_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND account_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (account_id,transaction_id,transaction_id,account_id,transaction_id))
 
         # Create lists for the collected transactions
         #   If the suggested optimization above is implemented, this section would go away
         t_ids = []
         t_amounts =[]
         t_r_bals =[]
-        t_grouping = []
-        t_type = []
         for row in c:
             t_ids.insert(0,row[0])
             t_amounts.insert(0,row[1])
             t_r_bals.insert(0,row[2])
-            t_grouping.insert(0,row[3])
-            t_type.insert(0,row[4])
+
+        print(t_ids)
+        print(t_amounts)
+        print(t_r_bals)
+
         if (method == INSERT):
+            # print("Insert")
+            if (transaction_id == prev_transaction_id):
+                t_r_bals[0] = -1* t_amounts[0]
+                c.execute("UPDATE transactions SET reconcile_balance=? WHERE id=?", (-1*t_amounts[0],t_ids[0]))
             for i in range(1,len(t_ids)):
-                if (t_type[i-1] != SPLIT_TRANSACTION):
-                    # If you're inserting any transaction after a normal (non-split) transaction
-                    # subtract the previous amount from the current r_balance starting from the current transaction (1)
-                    #   If suggested optimization is implemented, this would be done in one query
-                    t_r_bals[i] = t_r_bals[i-1] - t_amounts[i-1]
-                elif (t_type[i] != SPLIT_TRANSACTION and t_type[i-1] == SPLIT_TRANSACTION):
-                    #if you're inserting a normal (non-split) transaction after a split transaction
-                    # Get the total amount of split transaction, then subtract from the normal's r_balance
-                    c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?",(t_grouping[i-1],))
-                    split_total = c.fetchone()[0]
-                    t_r_bals[i] = t_r_bals[i-1] - split_total
-                elif (t_type[i] == SPLIT_TRANSACTION and t_type[i-1] == SPLIT_TRANSACTION and t_grouping[i] == t_grouping[i-1]):
-                    # If you're inserting the 2nd, 3rd, nth part of a split transaction
-                    t_r_bals[i] = t_r_bals[i-1]
-                elif (t_type[i] == SPLIT_TRANSACTION and t_type[i-1] == SPLIT_TRANSACTION and t_grouping[i] != t_grouping[i-1]):
-                    # If you're inserting the first bit of a split transaction after a different split transaction
-                    # (same code as normal transaction after split transaction)
-                    c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?",(t_grouping[i-1],))
-                    split_total = c.fetchone()[0]
-                    t_r_bals[i] = t_r_bals[i-1] - split_total
-                else:
-                    print("OH NO THIS SHOULDN'T HAVE HAPPENED YOU SHOULDN'T BE HERE")
+                t_r_bals[i] = t_r_bals[i-1] - t_amounts[i]
         elif (method == REMOVE):
+            # print("remove")
             # add the t_amount of given transaction from following r_balances
             for i in range(1,len(t_ids)):
                 t_r_bals[i] = t_r_bals[i] + t_amounts[0]
