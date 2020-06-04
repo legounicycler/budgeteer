@@ -406,35 +406,23 @@ def update_reconcile_amounts(account_id, transaction_id, method):
             t_r_bals.insert(0,row[2])
             t_grouping.insert(0,row[3])
             t_type.insert(0,row[4])
-
-        print(t_ids)
-        print(t_amounts)
-        print(t_r_bals)
-        print(t_grouping)
-        print(t_type)
-
         if (method == INSERT):
-            print("INSERT")
             for i in range(1,len(t_ids)):
                 if (t_type[i-1] != SPLIT_TRANSACTION):
                     # If you're inserting any transaction after a normal (non-split) transaction
                     # subtract the previous amount from the current r_balance starting from the current transaction (1)
                     #   If suggested optimization is implemented, this would be done in one query
-                    print("any t after normal t")
                     t_r_bals[i] = t_r_bals[i-1] - t_amounts[i-1]
                 elif (t_type[i] != SPLIT_TRANSACTION and t_type[i-1] == SPLIT_TRANSACTION):
                     #if you're inserting a normal (non-split) transaction after a split transaction
                     # Get the total amount of split transaction, then subtract from the normal's r_balance
-                    print("normal t after split t")
                     c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?",(t_grouping[i-1],))
                     split_total = c.fetchone()[0]
                     t_r_bals[i] = t_r_bals[i-1] - split_total
                 elif (t_type[i] == SPLIT_TRANSACTION and t_type[i-1] == SPLIT_TRANSACTION and t_grouping[i] == t_grouping[i-1]):
-                    print("nth part of split t after split t")
                     # If you're inserting the 2nd, 3rd, nth part of a split transaction
                     t_r_bals[i] = t_r_bals[i-1]
                 elif (t_type[i] == SPLIT_TRANSACTION and t_type[i-1] == SPLIT_TRANSACTION and t_grouping[i] != t_grouping[i-1]):
-                    print("first split t after different split t")
                     # If you're inserting the first bit of a split transaction after a different split transaction
                     # (same code as normal transaction after split transaction)
                     c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?",(t_grouping[i-1],))
@@ -443,7 +431,6 @@ def update_reconcile_amounts(account_id, transaction_id, method):
                 else:
                     print("OH NO THIS SHOULDN'T HAVE HAPPENED YOU SHOULDN'T BE HERE")
         elif (method == REMOVE):
-            print("REMOVE")
             # add the t_amount of given transaction from following r_balances
             for i in range(1,len(t_ids)):
                 t_r_bals[i] = t_r_bals[i] + t_amounts[0]
