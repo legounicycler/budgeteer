@@ -4,6 +4,7 @@
   #
   # -----USER EXPERIENCE ENHANCEMENTS-----
   # Disable autocomplete (autocomplete="off") on mobile
+  # clear multi transaction selection with escape key or some other tap on mobile?
   # Draggable order for transactions with same date
   # Add keyboard-tab select function on materialize select so that it's more user friendly
   # "Submit and new" button for faster transaction creations
