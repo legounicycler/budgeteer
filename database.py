@@ -253,6 +253,7 @@ def delete_transaction(id):
             ids = get_ids_from_grouping(grouping)
             for id in ids:
                 t = get_transaction(id)
+                # if it is not a scheduled transaction, update envelope/account balances
                 if (t.date < datetime.now()):
                     # Update envelope balance if it references an envelope
                     if not (t.envelope_id is None):
@@ -269,7 +270,9 @@ def delete_transaction(id):
                 # Update the reconciled amounts if there is an account associated with the transaction
                 if t.account_id is not None:
                     update_reconcile_amounts(t.account_id, t.id, REMOVE)
-                    c.execute("DELETE FROM transactions WHERE id=?", (id,))
+
+                # Delete the actual transaction from the database
+                c.execute("DELETE FROM transactions WHERE id=?", (id,))
         else:
             print("That transaction doesn't exist you twit")
 
