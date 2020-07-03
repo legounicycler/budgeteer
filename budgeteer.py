@@ -30,20 +30,17 @@
   # Total envelope budget (on envelope editor) (monthly or biweekly??)
   #
   #
-  # BUG LIST:
+  # -----BUG LIST-----
+  # Scheduled transactions don't create new scheduled transactions!
+  # Editing an income selects the scheduled box on the next edit
   # Make sure debug is false when the system is UBUNTU for running the main app
-  # No delete envelope button on editing split transactions!
   # Schedule box gets autochecked after transaction edit (only on developer version)
   # Fix strange scrolling glitch with long selects by changing the container of
-  #     the select from body to something under the nav bar?
+  #     the select from body to something under the nav bar? (CAN'T REPRODUCE??)
   # Arrow keys don't work in selects
   # Clicking another input field after an unselected select requires 2 clicks
-  # Editing a split transaction, then immediately deleting it, then immediately editing a normal transaction
-  #   makes the split transaction editor pop up. i.e. it needs to clear the amount of envelopes on every modal open?
-  # scheduled box pops up on income editor sometimes
   #
-  # THINGS TO MAYBE DO:
-  #
+  # -----THINGS TO MAYBE DO-----
   # Split envelope transfer?
   # inline math
   # some kind of venmo feature?

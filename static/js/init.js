@@ -71,7 +71,6 @@
 
       // Initialize toggler for transfer editor
       $('.div-toggle').trigger('change');
-      console.log("TRIGGER CHANGE")
 
       // Initialize materialize tooltips
       $('.tooltipped').tooltip();
@@ -277,9 +276,7 @@
 
     // Toggler code for transfer tab of transaction creator/editor
     $(document).on('change', '.div-toggle', function() {
-      console.log("CHANGE")
       var target = $(this).data('target');
-      console.log(target)
       var show = $("option:selected", this).data('show');
       $(target).children().addClass('hide');
       $(show).removeClass('hide');
@@ -646,6 +643,8 @@
         data: $(this).serialize(),
       }).done(function( o ) {
         $('.modal').modal("close")
+        //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
+        //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
         $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
         $(id)[0].reset();
         data_reload(current_page);
@@ -661,13 +660,17 @@
       e.preventDefault()
       var url = $(this).attr('action');
       var method = $(this).attr('method');
+      var parent_modal_id = '#' + $(this).parents('.modal').attr('id');
 
       $.ajax({
         type: method,
         url: url,
         data: $(this).serialize(),
       }).done(function( o ) {
-        $(".modal").modal("close")
+        $(".modal").modal("close");
+        //Removes the new-envelope-row(s) from split transactions in the specific modal so that the next time you open
+        //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
+        $(parent_modal_id + ' .new-envelope-row').remove();
         data_reload(current_page);
         M.toast({html: o})
       });
@@ -751,7 +754,7 @@
         $("#edit-transfer").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
-        checkbox_id = '#edit-expense-schedule'
+        checkbox_id = '#edit-expense-schedule';
       } else if (type == ENVELOPE_TRANSFER || type == ACCOUNT_TRANSFER) {
         transfer_editor.appendTo('#editor-row');
         $("#edit-expense").detach();
@@ -790,7 +793,7 @@
         $("#edit-envelope-fill").detach();
         for (i=1 ; i<envelope_ids.length ; i++) {
           var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
-          $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="number" step=".01" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
+          $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s5 input-field"><input required id="amount" class="validate" type="number" step=".01" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper remove-envelope-button-col"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
           $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect({dropdownOptions: {container: 'body'}});
         }
         checkbox_id = '#edit-expense-schedule'
