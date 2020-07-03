@@ -71,6 +71,7 @@
 
       // Initialize toggler for transfer editor
       $('.div-toggle').trigger('change');
+      console.log("TRIGGER CHANGE")
 
       // Initialize materialize tooltips
       $('.tooltipped').tooltip();
@@ -276,7 +277,9 @@
 
     // Toggler code for transfer tab of transaction creator/editor
     $(document).on('change', '.div-toggle', function() {
+      console.log("CHANGE")
       var target = $(this).data('target');
+      console.log(target)
       var show = $("option:selected", this).data('show');
       $(target).children().addClass('hide');
       $(show).removeClass('hide');
@@ -452,7 +455,7 @@
       y = event.touches[0].clientY;
     }).on( 'click', '.transaction', function() {
       $this = $(this)
-      transaction_modal_open($this);
+      t_editor_modal_open($this);
       $('#editor-modal').modal('open');
     }); //END OF MULTIDELETE CODE
 
@@ -561,10 +564,10 @@
         transfer_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
-        $('.envelope-transfer select').first().attr('name', 'from_envelope');
-        $('.envelope-transfer select').last().attr('name', 'to_envelope');
-        $('.account-transfer select').first().attr('name', 'from_account');
-        $('.account-transfer select').last().attr('name', 'to_account');
+        $('#envelope-transfer-edit select').first().attr('name', 'from_envelope');
+        $('#envelope-transfer-edit select').last().attr('name', 'to_envelope');
+        $('#account-transfer-edit select').first().attr('name', 'from_account');
+        $('#account-transfer-edit select').last().attr('name', 'to_account');
         $('select').formSelect({dropdownOptions: {container: 'body'}});
         transfer_editor.detach();
 
@@ -670,9 +673,9 @@
       });
     });
 
-    // Opens transaction modal
-    function transaction_modal_open(e) {
-      // gets and format data from html data tags
+    // Opens transaction editor modal
+    function t_editor_modal_open(e) {
+      // gets and formats data from html data tags
       var id = e.data('id');
       var name = e.data('name');
       var type = e.data('type');
@@ -691,7 +694,7 @@
       var checkbox_id;
 
       //if it's a grouped transaction, use ajax to get data from all grouped transaction
-      if (type != BASIC_TRANSACTION || type != INCOME ) {
+      if (grouping != null) {
         $.ajax({
           async: false,
           type: "GET",
@@ -754,20 +757,21 @@
         $("#edit-expense").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
+        // FIll in the amount field
         $('#edit-transfer_type').val(type).formSelect({dropdownOptions: {container: 'body'}});
         amt = Math.abs(amt);
         if (type == ENVELOPE_TRANSFER) {
-          $('.account-transfer').addClass('hide');
-          $('.envelope-transfer').removeClass('hide');
-          $('.account-transfer').find('select').removeAttr('required');
-          $('.envelope-transfer').find('select').attr('required', true);
+          $('#account-transfer-edit').addClass('hide');
+          $('#envelope-transfer-edit').removeClass('hide');
+          $('#account-transfer-edit').find('select').removeAttr('required');
+          $('#envelope-transfer-edit').find('select').attr('required', true);
           $('#edit-from_envelope').val(from_envelope).formSelect({dropdownOptions: {container: 'body'}});
           $('#edit-to_envelope').val(to_envelope).formSelect({dropdownOptions: {container: 'body'}});
         } else if (type == ACCOUNT_TRANSFER) {
-          $('.envelope-transfer').addClass('hide');
-          $('.account-transfer').removeClass('hide');
-          $('.envelope-transfer').find('select').removeAttr('required');
-          $('.account-transfer').find('select').attr('required', true);
+          $('#envelope-transfer-edit').addClass('hide');
+          $('#account-transfer-edit').removeClass('hide');
+          $('#envelope-transfer-edit').find('select').removeAttr('required');
+          $('#account-transfer-edit').find('select').attr('required', true);
           $('#edit-to_account').val(to_account).formSelect({dropdownOptions: {container: 'body'}});
           $('#edit-from_account').val(from_account).formSelect({dropdownOptions: {container: 'body'}});
         }
@@ -854,7 +858,7 @@
         }
       }
       M.updateTextFields();
-    }; // End of transaction_modal_open
+    }; // End of t_editor_modal_open
 
   });
 })(jQuery); // end of jQuery name space

@@ -31,9 +31,7 @@
   #
   #
   # BUG LIST:
-  # Still having issue on updating account transfers
   # Make sure debug is false when the system is UBUNTU for running the main app
-  # Title on Son of Time Checking clips
   # No delete envelope button on editing split transactions!
   # Schedule box gets autochecked after transaction edit (only on developer version)
   # Fix strange scrolling glitch with long selects by changing the container of
