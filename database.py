@@ -711,10 +711,11 @@ def health_check():
             print("INCONSISTENT!!!")
 
         print("Checking accounts...")
-        c.execute("SELECT id,balance from accounts")
+        c.execute("SELECT id,balance,name from accounts")
         accounts = c.fetchall()
         for row in accounts:
-            account_id = row[0]
+            account_name = row[2]
+	    account_id = row[0]
             # get account balance according to database
             account_balance = row[1]
             # get account balance according to summed transaction totals
@@ -722,17 +723,18 @@ def health_check():
             a_balance = c.fetchone()[0]
             if a_balance is None:
                 a_balance = 0
-            if (account_balance == a_balance):
-                print("Account ID:", account_id, "---> HEALTHY")
+            if (-1*account_balance == a_balance):
+                print(account_name, account_id, "---> HEALTHY")
             else:
-                print("Account ID:", account_id, "---> INCONSISTENT")
+                print(account_name, account_id, "---> INCONSISTENT")
                 print("     Account balance VS Summed balance")
-                print("     ", account_balance, a_balance)
+                print("     ", -1*account_balance, a_balance)
 
         print("Checking envelopes...")
-        c.execute("SELECT id,balance from envelopes")
+        c.execute("SELECT id,balance,name from envelopes")
         envelopes = c.fetchall()
         for row in envelopes:
+	    envelope_name = row[2]
             envelope_id = row[0]
             # get envelope balance according to database
             envelope_balance = row[1]
@@ -741,12 +743,12 @@ def health_check():
             e_balance = c.fetchone()[0]
             if e_balance is None:
                 e_balance = 0
-            if (envelope_balance == e_balance):
-                print("Envelope ID:", envelope_id, "---> HEALTHY")
+            if (-1*envelope_balance == e_balance):
+                print(envelope_name, envelope_id, "---> HEALTHY")
             else:
-                print("Envelope ID:", envelope_id, "---> INCONSISTENT")
+                print(envelope_name, envelope_id, "---> INCONSISTENT")
                 print("     Envelope balance VS Summed balance")
-                print("     ", envelope_balance, e_balance)
+                print("     ", -1*envelope_balance, e_balance)
 
 
 def main():
