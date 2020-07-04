@@ -407,20 +407,13 @@ def update_reconcile_amounts(account_id, transaction_id, method):
             t_ids.insert(0,row[0])
             t_amounts.insert(0,row[1])
             t_r_bals.insert(0,row[2])
-
-        # print(t_ids)
-        # print(t_amounts)
-        # print(t_r_bals)
-
         if (method == INSERT):
-            # print("Insert")
             if (transaction_id == prev_transaction_id):
                 t_r_bals[0] = -1* t_amounts[0]
                 c.execute("UPDATE transactions SET reconcile_balance=? WHERE id=?", (-1*t_amounts[0],t_ids[0]))
             for i in range(1,len(t_ids)):
                 t_r_bals[i] = t_r_bals[i-1] - t_amounts[i]
         elif (method == REMOVE):
-            # print("remove")
             # add the t_amount of given transaction from following r_balances
             for i in range(1,len(t_ids)):
                 t_r_bals[i] = t_r_bals[i] + t_amounts[0]
