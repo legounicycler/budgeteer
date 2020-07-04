@@ -748,7 +748,7 @@
         });
       }
 
-      // Check which editor to show, detatch the others, and update the special fields
+      // Check which editor to show, detatch the others, update the special fields, and define checkbox_id
       if (type == BASIC_TRANSACTION) {
         transaction_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
@@ -840,16 +840,20 @@
       $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
       $('#dtid').attr('value', id);
       $('#edit-id').attr('value', id);
-      $('#type').attr('value', type);
+      $('#type').attr('value', type); //Possibly change this to a less confusing ID
+
       //Logic for whether or not schedule checkbox/info shows or is disabled
+      console.log(schedule)
       if (schedule == 'None') {
         // set to default (disabled)
         if ($(checkbox_id).is(':checked')) {
+          // Uncheck box if it is checked
           $(checkbox_id).siblings().click()
         }
         $(checkbox_id).attr('disabled', 'disabled')
         $(checkbox_id).siblings().addClass('checkbox-disabled')
       } else {
+        // Make sure checkbox is not disabled
         $(checkbox_id).removeAttr('disabled')
         $(checkbox_id).siblings().removeClass('checkbox-disabled')
         // update scheduled values and show the section
