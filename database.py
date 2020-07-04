@@ -715,7 +715,7 @@ def health_check():
         accounts = c.fetchall()
         for row in accounts:
             account_name = row[2]
-	    account_id = row[0]
+            account_id = row[0]
             # get account balance according to database
             account_balance = row[1]
             # get account balance according to summed transaction totals
@@ -724,9 +724,9 @@ def health_check():
             if a_balance is None:
                 a_balance = 0
             if (-1*account_balance == a_balance):
-                print(account_name, account_id, "---> HEALTHY")
+                print("HEALTHY --->", account_name, account_id)
             else:
-                print(account_name, account_id, "---> INCONSISTENT")
+                print("INCONSISTENT --->", account_name, account_id)
                 print("     Account balance VS Summed balance")
                 print("     ", -1*account_balance, a_balance)
 
@@ -734,7 +734,7 @@ def health_check():
         c.execute("SELECT id,balance,name from envelopes")
         envelopes = c.fetchall()
         for row in envelopes:
-	    envelope_name = row[2]
+            envelope_name = row[2]
             envelope_id = row[0]
             # get envelope balance according to database
             envelope_balance = row[1]
@@ -744,9 +744,9 @@ def health_check():
             if e_balance is None:
                 e_balance = 0
             if (-1*envelope_balance == e_balance):
-                print(envelope_name, envelope_id, "---> HEALTHY")
+                print("HEALTHY --->", envelope_name, envelope_id)
             else:
-                print(envelope_name, envelope_id, "---> INCONSISTENT")
+                print("INCONSISTENT --->", envelope_name, envelope_id)
                 print("     Envelope balance VS Summed balance")
                 print("     ", -1*envelope_balance, e_balance)
 
