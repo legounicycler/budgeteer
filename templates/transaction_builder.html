@@ -128,17 +128,17 @@
 
             <div class="row">
               <div class="input-field col s12">
-                <select class="div-toggle" data-target=".transfer-toggler" name="transfer_type" required>
-                  <option value="1" data-show=".envelope-transfer">Envelope Transfer</option>
-                  <option value="2" data-show=".account-transfer">Account Transfer</option>
+                <select class="div-toggle" data-target="#transfer-toggler-builder" name="transfer_type" required>
+                  <option value="1" data-show="#envelope-transfer-build">Envelope Transfer</option>
+                  <option value="2" data-show="#account-transfer-build">Account Transfer</option>
                 </select>
                 <label>Type</label>
               </div>
             </div>
 
-            <div class="transfer-toggler">
+            <div id="transfer-toggler-builder">
 
-              <div class="account-transfer">
+              <div id="account-transfer-build">
                 <div class="row">
                   <div class="input-field col s6">
                     <select name="from_account" class="account-selector" required>
@@ -161,7 +161,7 @@
                 </div>
               </div>
 
-              <div class="envelope-transfer">
+              <div id="envelope-transfer-build">
                 <div class="row">
                   <div class="input-field col s6">
                     <select name="from_envelope" class="envelope-selector" required>

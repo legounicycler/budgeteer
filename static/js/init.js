@@ -452,7 +452,7 @@
       y = event.touches[0].clientY;
     }).on( 'click', '.transaction', function() {
       $this = $(this)
-      transaction_modal_open($this);
+      t_editor_modal_open($this);
       $('#editor-modal').modal('open');
     }); //END OF MULTIDELETE CODE
 
@@ -561,10 +561,10 @@
         transfer_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
-        $('.envelope-transfer select').first().attr('name', 'from_envelope');
-        $('.envelope-transfer select').last().attr('name', 'to_envelope');
-        $('.account-transfer select').first().attr('name', 'from_account');
-        $('.account-transfer select').last().attr('name', 'to_account');
+        $('#envelope-transfer-edit select').first().attr('name', 'from_envelope');
+        $('#envelope-transfer-edit select').last().attr('name', 'to_envelope');
+        $('#account-transfer-edit select').first().attr('name', 'from_account');
+        $('#account-transfer-edit select').last().attr('name', 'to_account');
         $('select').formSelect({dropdownOptions: {container: 'body'}});
         transfer_editor.detach();
 
@@ -643,6 +643,8 @@
         data: $(this).serialize(),
       }).done(function( o ) {
         $('.modal').modal("close")
+        //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
+        //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
         $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
         $(id)[0].reset();
         data_reload(current_page);
@@ -658,21 +660,25 @@
       e.preventDefault()
       var url = $(this).attr('action');
       var method = $(this).attr('method');
+      var parent_modal_id = '#' + $(this).parents('.modal').attr('id');
 
       $.ajax({
         type: method,
         url: url,
         data: $(this).serialize(),
       }).done(function( o ) {
-        $(".modal").modal("close")
+        $(".modal").modal("close");
+        //Removes the new-envelope-row(s) from split transactions in the specific modal so that the next time you open
+        //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
+        $(parent_modal_id + ' .new-envelope-row').remove();
         data_reload(current_page);
         M.toast({html: o})
       });
     });
 
-    // Opens transaction modal
-    function transaction_modal_open(e) {
-      // gets and format data from html data tags
+    // Opens transaction editor modal
+    function t_editor_modal_open(e) {
+      // gets and formats data from html data tags
       var id = e.data('id');
       var name = e.data('name');
       var type = e.data('type');
@@ -691,7 +697,7 @@
       var checkbox_id;
 
       //if it's a grouped transaction, use ajax to get data from all grouped transaction
-      if (type != BASIC_TRANSACTION || type != INCOME ) {
+      if (grouping != null) {
         $.ajax({
           async: false,
           type: "GET",
@@ -742,32 +748,33 @@
         });
       }
 
-      // Check which editor to show, detatch the others, and update the special fields
+      // Check which editor to show, detatch the others, update the special fields, and define checkbox_id
       if (type == BASIC_TRANSACTION) {
         transaction_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
-        checkbox_id = '#edit-expense-schedule'
+        checkbox_id = '#edit-expense-schedule';
       } else if (type == ENVELOPE_TRANSFER || type == ACCOUNT_TRANSFER) {
         transfer_editor.appendTo('#editor-row');
         $("#edit-expense").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
+        // FIll in the amount field
         $('#edit-transfer_type').val(type).formSelect({dropdownOptions: {container: 'body'}});
         amt = Math.abs(amt);
         if (type == ENVELOPE_TRANSFER) {
-          $('.account-transfer').addClass('hide');
-          $('.envelope-transfer').removeClass('hide');
-          $('.account-transfer').find('select').removeAttr('required');
-          $('.envelope-transfer').find('select').attr('required', true);
+          $('#account-transfer-edit').addClass('hide');
+          $('#envelope-transfer-edit').removeClass('hide');
+          $('#account-transfer-edit').find('select').removeAttr('required');
+          $('#envelope-transfer-edit').find('select').attr('required', true);
           $('#edit-from_envelope').val(from_envelope).formSelect({dropdownOptions: {container: 'body'}});
           $('#edit-to_envelope').val(to_envelope).formSelect({dropdownOptions: {container: 'body'}});
         } else if (type == ACCOUNT_TRANSFER) {
-          $('.envelope-transfer').addClass('hide');
-          $('.account-transfer').removeClass('hide');
-          $('.envelope-transfer').find('select').removeAttr('required');
-          $('.account-transfer').find('select').attr('required', true);
+          $('#envelope-transfer-edit').addClass('hide');
+          $('#account-transfer-edit').removeClass('hide');
+          $('#envelope-transfer-edit').find('select').removeAttr('required');
+          $('#account-transfer-edit').find('select').attr('required', true);
           $('#edit-to_account').val(to_account).formSelect({dropdownOptions: {container: 'body'}});
           $('#edit-from_account').val(from_account).formSelect({dropdownOptions: {container: 'body'}});
         }
@@ -786,7 +793,7 @@
         $("#edit-envelope-fill").detach();
         for (i=1 ; i<envelope_ids.length ; i++) {
           var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
-          $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s6 input-field"><input required id="amount" class="validate" type="number" step=".01" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div></div>');
+          $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s5 input-field"><input required id="amount" class="validate" type="number" step=".01" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper remove-envelope-button-col"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
           $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect({dropdownOptions: {container: 'body'}});
         }
         checkbox_id = '#edit-expense-schedule'
@@ -833,16 +840,19 @@
       $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
       $('#dtid').attr('value', id);
       $('#edit-id').attr('value', id);
-      $('#type').attr('value', type);
+      $('#type').attr('value', type); //Possibly change this to a less confusing ID
+
       //Logic for whether or not schedule checkbox/info shows or is disabled
       if (schedule == 'None') {
         // set to default (disabled)
         if ($(checkbox_id).is(':checked')) {
+          // Uncheck box if it is checked
           $(checkbox_id).siblings().click()
         }
         $(checkbox_id).attr('disabled', 'disabled')
         $(checkbox_id).siblings().addClass('checkbox-disabled')
       } else {
+        // Make sure checkbox is not disabled
         $(checkbox_id).removeAttr('disabled')
         $(checkbox_id).siblings().removeClass('checkbox-disabled')
         // update scheduled values and show the section
@@ -854,7 +864,7 @@
         }
       }
       M.updateTextFields();
-    }; // End of transaction_modal_open
+    }; // End of t_editor_modal_open
 
   });
 })(jQuery); // end of jQuery name space
