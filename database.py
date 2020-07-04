@@ -81,6 +81,15 @@ class Envelope:
         return "{}, {}, {}, {}, {}, {}, {}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
 
 
+def create_user_table():
+    c.execute("""
+        CREATE TABLE users (
+        user_id INTEGER PRIMARY KEY,
+        email TEXT NOT NULL,
+        password_hash TEXT NOT NULL
+        )
+        """)
+
 # Creates the database file
 def create_db():
     c.execute("""

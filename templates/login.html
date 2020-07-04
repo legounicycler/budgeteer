@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+  <title>Budgeteer</title>
+
+  <!-- CSS  -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="{{url_for('static', filename='css/materialize.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/style.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/main.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/login.css')}}" type = text/css rel="stylesheet" media="screen,projection"/>
+  <link rel="icon" href="/static/img/icon.png">
+</head>
+
+<body>
+
+    <!-- Main Nav -->
+    <div class="navbar-fixed">
+      <nav class="yellow darken-4">
+        <div class="nav-wrapper">
+          <ul class="left">
+            <li><a href="#" data-target="slide-out" class="sidenav-trigger"><i class="material-icons">menu</i></a></li>
+          </ul>
+            <a id="logo-container" href="{{url_for('home')}}" class="brand-logo center"><img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo"></a>
+          <!-- <ul class="right">
+            <li><a href="#"><i class="material-icons white-text" id="new_plan">add</i></a></li>
+          </ul> -->
+        </div>
+      </nav>
+    </div>
+
+  <!-- Content -->
+  <main>
+
+    <div id="loading-div-div">
+      <div id="loading-div">
+        <div class="preloader-wrapper big active">
+          <div class="spinner-layer spinner-blue-only">
+            <div class="circle-clipper left">
+              <div class="circle"></div>
+            </div><div class="gap-patch">
+              <div class="circle"></div>
+            </div><div class="circle-clipper right">
+              <div class="circle"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row content">
+      <div id="orange-div" class=" col l5 main-content-col">
+        <div class="row main-content-row valign-wrapper">
+          <img id="budgeteer-main-logo" class="center-align" src="{{url_for('static',filename='img/Budgeteer_White_And_Red.png')}}"/>
+        </div>
+      </div>
+      <div class="col l6 offset-l1 main-content-col">
+        <div class="row main-content-row valign-wrapper">
+          <div class="login-form container">
+            <div class="row">
+              <h3>Login</h3>
+            </div>
+            <div class='row'>
+              <div class='input-field col s12'>
+                <input class='validate' type='email' name='email' id='login-email' />
+                <label for='login-email'>Enter your email</label>
+              </div>
+            </div>
+            <div class='row'>
+              <div class='input-field col s12'>
+                <input class='validate' type='password' name='password' id='login-password' />
+                <label for='login-password'>Enter your password</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="{{url_for('static', filename='js/jquery-3.3.1.js')}}"></script>
+  <script src="{{url_for('static', filename='js/materialize.js')}}"></script>
+  <script src="{{url_for('static', filename='js/init.js')}}"></script>
+</body>
+</html>

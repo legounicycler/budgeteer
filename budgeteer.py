@@ -31,9 +31,10 @@
   #
   #
   # BUG LIST:
+  # Deleting/editing envelope fills is broken!!!
   # Still having issue on updating account transfers
   # Make sure debug is false when the system is UBUNTU for running the main app
-  # Title on Son of Time Checking clips
+  # Title on Son of Time Checking clips at bottom of 'g'
   # No delete envelope button on editing split transactions!
   # Schedule box gets autochecked after transaction edit (only on developer version)
   # Fix strange scrolling glitch with long selects by changing the container of
@@ -70,6 +71,7 @@
   # redo css structure to get rid of !important tags
 
 from flask import Flask, render_template, url_for, request, redirect, jsonify
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from database import *
 from datetime import datetime
 from datetime import timedelta
@@ -77,7 +79,37 @@ import calendar
 import re
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'da3e7b955be0f7eb264a9093989e0b46'
+app.config['SECRET_KEY'] = 'totallysecretkey'
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+class User(UserMixin, db.Model):
+  id = db.Column(db.Integer, primary_key=True) #this has to be id in order to use get_id from usermixin
+  username = db.Column(db.String(30), unique=True)
+
+@login_manager.user_loader
+def load_user(user_id):
+  return User.query.get(int(user_id))
+
+@app.route('/login')
+def index():
+  user = User.query.filter_by(username='Anthony').first()  #returns the user object
+  login_user(user)
+  return 'You are now logged in!'
+
+@app.route('/logout')
+@login_require   #this'll probably need to go lots of places
+def logout():
+  logout_user()
+  return 'You are now logged out!'
+
+@app.route('/home')
+@login_required
+def home():
+  return 'the current user is ' + current_user.username
+
+
 
 USER_ID = 1
 
@@ -147,6 +179,10 @@ def home():
     current_view = 'All transactions'
     current_total = total_funds
     return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, current_total=current_total, offset=offset, limit=limit)
+
+@app.route("/login", methods=['POST', 'GET'], )
+def login():
+  return render_template('login.html')
 
 @app.route("/get_envelope_page", methods=["POST"], )
 def get_envelope_page():
