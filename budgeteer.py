@@ -184,31 +184,22 @@ def new_expense(edited=False):
     amounts[i] = int(round(float(amounts[i]) * 100))
     envelope_ids[i] = int(envelope_ids[i])
   t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID, None)
-
-
-  print(schedule)
-  print(scheduled)
-  print(edited)
   # Only insert a NEW scheduled transaction if it's not an edited transaction
   if scheduled and edited:
-    print("scheduled and edited")
     t.schedule = schedule
   if scheduled and not edited:
     # Create placeholder scheduled transaction
-    print("scheduled and NOT edited")
     nextdate = schedule_date_calc(date,schedule)
     scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID, None)
 
   # If it is a single transaction
   if len(envelope_ids) == 1:
-    print("single envelope")
     t.grouping = gen_grouping_num()
     t.envelope_id = envelope_ids[0]
     t.amt = amounts[0]
     # insert new transaction without schedule
     insert_transaction(t)
     if scheduled and not edited:
-      print("scheduled and NOT edited")
       # update placeholder scheduled transaction
       scheduled_t.grouping = gen_grouping_num()
       scheduled_t.envelope_id = envelope_ids[0]
@@ -217,11 +208,9 @@ def new_expense(edited=False):
       insert_transaction(scheduled_t)
       scheduled_transaction_submitted = True
   else:
-    print("split transaction")
     t.type = SPLIT_TRANSACTION
     new_split_transaction(t)
     if scheduled and not edited:
-      print("scheduled and NOT edited")
       # insert new split transaction with schedule
       scheduled_t.type = SPLIT_TRANSACTION
       new_split_transaction(scheduled_t)

@@ -843,7 +843,6 @@
       $('#type').attr('value', type); //Possibly change this to a less confusing ID
 
       //Logic for whether or not schedule checkbox/info shows or is disabled
-      console.log(schedule)
       if (schedule == 'None') {
         // set to default (disabled)
         if ($(checkbox_id).is(':checked')) {
