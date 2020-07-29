@@ -32,6 +32,7 @@
   #
   # -----BUG LIST-----
   # Scheduled transactions don't create new scheduled transactions! (nightly.py?)
+  # Future transaction on the next day doesn't show up as gray. (Time was 9:51 on July 27, 2020, transaction was set for July 28)
   # Strange scrolling glitch with long selects by changing the container of
   #     the select from body to something under the nav bar? (CAN'T REPRODUCE??)
   # Arrow keys don't work in selects
@@ -61,8 +62,9 @@
   # Scheduled transactions documentation
   # redo css structure to get rid of !important tags
 
-from flask import Flask, render_template, url_for, request, redirect, jsonify
+from flask import Flask, render_template, url_for, request, redirect, jsonify, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from database import *
 from datetime import datetime
 from datetime import timedelta
@@ -76,22 +78,55 @@ app.config['SECRET_KEY'] = 'totallysecretkey'
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-class User(UserMixin, db.Model):
-  id = db.Column(db.Integer, primary_key=True) #this has to be id in order to use get_id from usermixin
-  username = db.Column(db.String(30), unique=True)
+class User(UserMixin):
+
+  def __init__(self, new_email,new_password):
+    self.set_password(new_password)
+    self.email = new_email
+    print(type(self.email))
+    self.id = self.email
+
+  def set_password(self, password):
+    self.password_hash = generate_password_hash(password)
+
+  def check_password(self, password):
+    return check_password_hash(self.password_hash, password)
+
+  # def __repr__(self):
+  #   return '<User {}>'.format(self.email)
+
+def create_user(new_email, new_password):
+  u = User(new_email,new_password)
+  insert_user(u)
 
 @login_manager.user_loader
-def load_user(user_id):
-  return User.query.get(int(user_id))
+def load_user(email):
+  return get_user(email)
 
-@app.route('/login')
-def index():
-  user = User.query.filter_by(username='Anthony').first()  #returns the user object
-  login_user(user)
-  return 'You are now logged in!'
+@app.route('/login', methods=["POST", "GET"])
+def login():
+  if current_user.is_authenticated:
+    print("user already authenticated")
+    return redirect(url_for('home'))
+  try:
+    email = request.form['email']
+    password = request.form['password']
+  except:
+    return redirect(url_for('login_page'))
+  user = load_user(email)
+  if user is None or not user.check_password(password):
+      flash('Invalid email or password')
+      return redirect(url_for('login_page'))
+  # login_user(user, remember=form.remember_me.data)
+  login_user(user, remember=False)
+  return redirect(url_for('home'))
+
+@app.route('/login-page', methods=["POST", "GET"])
+def login_page():
+  return render_template('login.html')
 
 @app.route('/logout')
-@login_require   #this'll probably need to go lots of places
+@login_required   #this'll probably need to go lots of places
 def logout():
   logout_user()
   return 'You are now logged out!'
@@ -99,7 +134,7 @@ def logout():
 @app.route('/home')
 @login_required
 def home():
-  return 'the current user is ' + current_user.username
+  return 'the current user is ' + current_user.email
 
 
 
@@ -162,8 +197,8 @@ app.jinja_env.filters['datetimeformat'] = datetimeformat
 app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
 
 @app.route("/")
-@app.route("/home", methods=['GET'])
-def home():
+@app.route("/index", methods=['GET'])
+def index():
   (transactions_data, offset, limit) = get_transactions(0,50)
   (active_envelopes, envelopes_data) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
@@ -172,11 +207,7 @@ def home():
   current_total = total_funds
   return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, current_total=current_total, offset=offset, limit=limit)
 
-@app.route("/login", methods=['POST', 'GET'], )
-def login():
-  return render_template('login.html')
-
-@app.route("/get_envelope_page", methods=["POST"], )
+@app.route("/get_envelope_page", methods=["POST"])
 def get_envelope_page():
   envelope_id = request.get_json()['envelope_id']
   (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
@@ -189,7 +220,7 @@ def get_envelope_page():
   data['envelope_name'] = get_envelope(envelope_id).name
   return jsonify(data)
 
-@app.route("/get_account_page", methods=["POST"], )
+@app.route("/get_account_page", methods=["POST"])
 def get_account_page():
   account_id = request.get_json()['account_id']
   (transactions_data, offset, limit) = get_account_transactions(account_id,0,20)

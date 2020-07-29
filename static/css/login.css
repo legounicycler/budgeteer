@@ -2,6 +2,10 @@
     background-color: orange;
 }
 
+body {
+    background-color: #fbfbff;
+}
+
 #orange-div:after {
     content: '';
     position: absolute;
@@ -32,4 +36,8 @@
 
 .main-content-row, .main-content-col{
     height: 100%;
+}
+
+#no-account {
+    cursor: pointer
 }
