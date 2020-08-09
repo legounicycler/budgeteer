@@ -56,9 +56,9 @@
           <div class="col s12">
             <img id="budgeteer-main-logo" src="{{url_for('static',filename='img/Budgeteer_White_And_Red.png')}}"/>
           </div>
-          <div class="col s12">
+          <!-- <div class="col s12">
             <h3 class="white-text">Home of the buffalo burger</h3>
-          </div>
+          </div> -->
         </div>
       </div>
       <div class="col l6 offset-l1 m12 main-content-col">
@@ -107,22 +107,32 @@
                 <div class="row">
                   <h4>Create your account</h4>
                 </div>
-                <form id="create-account-form">
+                <form id="create-account-form" action="{{ url_for('create_account') }}" method="post">
+                  <div class="row">
+                    <div class='input-field col s6'>
+                      <input class='validate' type='text' name='new_first_name' id='new-first-name' />
+                      <label for='new-first-name'>First Name</label>
+                    </div>
+                    <div class='input-field col s6'>
+                      <input class='validate' type='text' name='new_last_name' id='new-last-name' />
+                      <label for='new-last-name'>Last Name</label>
+                    </div>
+                  </div>
                   <div class='row'>
                     <div class='input-field col s12'>
-                      <input class='validate' type='email' name='email' id='new-email' />
+                      <input class='validate' type='email' name='new_email' id='new-email' />
                       <label for='new-email'>Enter your email</label>
                     </div>
                   </div>
                   <div class='row'>
                     <div class='input-field col s12'>
-                      <input class='validate' type='password' name='password' id='new-password' />
+                      <input class='validate' type='password' name='new_password' id='new-password' />
                       <label for='new-password'>Enter your new password</label>
                     </div>
                   </div>
                   <div class='row'>
                     <div class='input-field col s12'>
-                      <input class='validate' type='password' name='password' id='new-new-password' />
+                      <input class='validate' type='password' name='new_new_password' id='new-new-password' />
                       <label for='login-password'>Renter your new password</label>
                     </div>
                   </div>

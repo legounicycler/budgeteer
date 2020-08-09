@@ -87,7 +87,9 @@ def create_user_table():
         CREATE TABLE users (
         user_id INTEGER PRIMARY KEY,
         email TEXT NOT NULL,
-        password_hash TEXT NOT NULL
+        password_hash TEXT NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL
         )
         """)
 
@@ -107,7 +109,7 @@ def create_db():
             schedule TEXT,
             status BOOLEAN NOT NULL DEFAULT 0,
             user_id NOT NULL,
-            reconcile_amt INTEGER NOT NULL DEFAULT 0
+            reconcile_balance INTEGER NOT NULL DEFAULT 0
             )
         """)
 
@@ -136,7 +138,9 @@ def create_db():
         CREATE TABLE users (
             user_id INTEGER PRIMARY KEY,
             email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL
+            password_hash TEXT NOT NULL,
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL
             )
         """)
 
@@ -530,15 +534,16 @@ def envelope_fill(t):
 
 # ------ USER FUNCTIONS ------ #
 def get_user(email):
-    c.execute("SELECT user_id, password_hash FROM users WHERE email=?",(email,))
+    c.execute("SELECT user_id, password_hash, first_name, last_name FROM users WHERE email=?",(email,))
     user_touple = c.fetchone()
     if user_touple is not None:
-        u = User(email,user_touple[1])
+        u = User(email,user_touple[1],user_touple[2],user_touple[3])
         return u
 
 def insert_user(u):
     with conn:
-        c.execute("INSERT INTO users (email, password_hash) VALUES (?,?)", (u.email,u.password_hash))
+        c.execute("INSERT INTO users (email, password_hash, first_name, last_name) VALUES (?,?,?,?)", (u.email,u.password_hash,u.first_name,u.last_name))
+
 
 # ------ OTHER FUNCTIONS ------ #
 
@@ -783,18 +788,12 @@ def health_check():
                 print("     Envelope balance VS Summed balance")
                 print("     ", -1*envelope_balance, e_balance)
 
-def create_password_hash_col():
-    c.execute("""
-        ALTER TABLE users
-        ADD COLUMN password_hash TEXT NOT NULL DEFAULT 0
-        """)
-
 
 def main():
 
     # create_db()
+    create_user_table()
     # print_database()
-    insert_user('anthony@limiero.com', 'password')
     # create_password_hash_col()
 
 if __name__ == "__main__":
