@@ -691,75 +691,10 @@ def create_reconcile_balance():
                 t_r_bal = t_r_bals[i]
                 c.execute("UPDATE transactions SET reconcile_balance=? WHERE id=?", (t_r_bal,t_id))
 
-def health_check():
-    c.execute("SELECT user_id FROM accounts GROUP BY user_id")
-    user_ids = c.fetchall()
-    for row in user_ids:
-        user_id = row[0]
-        print("USER ID:", user_id)
-        # Get accounts total
-        c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (user_id,))
-        accounts_total = c.fetchone()[0]
-        # Get envelopes total
-        c.execute("SELECT SUM(balance) FROM envelopes WHERE user_id=?", (user_id,))
-        envelopes_total = c.fetchone()[0]
-        print("Accounts total:", accounts_total)
-        print("Envelopes total:", envelopes_total)
-        if (accounts_total == envelopes_total):
-            print("GOOD")
-        else:
-            print("INCONSISTENT!!!")
-
-        print("Checking accounts...")
-        c.execute("SELECT id,balance,name from accounts")
-        accounts = c.fetchall()
-        for row in accounts:
-            account_name = row[2]
-            account_id = row[0]
-            # get account balance according to database
-            account_balance = row[1]
-            # get account balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE account_id=?", (account_id,))
-            a_balance = c.fetchone()[0]
-            if a_balance is None:
-                a_balance = 0
-            if (-1*account_balance == a_balance):
-                print("HEALTHY --->", account_name, account_id)
-            else:
-                print("INCONSISTENT --->", account_name, account_id)
-                print("     Account balance VS Summed balance")
-                print("     ", -1*account_balance, a_balance)
-
-        print("Checking envelopes...")
-        c.execute("SELECT id,balance,name from envelopes")
-        envelopes = c.fetchall()
-        for row in envelopes:
-            envelope_name = row[2]
-            envelope_id = row[0]
-            # get envelope balance according to database
-            envelope_balance = row[1]
-            # get envelope balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=?", (envelope_id,))
-            e_balance = c.fetchone()[0]
-            if e_balance is None:
-                e_balance = 0
-            if (-1*envelope_balance == e_balance):
-                print("HEALTHY --->", envelope_name, envelope_id)
-            else:
-                print("INCONSISTENT --->", envelope_name, envelope_id)
-                print("     Envelope balance VS Summed balance")
-                print("     ", -1*envelope_balance, e_balance)
 
 
 def main():
-
-    # create_db()
-    # add_account_balance_column()
-
-    # print_database()
-    # create_reconcile_balance()
-    # clear_reconcile_balance()
-    health_check()
+    print_database()
 
 if __name__ == "__main__":
     main()
