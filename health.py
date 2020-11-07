@@ -75,6 +75,7 @@ def health_check():
                 print("INCONSISTENT --->", envelope_name, envelope_id)
                 print("     Envelope balance VS Summed balance")
                 print("    ", -1*envelope_balance, 'vs', e_balance)
+                print("Difference: ", abs(envelope_balance - e_balance))
 
         print("\nBad Account IDs:", bad_a_ids)
         print("Bad Envelope IDs:", bad_e_ids)
@@ -88,7 +89,7 @@ def health_check():
             choice_valid = False
             while (choice_valid == False):
                 choice = input("Would you like to continue healing the database? (y/n):")
-                if (choice == 'y'):
+                if (choice == 'y' or choice =='Y' or choice == 'yes' or choice == 'Yes' or choice =='YES'):
                     choice_valid = True
                     print("Healing database...")
                     for i in range(0,len(bad_a_ids)):
@@ -97,7 +98,7 @@ def health_check():
                     for i in range(0,len(bad_e_ids)):
                         envelope_heal(bad_e_ids[i], bad_e_amts_new[i])
                     print("Database heal complete!")
-                elif (choice == 'n'):
+                elif (choice == 'n' or choice == 'N' or choice =='no' or choice =='No' or choice =='NO'):
                     choice_valid = True
                     print("Database heal aborted.")
                 else:
