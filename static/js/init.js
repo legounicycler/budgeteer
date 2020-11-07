@@ -631,11 +631,20 @@
     };
 
     // // Submits form data, closes the modal, clears the form, and reloads the data
-    $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
       var method = $(this).attr('method');
       var id = '#' + $(this).attr('id');
+      var remain_open = $(this).data('remain-open');
+      var $this = $(this);
+      var selected_envelopes = [];
+      var selected_accounts = [];
+      $(this).find('.envelope-selector').each(function() {
+        selected_envelopes.push($(this).val());
+      });
+      $(this).find('.account-selector').each(function() {
+        selected_accounts.push($(this).val());
+      });
 
       $.ajax({
         type: method,
@@ -686,14 +695,6 @@
           $(id)[0].reset(); //Clears the data from the form fields
         } else {
           // If the form was submitted with the submit and new button
-          $this.data('remain-open',0); //Reset the remain-open attribute of the form
-          $this.find('input[name="name"]').val(''); //Clear the name field
-          $.when(data_reload(current_page)).done(function(a1) {
-            $this.find(".envelope-selector").each(function(index) {
-              $(this).val(selected_envelopes[index]).formSelect();
-              console.log(index);
-            });
-          });
         }
         M.toast({html: o['message']})
         if (o['scheduled_transaction_submitted']) {
@@ -725,8 +726,7 @@
 
     $('.submit-and-new').click(function() {
       // TEMPORARILY CHECK THE VALIDITY OF THE FORM BEFORE MANUALLY SUBMITTING
-      var validated = true;
-      $(this).closest("form").find("input,select").filter('[required]').each(function() {
+      var validated = true;      $(this).closest("form").find("input,select").filter('[required]').each(function() {
         if($(this).val() == '' || $(this).val() == null) {
           validated = false;
         }
@@ -929,4 +929,3 @@
     }; // End of t_editor_modal_open
 
   });
-})(jQuery); // end of jQuery name space
