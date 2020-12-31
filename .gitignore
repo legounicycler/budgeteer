@@ -1,3 +1,4 @@
 *.pyc
 helpful_documents/
 Things To Do.txt
+Exported_Transactions/*.csv
