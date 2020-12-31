@@ -630,8 +630,8 @@
       });
     };
 
-    // Submits form data, closes the modal, clears the form, and reloads the data
-    $('#transaction-modal form, #edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form').submit(function(e) {
+    // // Submits form data, closes the modal, clears the form, and reloads the data
+    $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
       var method = $(this).attr('method');
@@ -642,15 +642,62 @@
         url: url,
         data: $(this).serialize(),
       }).done(function( o ) {
-        $('.modal').modal("close")
-        //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
-        //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
-        $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
-        $(id)[0].reset();
+          $('.modal').modal("close")
+          //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
+          //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
+          $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
+          $(id)[0].reset(); //Clears the data from the form fields
         data_reload(current_page);
         M.toast({html: o['message']})
         if (o['sched_t_submitted'] == true) { // If the returned schedule message exists, toast it
           M.toast({html: o['sched_message']})
+        }
+      });
+    });
+
+    // // Submits form data, closes the modal, clears the form, and reloads the data
+    $('#transaction-modal form').submit(function(e) {
+      e.preventDefault()
+      var url = $(this).attr('action');
+      var method = $(this).attr('method');
+      var id = '#' + $(this).attr('id');
+      var remain_open = $(this).data('remain-open');
+      var $this = $(this);
+      var selected_envelopes = [];
+      var selected_accounts = [];
+      $(this).find('.envelope-selector').each(function() {
+        selected_envelopes.push($(this).val());
+      });
+      $(this).find('.account-selector').each(function() {
+        selected_accounts.push($(this).val());
+      });
+
+      $.ajax({
+        type: method,
+        url: url,
+        data: $(this).serialize(),
+      }).done(function( o ) {
+        if (remain_open == 0) {
+          // If the form was submitted with the standard submit button or enter
+          $('.modal').modal("close")
+          //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
+          //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
+          $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
+          $(id)[0].reset(); //Clears the data from the form fields
+        } else {
+          // If the form was submitted with the submit and new button
+          $this.data('remain-open',0); //Reset the remain-open attribute of the form
+          $this.find('input[name="name"]').val(''); //Clear the name field
+          $.when(data_reload(current_page)).done(function(a1) {
+            $this.find(".envelope-selector").each(function(index) {
+              $(this).val(selected_envelopes[index]).formSelect();
+              console.log(index);
+            });
+          });
+        }
+        M.toast({html: o['message']})
+        if (o['scheduled_transaction_submitted']) {
+          M.toast({html: 'New scheduled transaction created!'})
         }
       });
     });
@@ -674,6 +721,21 @@
         data_reload(current_page);
         M.toast({html: o})
       });
+    });
+
+    $('.submit-and-new').click(function() {
+      // TEMPORARILY CHECK THE VALIDITY OF THE FORM BEFORE MANUALLY SUBMITTING
+      var validated = true;
+      $(this).closest("form").find("input,select").filter('[required]').each(function() {
+        if($(this).val() == '' || $(this).val() == null) {
+          validated = false;
+        }
+      })
+      console.log(validated);
+      if (validated) {
+        //If all elements in the form are valid (not empty), submit the form
+        $(this).closest("form").data("remain-open",1).submit();
+      }
     });
 
     // Opens transaction editor modal
@@ -760,7 +822,7 @@
         $("#edit-expense").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
-        // FIll in the amount field
+        // Fill in the amount field
         $('#edit-transfer_type').val(type).formSelect({dropdownOptions: {container: 'body'}});
         amt = Math.abs(amt);
         if (type == ENVELOPE_TRANSFER) {
