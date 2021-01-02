@@ -152,7 +152,11 @@ def new_expense(edited=False):
       scheduled_t.type = SPLIT_TRANSACTION
       new_split_transaction(scheduled_t)
       scheduled_transaction_submitted = True
-  return jsonify({'message': 'Successfully added new expense!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})
+
+  message = 'Successfully added new expense!'
+  if (health_check() is False):
+    message = message + " HEALTH ERROR!!!"
+  return jsonify({'message': message, 'scheduled_transaction_submitted': scheduled_transaction_submitted})
 
 @app.route('/new_transfer', methods=['POST'])
 def new_transfer(edited=False):
@@ -200,7 +204,11 @@ def new_transfer(edited=False):
       envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID)
   else:
     print('What the heck are you even trying to do you twit?')
-  return jsonify({'message': 'Successfully added new transfer!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})
+
+  message = 'Successfully added new transfer!'
+  if (health_check() is False):
+    message = message + " HEALTH ERROR!!!"
+  return jsonify({'message': message, 'scheduled_transaction_submitted': scheduled_transaction_submitted})
 
 
 @app.route('/new_income', methods=['POST'])
@@ -232,7 +240,11 @@ def new_income(edited=False):
   else:
     # If there's no schedule, add in the normal non-scheduled transaction
     insert_transaction(t)
-  return jsonify({'message': 'Successfully added new income!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})
+
+  message = 'Successfully added new income!'
+  if (health_check() is False):
+    message = message + " HEALTH ERROR!!!"
+  return jsonify({'message': message, 'scheduled_transaction_submitted': scheduled_transaction_submitted})
 
 @app.route('/fill_envelopes', methods=['POST'])
 def fill_envelopes(edited=False):
@@ -271,7 +283,11 @@ def fill_envelopes(edited=False):
   else:
     # If there's no schedule, add in the normal non-scheduled transaction
     envelope_fill(t)
-  return jsonify({'message': 'Envelopes successfully filled!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})
+
+  message = 'Envelopes successfully filled!'
+  if (health_check() is False):
+    message = message + " HEALTH ERROR!!!"
+  return jsonify({'message': message, 'scheduled_transaction_submitted': scheduled_transaction_submitted})
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
@@ -289,7 +305,11 @@ def edit_transaction():
     new_expense(True)
   elif (type == ENVELOPE_FILL):
     fill_envelopes(True)
-  return jsonify({'message': 'Transaction successfully edited!', 'scheduled_transaction_submitted': scheduled_transaction_submitted})
+
+  message = 'Transaction successfully edited!'
+  if (health_check() is False):
+    message = message + " HEALTH ERROR!!!"
+  return jsonify({'message': message, 'scheduled_transaction_submitted': scheduled_transaction_submitted})
 
 @app.route('/delete_transaction_page', methods=['POST'])
 # Change this to use an <id> in the URL instead of using the hidden form thing
@@ -316,7 +336,11 @@ def edit_accounts_page():
   for i in range(len(new_names)):
     new_accounts.append([new_names[i], int(round(float(new_balances[i])*100)), USER_ID])
   edit_accounts(old_accounts, new_accounts)
-  return 'Accounts successfully updated!'
+
+  message = 'Accounts successfully updated!'
+  if (health_check() is False):
+    message = message + " HEALTH ERROR!!!"
+  return message
 
 
 @app.route('/api/edit-envelopes', methods=['POST'])
@@ -333,7 +357,11 @@ def edit_envelopes_page():
   for i in range(len(new_names)):
     new_envelopes.append([new_names[i], int(round(float(new_budgets[i])*100)), USER_ID])
   edit_envelopes(old_envelopes, new_envelopes)
-  return 'Envelopes successfully updated!'
+
+  message = 'Envelopes successfully updated!'
+  if (health_check() is False):
+    message = message + " HEALTH ERROR!!!"
+  return message
 
 @app.route('/api/data-reload', methods=['POST'])
 def transactions_function():
@@ -393,7 +421,11 @@ def multi_delete():
   delete_ids = request.form.getlist('delete')
   for id in delete_ids:
     delete_transaction(id)
-  return 'Transactions successfully deleted!'
+
+  message = 'Transactions successfully deleted!'
+  if (health_check() is False):
+    message = message + " HEALTH ERROR!!!"
+  return message
 
 
 #MAKE SURE DEBUG IS TURNED OFF FOR MAIN DEPLOYMENT
