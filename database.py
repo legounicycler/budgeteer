@@ -49,9 +49,9 @@ class Transaction:
         self.user_id = user_id
         self.reconcile_amt = reconcile_amt
     def __repr__(self):
-        return "{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_amt)
+        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, R_AMT:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_amt)
     def __str__(self):
-        return "{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_amt)
+        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, R_AMT:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_amt)
 
 
 class Account:
@@ -62,9 +62,9 @@ class Account:
         self.deleted = deleted
         self.user_id = user_id
     def __repr__(self):
-        return "{}, {}, {}, {}, {}, {}".format(self.id,self.name,self.balance,self.deleted,self.user_id)
+        return "ID:{}, NAME:{}, BAL:{}, DEL:{}, U_ID:{}".format(self.id,self.name,self.balance,self.deleted,self.user_id)
     def __str__(self):
-        return "{}, {}, {}, {}, {}, {}".format(self.id,self.name,self.balance,self.deleted,self.user_id)
+        return "ID:{}, NAME:{}, BAL:{}, DEL:{}, U_ID:{}".format(self.id,self.name,self.balance,self.deleted,self.user_id)
 
 
 class Envelope:
@@ -76,9 +76,9 @@ class Envelope:
         self.deleted = deleted
         self.user_id = user_id
     def __repr__(self):
-        return "{}, {}, {}, {}, {}, {}, {}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
+        return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
     def __str__(self):
-        return "{}, {}, {}, {}, {}, {}, {}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
+        return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
 
 
 # Creates the database file
@@ -144,7 +144,6 @@ def insert_transaction(t):
         #insert the transaction
         c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id, t.reconcile_amt))
-
         #THIS LINE WILL BREAK THE RECONCILE FUNCTION IF INSERTING A TRANSACTION IS EVER NOT THE TOP ONE IN THE DATABASE
         c.execute("SELECT id FROM transactions ORDER BY ROWID DESC LIMIT 1")
         t.id = c.fetchone()[0]
@@ -159,6 +158,7 @@ def insert_transaction(t):
     # Update the reconciled amounts if there is an account associated with the transaction
     if t.account_id is not None:
         update_reconcile_amounts(t.account_id, t.id, INSERT)
+    log_write('T INSERT: ' + str(t)+ '\n')
 
 def get_transaction(id):
     # Retrieves transaction object from database given its ID
@@ -273,9 +273,9 @@ def delete_transaction(id):
 
                 # Delete the actual transaction from the database
                 c.execute("DELETE FROM transactions WHERE id=?", (id,))
+                log_write('T DELETE: ' + str(t)+ '\n')
         else:
             print("That transaction doesn't exist you twit")
-
 def new_split_transaction(t):
     #takes a transaction with arrays of amt and envelope_id and creates individual transactions
     grouping = gen_grouping_num()
@@ -294,6 +294,7 @@ def insert_account(name, balance, user_id):
         income_name = 'Initial Account Balance: ' + name
         t = Transaction(INCOME, income_name, -1 * balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, user_id, 0)
         insert_transaction(t)
+        log_write('A INSERT: ' + str(get_account(account_id))+ '\n')
 
 def get_account(id):
     # returns account associated with the given id
@@ -323,6 +324,7 @@ def delete_account(account_id):
     with conn:
         update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - get_account_balance(account_id))
         c.execute("UPDATE accounts SET deleted=1,balance=0 WHERE id=?", (account_id,))
+        log_write('A DELETE: ' + str(get_account(account_id))+ '\n')
 
 def get_account_balance(id):
     # Returns float of account balance
@@ -342,7 +344,7 @@ def edit_account(id, name, balance):
         new_unallocated_balance = unallocated_balance - diff
         update_envelope_balance(UNALLOCATED, new_unallocated_balance)
         c.execute("UPDATE accounts SET balance=?, name=? WHERE id=?", (balance, name, id))
-
+        log_write('A EDIT: ' + str(get_account(id))+ '\n')
 
 def update_account_balance(id, balance):
     # updates balance of account with given id
@@ -427,6 +429,8 @@ def insert_envelope(name, budget, user_id):
     # Inserts an envelope into the database with givne name and budget and a balnce of 0
     with conn:
         c.execute("INSERT INTO envelopes (name, budget, user_id) VALUES (?, ?, ?)", (name,budget,user_id))
+        envelope_id = c.lastrowid
+        log_write('E INSERT: ' + str(get_account(envelope_id))+ '\n')
 
 def get_envelope(id):
     # returns an envelope object given an envelope_id
@@ -459,6 +463,7 @@ def delete_envelope(envelope_id):
             c.execute("UPDATE envelopes SET deleted=1,balance=0 WHERE id=?", (envelope_id,))
         else:
             print("You can't delete the 'Unallocated' envelope you moron")
+        log_write('E DELETE: ' + str(get_account(envelope_id))+ '\n')
 
 def get_envelope_balance(id):
     # returns float of envelope balance given id
@@ -479,6 +484,7 @@ def edit_envelope(id, name, budget):
     # updates the name and budget for given id
     with conn:
         c.execute("UPDATE envelopes SET name=?, budget=? WHERE id=?",(name, budget, id))
+        log_write('E EDIT: ' + str(get_account(id))+ '\n')
 
 def edit_envelopes(old_envelopes, new_envelopes):
     # updates database given 2 lists of envelope objects from envelope editor
@@ -691,6 +697,64 @@ def create_reconcile_balance():
                 t_r_bal = t_r_bals[i]
                 c.execute("UPDATE transactions SET reconcile_balance=? WHERE id=?", (t_r_bal,t_id))
 
+def health_check():
+    healthy = True
+    log_message = ''
+    #Check if the envelope sum and account sum are consistent
+    c.execute("SELECT user_id FROM accounts GROUP BY user_id")
+    user_ids = c.fetchall()
+    for row in user_ids:
+        user_id = row[0]
+        # Get accounts total
+        c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (user_id,))
+        accounts_total = c.fetchone()[0]
+        # Get envelopes total
+        c.execute("SELECT SUM(balance) FROM envelopes WHERE user_id=?", (user_id,))
+        envelopes_total = c.fetchone()[0]
+        if (accounts_total != envelopes_total):
+            log_message = f'{log_message} [A/E Sum Mismatch -> A: {accounts_total} E: {envelopes_total}] Diff: {accounts_total-envelopes_total}\n'
+            healthy = False
+
+        # Check if stored account totals equal the sum of their transactions
+        c.execute("SELECT id,balance,name from accounts")
+        accounts = c.fetchall()
+        for row in accounts:
+            account_name = row[2]
+            account_id = row[0]
+            # get account balance according to database
+            account_balance = row[1]
+            # get account balance according to summed transaction totals
+            c.execute("SELECT SUM(amount) from transactions WHERE account_id=? AND date(day) <= date('now')", (account_id,))
+            a_balance = c.fetchone()[0]
+            if a_balance is None:
+                a_balance = 0
+            if (-1*account_balance != a_balance):
+                log_message = f'{log_message} [A Total Err -> Name: {account_name}, ID: {account_id}, Disp/Total: {account_balance}/{a_balance}] Diff: {account_balance-a_balance}\n'
+                healthy = False
+
+        # Check if stored envelope totals equals the sum of their transactions
+        c.execute("SELECT id,balance,name from envelopes")
+        envelopes = c.fetchall()
+        for row in envelopes:
+            envelope_name = row[2]
+            envelope_id = row[0]
+            # get envelope balance according to database
+            envelope_balance = row[1]
+            # get envelope balance according to summed transaction totals
+            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND date(day) <= date('now')", (envelope_id,))
+            e_balance = c.fetchone()[0]
+            if e_balance is None:
+                e_balance = 0
+            if (-1*envelope_balance != e_balance):
+                log_message = f'{log_message} [E Total Err -> Name: {envelope_name}, ID: {envelope_id}, Disp/Total: {envelope_balance}/{e_balance}] Diff: {envelope_balance-e_balance}\n'
+                healthy = False
+
+        log_write(log_message)
+        return healthy
+
+def log_write(text):
+    with open("EventLog.txt",'a') as f:
+        f.write(text)
 
 
 def main():
