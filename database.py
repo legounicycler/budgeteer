@@ -34,7 +34,7 @@ USER_ID = 1
 # ------ CLASSES/DATABASE DEFINITIONS ------ #
 
 class Transaction:
-    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id, reconcile_amt):
+    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id, reconcile_balance):
         self.id = None
         self.type = type
         self.name = name
@@ -47,11 +47,11 @@ class Transaction:
         self.schedule = schedule
         self.status = status
         self.user_id = user_id
-        self.reconcile_amt = reconcile_amt
+        self.reconcile_balance = reconcile_balance
     def __repr__(self):
-        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, R_AMT:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_amt)
+        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, R_AMT:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_balance)
     def __str__(self):
-        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, R_AMT:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_amt)
+        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, R_AMT:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_balance)
 
 
 class Account:
@@ -97,7 +97,7 @@ def create_db():
             schedule TEXT,
             status BOOLEAN NOT NULL DEFAULT 0,
             user_id NOT NULL,
-            reconcile_amt INTEGER NOT NULL DEFAULT 0
+            reconcile_balance INTEGER NOT NULL DEFAULT 0
             )
         """)
 
@@ -138,12 +138,12 @@ def create_db():
 def insert_transaction(t):
     # Inserts transaction into database, then updates account/envelope balances
     with conn:
-        #if there's no account associated, set the reconcile_amt to 0
-        if t.reconcile_amt is None or t.account_id is None:
-            t.reconcile_amt = 0
+        #if there's no account associated, set the reconcile_balance to 0
+        if t.reconcile_balance is None or t.account_id is None:
+            t.reconcile_balance = 0
         #insert the transaction
         c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id, t.reconcile_amt))
+        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id, t.reconcile_balance))
         #THIS LINE WILL BREAK THE RECONCILE FUNCTION IF INSERTING A TRANSACTION IS EVER NOT THE TOP ONE IN THE DATABASE
         c.execute("SELECT id FROM transactions ORDER BY ROWID DESC LIMIT 1")
         t.id = c.fetchone()[0]
@@ -185,7 +185,7 @@ def get_transactions(start, amount):
             c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=1", (t.grouping,))
             t.amt = c.fetchone()[0] * -1
         t.amt = stringify(t.amt * -1)
-        t.reconcile_amt = stringify(t.reconcile_amt)
+        t.reconcile_balance = stringify(t.reconcile_balance)
         tlist.append(t)
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
@@ -205,7 +205,7 @@ def get_envelope_transactions(envelope_id, start, amount):
     for id in ids:
         t = get_transaction(id[0])
         t.amt = stringify(t.amt * -1)
-        t.reconcile_amt = stringify(t.reconcile_amt)
+        t.reconcile_balance = stringify(t.reconcile_balance)
         tlist.append(t)
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
@@ -225,7 +225,7 @@ def get_account_transactions(account_id, start, amount):
     for thing in ids:
         t = get_transaction(thing[0])
         t.amt = stringify(thing[1] * -1)
-        t.reconcile_amt = stringify(t.reconcile_amt)
+        t.reconcile_balance = stringify(t.reconcile_balance)
         tlist.append(t)
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
@@ -280,7 +280,7 @@ def new_split_transaction(t):
     #takes a transaction with arrays of amt and envelope_id and creates individual transactions
     grouping = gen_grouping_num()
     for i in range(len(t.amt)):
-        new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.reconcile_amt)
+        new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.reconcile_balance)
         insert_transaction(new_t)
 
 
@@ -593,7 +593,7 @@ def get_grouped_json(id):
             'account_id': t.account_id,
             'grouping': t.grouping,
             'note': t.note,
-            'reconcile_amt': t.reconcile_amt
+            'reconcile_balance': t.reconcile_balance
         })
     return data
 
