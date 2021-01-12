@@ -108,6 +108,9 @@ def get_account_page():
 def new_expense(edited=False):
   # edited=True if this is called from edit_transaction
   name = request.form['name']
+  #Parse the name field to separate names by commas
+  names = name.split(',')
+  names = [n.lstrip() for n in names if n.lstrip()]
   amounts = request.form.getlist('amount')
   envelope_ids = request.form.getlist('envelope_id')
   account_id = request.form['account_id']
@@ -116,104 +119,131 @@ def new_expense(edited=False):
   scheduled = request.form.getlist('scheduled')
   scheduled = len(scheduled) != 0
   schedule = request.form['schedule']
-  scheduled_transaction_submitted = False
+  sched_t_submitted = False
   for i in range(len(amounts)):
     amounts[i] = int(round(float(amounts[i]) * 100))
     envelope_ids[i] = int(envelope_ids[i])
-  t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID, None)
-  # Only insert a NEW scheduled transaction if it's not an edited transaction
-  if scheduled and edited:
-    t.schedule = schedule
-  if scheduled and not edited:
-    # Create placeholder scheduled transaction
-    nextdate = schedule_date_calc(date,schedule)
-    scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID, None)
-
-  # If it is a single transaction
-  if len(envelope_ids) == 1:
-    t.grouping = gen_grouping_num()
-    t.envelope_id = envelope_ids[0]
-    t.amt = amounts[0]
-    # insert new transaction without schedule
-    insert_transaction(t)
+  for name in names:
+    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID, None)
+    # Only insert a NEW scheduled transaction if it's not an edited transaction
+    if scheduled and edited:
+      t.schedule = schedule
     if scheduled and not edited:
-      # update placeholder scheduled transaction
-      scheduled_t.grouping = gen_grouping_num()
-      scheduled_t.envelope_id = envelope_ids[0]
-      scheduled_t.amt = amounts[0]
-      # insert new transaction with schedule
-      insert_transaction(scheduled_t)
-      scheduled_transaction_submitted = True
+      # Create placeholder scheduled transaction
+      nextdate = schedule_date_calc(date,schedule)
+      scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID, None)
+
+    # If it is a single transaction
+    if len(envelope_ids) == 1:
+      t.grouping = gen_grouping_num()
+      t.envelope_id = envelope_ids[0]
+      t.amt = amounts[0]
+      # insert new transaction without schedule
+      insert_transaction(t)
+      if scheduled and not edited:
+        # update placeholder scheduled transaction
+        scheduled_t.grouping = gen_grouping_num()
+        scheduled_t.envelope_id = envelope_ids[0]
+        scheduled_t.amt = amounts[0]
+        # insert new transaction with schedule
+        insert_transaction(scheduled_t)
+        sched_t_submitted = True
+    else:
+      t.type = SPLIT_TRANSACTION
+      new_split_transaction(t)
+      if scheduled and not edited:
+        # insert new split transaction with schedule
+        scheduled_t.type = SPLIT_TRANSACTION
+        new_split_transaction(scheduled_t)
+        sched_t_submitted = True
+
+  if len(names) > 1:
+    message = f'Successfully added {len(names)} new expenses!'
+    sched_message = f'Successfully added {len(names)} new scheduled expenses!'
+  elif len(names) == 0:
+    message = 'No new expenses were added!'
   else:
-    t.type = SPLIT_TRANSACTION
-    new_split_transaction(t)
-    if scheduled and not edited:
-      # insert new split transaction with schedule
-      scheduled_t.type = SPLIT_TRANSACTION
-      new_split_transaction(scheduled_t)
-      scheduled_transaction_submitted = True
-
-  message = 'Successfully added new expense!'
+    message = 'Successfully added new expense!'
+    sched_message = 'Successfully added new scheduled expense!'
+  if not sched_t_submitted:
+    sched_message = ''
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'scheduled_transaction_submitted': scheduled_transaction_submitted})
+  return jsonify({'message': message, 'sched_message': sched_message})
 
 @app.route('/new_transfer', methods=['POST'])
 def new_transfer(edited=False):
   # edited=True if this is called from edit_transaction
   transfer_type = int(request.form['transfer_type'])
   name = request.form['name']
+  #Parse the name field to separate names by commas
+  names = name.split(',')
+  names = [n.lstrip() for n in names if n.lstrip()]
   amount = int(round(float(request.form['amount'])*100))
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
   note = request.form['note']
   scheduled = request.form.getlist('scheduled')
   scheduled = len(scheduled) != 0
   schedule = request.form['schedule']
-  scheduled_transaction_submitted = False
-  if (transfer_type == 2):
-    to_account = request.form['to_account']
-    from_account = request.form['from_account']
-    # Only insert a new scheduled transaction if it's not edited
-    if scheduled and edited:
-      # Update schedule of edited transaction, but don't make new scheduled transaction
-      account_transfer(name, amount, date, to_account, from_account, note, schedule, USER_ID)
-    elif scheduled and not edited:
-      # Add in the new transaction, then add in the scheduled transaction
-      account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID)
-      nextdate = schedule_date_calc(date,schedule)
-      account_transfer(name, amount, nextdate, to_account, from_account, note, schedule, USER_ID)
-      scheduled_transaction_submitted = True
+  sched_t_submitted = False
+  for name in names:
+    if (transfer_type == 2):
+      to_account = request.form['to_account']
+      from_account = request.form['from_account']
+      # Only insert a new scheduled transaction if it's not edited
+      if scheduled and edited:
+        # Update schedule of edited transaction, but don't make new scheduled transaction
+        account_transfer(name, amount, date, to_account, from_account, note, schedule, USER_ID)
+      elif scheduled and not edited:
+        # Add in the new transaction, then add in the scheduled transaction
+        account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID)
+        nextdate = schedule_date_calc(date,schedule)
+        account_transfer(name, amount, nextdate, to_account, from_account, note, schedule, USER_ID)
+        sched_t_submitted = True
+      else:
+        # Add in a normal non-scheduled transaction
+        account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID)
+    elif (transfer_type == 1):
+      to_envelope = request.form['to_envelope']
+      from_envelope = request.form['from_envelope']
+      # Only insert a new scheduled transaction if it's not edited
+      if scheduled and edited:
+        # Update schedule of edited transaction, but don't make new scheduled transaction
+        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, schedule, USER_ID)
+      elif scheduled and not edited:
+        # Add in the new transaction, then add in the scheduled transaction
+        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID)
+        nextdate = schedule_date_calc(date,schedule)
+        envelope_transfer(name, amount, nextdate, to_envelope, from_envelope, note, schedule, USER_ID)
+        sched_t_submitted = True
+      else:
+        # If there's no schedule, add in the normal non-scheduled transaction
+        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID)
     else:
-      # Add in a normal non-scheduled transaction
-      account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID)
-  elif (transfer_type == 1):
-    to_envelope = request.form['to_envelope']
-    from_envelope = request.form['from_envelope']
-    # Only insert a new scheduled transaction if it's not edited
-    if scheduled and edited:
-      # Update schedule of edited transaction, but don't make new scheduled transaction
-      envelope_transfer(name, amount, date, to_envelope, from_envelope, note, schedule, USER_ID)
-    elif scheduled and not edited:
-      # Add in the new transaction, then add in the scheduled transaction
-      envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID)
-      nextdate = schedule_date_calc(date,schedule)
-      envelope_transfer(name, amount, nextdate, to_envelope, from_envelope, note, schedule, USER_ID)
-      scheduled_transaction_submitted = True
-    else:
-      # If there's no schedule, add in the normal non-scheduled transaction
-      envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID)
-  else:
-    print('What the heck are you even trying to do you twit?')
+      print('What the heck are you even trying to do you twit?')
 
-  message = 'Successfully added new transfer!'
+
+  if len(names) > 1:
+    message = f'Successfully added {len(names)} new transfers!'
+    sched_message = f'Successfully added {len(names)} new scheduled transfers!'
+  elif len(names) == 0:
+    message = 'No new transfers were added!'
+  else:
+    message = 'Successfully added new transfer!'
+    sched_message = 'Successfully added new scheduled transfer!'
+  if not sched_t_submitted:
+    sched_message = ''
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'scheduled_transaction_submitted': scheduled_transaction_submitted})
+  return jsonify({'message': message, 'sched_message': sched_message})
 
 
 @app.route('/new_income', methods=['POST'])
 def new_income(edited=False):
   name = request.form['name']
+  #Parse the name field to separate names by commas
+  names = name.split(',')
+  names = [n.lstrip() for n in names if n.lstrip()]
   amount = int(round(float(request.form['amount'])*100))
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
   account_id = request.form['account_id']
@@ -221,34 +251,47 @@ def new_income(edited=False):
   scheduled = request.form.getlist('scheduled')
   scheduled = len(scheduled) != 0
   schedule = request.form['schedule']
-  scheduled_transaction_submitted = False
-  t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, None, False, USER_ID, None)
+  sched_t_submitted = False
+  for name in names:
+    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, None, False, USER_ID, None)
 
-  # Only insert NEW scheduled transaction if it's not edited
-  if scheduled and edited:
-    t.schedule = schedule
-    # Insert transaction with edited schedule
-    insert_transaction(t)
-  elif scheduled and not edited:
-    # Insert transaction with no schedule
-    insert_transaction(t)
-    # Insert scheduled transaction
-    nextdate = schedule_date_calc(date,schedule)
-    scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID, None)
-    insert_transaction(scheduled_t)
-    scheduled_transaction_submitted = True
+    # Only insert NEW scheduled transaction if it's not edited
+    if scheduled and edited:
+      t.schedule = schedule
+      # Insert transaction with edited schedule
+      insert_transaction(t)
+    elif scheduled and not edited:
+      # Insert transaction with no schedule
+      insert_transaction(t)
+      # Insert scheduled transaction
+      nextdate = schedule_date_calc(date,schedule)
+      scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID, None)
+      insert_transaction(scheduled_t)
+      sched_t_submitted = True
+    else:
+      # If there's no schedule, add in the normal non-scheduled transaction
+      insert_transaction(t)
+
+  if len(names) > 1:
+    message = f'Successfully added {len(names)} new income!'
+    sched_message = f'Successfully added {len(names)} new scheduled incomes!'
+  elif len(names) == 0:
+    message = 'No new incomes were added!'
   else:
-    # If there's no schedule, add in the normal non-scheduled transaction
-    insert_transaction(t)
-
-  message = 'Successfully added new income!'
+    message = 'Successfully added new income!'
+    sched_message = 'Successfully added new scheduled income!'
+  if not sched_t_submitted:
+    sched_message = ''
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'scheduled_transaction_submitted': scheduled_transaction_submitted})
+  return jsonify({'message': message, 'sched_message': sched_message})
 
 @app.route('/fill_envelopes', methods=['POST'])
 def fill_envelopes(edited=False):
   name = request.form['name']
+  #Parse the name field to separate names by commas
+  names = name.split(',')
+  names = [n.lstrip() for n in names if n.lstrip()]
   amounts = request.form.getlist('fill-amount')
   envelope_ids = request.form.getlist('envelope_id')
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
@@ -256,42 +299,52 @@ def fill_envelopes(edited=False):
   scheduled = request.form.getlist('scheduled')
   scheduled = len(scheduled) != 0
   schedule = request.form['schedule']
-  scheduled_transaction_submitted = False
-  deletes =[]
-  for i in range(len(amounts)):
-    amounts[i] = int(round(float(amounts[i])*100))
-    envelope_ids[i] = int(envelope_ids[i])
-    if amounts[i] == 0:
-      deletes.append(i)
-  for index in reversed(deletes):
-    amounts.pop(index)
-    envelope_ids.pop(index)
-  t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, None)
-  # Only insert NEW scheduled transaction if it's not edited
-  if scheduled and edited:
-    t.schedule = schedule
-    # Insert transaction with edited schedule
-    envelope_fill(t)
-  elif scheduled and not edited:
-    # Insert transaction with no schedule
-    envelope_fill(t)
-    # Insert scheduled transaction
-    nextdate = schedule_date_calc(date,schedule)
-    scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID, None)
-    envelope_fill(scheduled_t)
-    scheduled_transaction_submitted = True
-  else:
-    # If there's no schedule, add in the normal non-scheduled transaction
-    envelope_fill(t)
+  sched_t_submitted = False
+  for name in names:
+    deletes =[]
+    for i in range(len(amounts)):
+      amounts[i] = int(round(float(amounts[i])*100))
+      envelope_ids[i] = int(envelope_ids[i])
+      if amounts[i] == 0:
+        deletes.append(i)
+    for index in reversed(deletes):
+      amounts.pop(index)
+      envelope_ids.pop(index)
+    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, None)
+    # Only insert NEW scheduled transaction if it's not edited
+    if scheduled and edited:
+      t.schedule = schedule
+      # Insert transaction with edited schedule
+      envelope_fill(t)
+    elif scheduled and not edited:
+      # Insert transaction with no schedule
+      envelope_fill(t)
+      # Insert scheduled transaction
+      nextdate = schedule_date_calc(date,schedule)
+      scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID, None)
+      envelope_fill(scheduled_t)
+      sched_t_submitted = True
+    else:
+      # If there's no schedule, add in the normal non-scheduled transaction
+      envelope_fill(t)
 
-  message = 'Envelopes successfully filled!'
+  if len(names) > 1:
+    message = f'Successfully added {len(names)} envelope fills!'
+    sched_message = f'Successfully added {len(names)} new scheduled envelope fills!'
+  elif len(names) == 0:
+    message = 'No envelope fill was added!'
+  else:
+    message = 'Envelopes successfully filled!'
+    sched_message = 'Successfully added new scheduled envelope fill!'
+  if not sched_t_submitted:
+    sched_message = ''
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'scheduled_transaction_submitted': scheduled_transaction_submitted})
+  return jsonify({'message': message, 'sched_message': sched_message})
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
-  scheduled_transaction_submitted = False
+  sched_t_submitted = False
   id = int(request.form['edit-id'])
   type = int(request.form['type'])
   delete_transaction(id)
@@ -309,7 +362,7 @@ def edit_transaction():
   message = 'Transaction successfully edited!'
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'scheduled_transaction_submitted': scheduled_transaction_submitted})
+  return jsonify({'message': message, 'sched_t_submitted': sched_t_submitted})
 
 @app.route('/delete_transaction_page', methods=['POST'])
 # Change this to use an <id> in the URL instead of using the hidden form thing

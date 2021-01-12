@@ -649,8 +649,8 @@
         $(id)[0].reset();
         data_reload(current_page);
         M.toast({html: o['message']})
-        if (o['scheduled_transaction_submitted']) {
-          M.toast({html: 'New scheduled transaction created!'})
+        if (o['sched_message'] != '') {
+          M.toast({html: o['sched_message']})
         }
       });
     });

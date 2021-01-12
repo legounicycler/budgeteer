@@ -50,9 +50,10 @@ def health_check():
             else:
                 bad_a_ids.append(account_id)
                 bad_a_amts_new.append(a_balance)
-                print("INCONSISTENT --->", account_name, account_id)
+                print("WRONG!! --->", account_name, account_id)
                 print("     Account balance VS Summed balance")
                 print("    ", -1*account_balance, 'vs', a_balance)
+                print("Difference: ", abs(a_balance + account_balance))
 
         print("\n>>> CHECKING ENVELOPES <<<")
         c.execute("SELECT id,balance,name from envelopes")
@@ -72,10 +73,10 @@ def health_check():
             else:
                 bad_e_ids.append(envelope_id)
                 bad_e_amts_new.append(e_balance)
-                print("INCONSISTENT --->", envelope_name, envelope_id)
+                print("WRONG!! --->", envelope_name, envelope_id)
                 print("     Envelope balance VS Summed balance")
                 print("    ", -1*envelope_balance, 'vs', e_balance)
-                print("Difference: ", abs(envelope_balance - e_balance))
+                print("Difference: ", abs(e_balance + envelope_balance))
 
         print("\nBad Account IDs:", bad_a_ids)
         print("Bad Envelope IDs:", bad_e_ids)
@@ -125,6 +126,7 @@ def envelope_heal(e_id, new_balance):
 
 def main():
     health_check()
+    log_write('-----Account healed!-----\n')
 
 if __name__ == "__main__":
     main()
