@@ -430,7 +430,7 @@ def insert_envelope(name, budget, user_id):
     with conn:
         c.execute("INSERT INTO envelopes (name, budget, user_id) VALUES (?, ?, ?)", (name,budget,user_id))
         envelope_id = c.lastrowid
-        log_write('E INSERT: ' + str(get_account(envelope_id))+ '\n')
+        log_write('E INSERT: ' + str(get_envelope(envelope_id))+ '\n')
 
 def get_envelope(id):
     # returns an envelope object given an envelope_id
@@ -729,7 +729,7 @@ def health_check():
             if a_balance is None:
                 a_balance = 0
             if (-1*account_balance != a_balance):
-                log_message = f'{log_message} [A Total Err -> Name: {account_name}, ID: {account_id}, Disp/Total: {account_balance}/{a_balance}] Diff: {account_balance-a_balance}\n'
+                log_message = f'{log_message} [A Total Err -> Name: {account_name}, ID: {account_id}, Disp/Total: {account_balance}/{a_balance}] Diff: {abs(a_balance + account_balance)}\n'
                 healthy = False
 
         # Check if stored envelope totals equals the sum of their transactions
@@ -746,7 +746,7 @@ def health_check():
             if e_balance is None:
                 e_balance = 0
             if (-1*envelope_balance != e_balance):
-                log_message = f'{log_message} [E Total Err -> Name: {envelope_name}, ID: {envelope_id}, Disp/Total: {envelope_balance}/{e_balance}] Diff: {envelope_balance-e_balance}\n'
+                log_message = f'{log_message} [E Total Err -> Name: {envelope_name}, ID: {envelope_id}, Disp/Total: {envelope_balance}/{e_balance}] Diff: {abs(e_balance + envelope_balance)}\n'
                 healthy = False
 
         log_write(log_message)
