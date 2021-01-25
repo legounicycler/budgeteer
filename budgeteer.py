@@ -161,12 +161,12 @@ def new_expense(edited=False):
     message = f'Successfully added {len(names)} new expenses!'
     sched_message = f'Successfully added {len(names)} new scheduled expenses!'
   elif len(names) == 0:
-    message = 'No new expenses were added!'
-  else:
+    message = 'No new expenses were added! (shouldn\'t be possible)'
+  elif len(names) == 1:
     message = 'Successfully added new expense!'
     sched_message = 'Successfully added new scheduled expense!'
-  if not sched_t_submitted:
-    sched_message = ''
+  else:
+    message = 'There was an error!'
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
   return jsonify({'message': message, 'sched_message': sched_message})
@@ -227,12 +227,12 @@ def new_transfer(edited=False):
     message = f'Successfully added {len(names)} new transfers!'
     sched_message = f'Successfully added {len(names)} new scheduled transfers!'
   elif len(names) == 0:
-    message = 'No new transfers were added!'
-  else:
+    message = 'No new transfers were added! (shouldn\'t be possible)'
+  elif len(names) == 1:
     message = 'Successfully added new transfer!'
     sched_message = 'Successfully added new scheduled transfer!'
-  if not sched_t_submitted:
-    sched_message = ''
+  else:
+    message = 'There was an error!'
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
   return jsonify({'message': message, 'sched_message': sched_message})
@@ -276,12 +276,12 @@ def new_income(edited=False):
     message = f'Successfully added {len(names)} new income!'
     sched_message = f'Successfully added {len(names)} new scheduled incomes!'
   elif len(names) == 0:
-    message = 'No new incomes were added!'
-  else:
+    message = 'No new incomes were added! (shouldn\'t be possible)'
+  elif len(names) == 1:
     message = 'Successfully added new income!'
     sched_message = 'Successfully added new scheduled income!'
-  if not sched_t_submitted:
-    sched_message = ''
+  else:
+    message = 'There was an error!'
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
   return jsonify({'message': message, 'sched_message': sched_message})
@@ -332,12 +332,12 @@ def fill_envelopes(edited=False):
     message = f'Successfully added {len(names)} envelope fills!'
     sched_message = f'Successfully added {len(names)} new scheduled envelope fills!'
   elif len(names) == 0:
-    message = 'No envelope fill was added!'
-  else:
+    message = 'No envelope fill was added! (shouldn\'t be possible)'
+  elif len(names) == 1:
     message = 'Envelopes successfully filled!'
     sched_message = 'Successfully added new scheduled envelope fill!'
-  if not sched_t_submitted:
-    sched_message = ''
+  else:
+    message = 'There was an error!'
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
   return jsonify({'message': message, 'sched_message': sched_message})
