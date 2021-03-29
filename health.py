@@ -41,7 +41,7 @@ def health_check():
             # get account balance according to database
             account_balance = row[1]
             # get account balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE account_id=? AND date(day) <= date('now')", (account_id,))
+            c.execute("SELECT SUM(amount) from transactions WHERE account_id=? AND date(day) <= date('now', 'localtime')", (account_id,))
             a_balance = c.fetchone()[0]
             if a_balance is None:
                 a_balance = 0
@@ -64,7 +64,7 @@ def health_check():
             # get envelope balance according to database
             envelope_balance = row[1]
             # get envelope balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND date(day) <= date('now')", (envelope_id,))
+            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND date(day) <= date('now', 'localtime')", (envelope_id,))
             e_balance = c.fetchone()[0]
             if e_balance is None:
                 e_balance = 0
