@@ -631,6 +631,7 @@
     };
 
     // // Submits form data, closes the modal, clears the form, and reloads the data
+    $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
       var method = $(this).attr('method');
@@ -651,11 +652,11 @@
         url: url,
         data: $(this).serialize(),
       }).done(function( o ) {
-          $('.modal').modal("close")
-          //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
-          //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
-          $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
-          $(id)[0].reset(); //Clears the data from the form fields
+        $('.modal').modal("close")
+        //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
+        //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
+        $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
+        $(id)[0].reset(); //Clears the data from the form fields
         data_reload(current_page);
         M.toast({html: o['message']})
         if (o['sched_t_submitted'] == true) { // If the returned schedule message exists, toast it
@@ -695,10 +696,12 @@
           $(id)[0].reset(); //Clears the data from the form fields
         } else {
           // If the form was submitted with the submit and new button
+          $('#transaction-modal form').data('remain-open',0)
         }
+        data_reload(current_page);
         M.toast({html: o['message']})
-        if (o['scheduled_transaction_submitted']) {
-          M.toast({html: 'New scheduled transaction created!'})
+        if (o['sched_t_submitted'] == true) { // If the returned schedule message exists, toast it
+          M.toast({html: o['sched_message']})
         }
       });
     });
@@ -929,3 +932,4 @@
     }; // End of t_editor_modal_open
 
   });
+})(jQuery); // end of jQuery name space
