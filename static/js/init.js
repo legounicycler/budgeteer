@@ -649,7 +649,7 @@
         $(id)[0].reset();
         data_reload(current_page);
         M.toast({html: o['message']})
-        if (o['sched_message'] != '') {
+        if (o['sched_t_submitted'] == true) { // If the returned schedule message exists, toast it
           M.toast({html: o['sched_message']})
         }
       });

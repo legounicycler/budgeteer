@@ -169,7 +169,7 @@ def new_expense(edited=False):
     sched_message = ''
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'sched_message': sched_message})
+  return jsonify({'message': message, 'sched_message': sched_message 'sched_t_submitted': sched_t_submitted})
 
 @app.route('/new_transfer', methods=['POST'])
 def new_transfer(edited=False):
@@ -235,7 +235,7 @@ def new_transfer(edited=False):
     sched_message = ''
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'sched_message': sched_message})
+  return jsonify({'message': message, 'sched_message': sched_message, 'sched_t_submitted': sched_t_submitted})
 
 
 @app.route('/new_income', methods=['POST'])
@@ -284,7 +284,7 @@ def new_income(edited=False):
     sched_message = ''
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'sched_message': sched_message})
+  return jsonify({'message': message, 'sched_message': sched_message, 'sched_t_submitted': sched_t_submitted})
 
 @app.route('/fill_envelopes', methods=['POST'])
 def fill_envelopes(edited=False):
@@ -340,11 +340,11 @@ def fill_envelopes(edited=False):
     sched_message = ''
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'sched_message': sched_message})
+  return jsonify({'message': message, 'sched_message': sched_message, 'sched_t_submitted': sched_t_submitted})
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
-  sched_t_submitted = False
+  sched_t_submitted = False #This has to be here or else the javascript side breaks
   id = int(request.form['edit-id'])
   type = int(request.form['type'])
   delete_transaction(id)
