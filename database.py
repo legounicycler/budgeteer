@@ -463,7 +463,7 @@ def delete_envelope(envelope_id):
             c.execute("UPDATE envelopes SET deleted=1,balance=0 WHERE id=?", (envelope_id,))
         else:
             print("You can't delete the 'Unallocated' envelope you moron")
-        log_write('E DELETE: ' + str(get_account(envelope_id))+ '\n')
+        log_write('E DELETE: ' + str(get_envelope(envelope_id))+ '\n')
 
 def get_envelope_balance(id):
     # returns float of envelope balance given id
