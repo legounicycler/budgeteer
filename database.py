@@ -484,7 +484,7 @@ def edit_envelope(id, name, budget):
     # updates the name and budget for given id
     with conn:
         c.execute("UPDATE envelopes SET name=?, budget=? WHERE id=?",(name, budget, id))
-        log_write('E EDIT: ' + str(get_account(id))+ '\n')
+        log_write('E EDIT: ' + str(get_envelope(id))+ '\n')
 
 def edit_envelopes(old_envelopes, new_envelopes):
     # updates database given 2 lists of envelope objects from envelope editor
