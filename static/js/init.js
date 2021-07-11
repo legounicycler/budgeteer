@@ -337,8 +337,14 @@
 
     // Adds envelope row for transaction creator and initializes Material Select
     $("#add-envelope").click(function() {
+      //Make a clone of the envelope select
       var $envelope_selector = $('#envelope-selector-row').find('select[name="envelope_id"]').clone();
+      //Ensure that only the first option for "choose an envelope" has the select attribute
+      $envelope_selector.find('option').each(function(){$(this).removeAttr('selected')});
+      $envelope_selector.find('option').first().attr('selected','selected');
+      //Add the envelope row without the select in it yet
       $('#envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s5 input-field"><input id="amount" required class="validate" type="number" step=".01" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount-">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper remove-envelope-button-col"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
+      //Add the select to the row, then initialize the select
       $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect({dropdownOptions: {container: 'body'}});
     });
 
@@ -637,17 +643,6 @@
       var url = $(this).attr('action');
       var method = $(this).attr('method');
       var id = '#' + $(this).attr('id');
-      var remain_open = $(this).data('remain-open');
-      var $this = $(this);
-      var selected_envelopes = [];
-      var selected_accounts = [];
-      $(this).find('.envelope-selector').each(function() {
-        selected_envelopes.push($(this).val());
-      });
-      $(this).find('.account-selector').each(function() {
-        selected_accounts.push($(this).val());
-      });
-
       $.ajax({
         type: method,
         url: url,
@@ -702,11 +697,10 @@
           // If the form was submitted with the submit and new button
           $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
           data_reload(current_page).then( function () {
+            //Clear the transaction name field
+            $this.find('input[name="name"]').val("");
+
             //Select the previously selected envelopes and their respective dropdowns
-            console.log($envelope_selectors);
-            console.log($account_selectors);
-            console.log(selected_envelopes);
-            console.log(selected_accounts);
             $envelope_selectors.each(function(index) {
               $(this).find('option[value=' + selected_envelopes[index] + ']').attr('selected', 'selected');
               $(this).formSelect();
@@ -749,18 +743,12 @@
 
     //Check the form validity, change the remain-open attribute to '1', then submit the form
     $('.submit-and-new').click(function() {
-      // TEMPORARILY CHECK THE VALIDITY OF THE FORM BEFORE MANUALLY SUBMITTING
-      var validated = true;
-      $(this).closest("form").find("input,select").filter('[required]').each(function() {
-        if($(this).val() == '' || $(this).val() == null) {
-          validated = false;
-        }
-      });
-      console.log(validated);
-      if (validated) {
-        //If all elements in the form are valid (not empty), submit the form
-        $(this).closest("form").data("remain-open",1).submit();
-      }
+        $(this).closest("form").data("remain-open",1)
+    });
+
+    //Check the form validity, change the remain-open attribute to '1', then submit the form
+    $('.standard-submit').click(function() {
+        $(this).closest("form").data("remain-open",0)
     });
 
     // Opens transaction editor modal
