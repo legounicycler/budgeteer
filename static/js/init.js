@@ -539,7 +539,7 @@
 
     // Retrieves updated data from database and updates the necessary html
     function data_reload(current_page) {
-      $.ajax({
+      return $.ajax({
         type: "POST",
         url: "/api/data-reload",
         data: JSON.stringify({"current_page": current_page}),
@@ -554,7 +554,6 @@
         transaction_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
-        $('select').formSelect({dropdownOptions: {container: 'body'}});
         transaction_editor.detach();
 
         //Update selects in transfer editor
@@ -565,14 +564,12 @@
         $('#envelope-transfer-edit select').last().attr('name', 'to_envelope');
         $('#account-transfer-edit select').first().attr('name', 'from_account');
         $('#account-transfer-edit select').last().attr('name', 'to_account');
-        $('select').formSelect({dropdownOptions: {container: 'body'}});
         transfer_editor.detach();
 
         //Update selects in the income editor
         income_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
-        $('select').formSelect({dropdownOptions: {container: 'body'}});
         income_editor.detach()
 
         $('#envelope-modal').replaceWith(o['envelope_editor_html']);
@@ -614,7 +611,11 @@
         $('.schedule-select').each(function() { schedule_toggle($(this)) });
 
         M.updateTextFields();
+
+        //Update all the selects
         $('select').formSelect({dropdownOptions: {container: 'body'}});
+
+        //Set the page total
         $('#page-total').text(o['page_total'])
 
         //If you are on the accounts page, show the reconcile balances
@@ -673,12 +674,14 @@
       var id = '#' + $(this).attr('id');
       var remain_open = $(this).data('remain-open');
       var $this = $(this);
+      var $envelope_selectors = $(this).find('.envelope-selector');
+      var $account_selectors = $(this).find('.account-selector');
       var selected_envelopes = [];
       var selected_accounts = [];
-      $(this).find('.envelope-selector').each(function() {
+      $envelope_selectors.each(function() {
         selected_envelopes.push($(this).val());
       });
-      $(this).find('.account-selector').each(function() {
+      $account_selectors.each(function() {
         selected_accounts.push($(this).val());
       });
 
@@ -694,11 +697,28 @@
           //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
           $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
           $(id)[0].reset(); //Clears the data from the form fields
+          data_reload(current_page);
         } else {
           // If the form was submitted with the submit and new button
-          $('#transaction-modal form').data('remain-open',0)
+          $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
+          data_reload(current_page).then( function () {
+            //Select the previously selected envelopes and their respective dropdowns
+            console.log($envelope_selectors);
+            console.log($account_selectors);
+            console.log(selected_envelopes);
+            console.log(selected_accounts);
+            $envelope_selectors.each(function(index) {
+              $(this).find('option[value=' + selected_envelopes[index] + ']').attr('selected', 'selected');
+              $(this).formSelect();
+            });
+            //Select the previously selected account in its dropdown
+            $account_selectors.each(function(index) {
+              $(this).find('option[value=' + selected_accounts[index] + ']').attr('selected', 'selected');
+              $(this).formSelect();
+            });
+          });
         }
-        data_reload(current_page);
+        //Standard toast
         M.toast({html: o['message']})
         if (o['sched_t_submitted'] == true) { // If the returned schedule message exists, toast it
           M.toast({html: o['sched_message']})
@@ -727,13 +747,15 @@
       });
     });
 
+    //Check the form validity, change the remain-open attribute to '1', then submit the form
     $('.submit-and-new').click(function() {
       // TEMPORARILY CHECK THE VALIDITY OF THE FORM BEFORE MANUALLY SUBMITTING
-      var validated = true;      $(this).closest("form").find("input,select").filter('[required]').each(function() {
+      var validated = true;
+      $(this).closest("form").find("input,select").filter('[required]').each(function() {
         if($(this).val() == '' || $(this).val() == null) {
           validated = false;
         }
-      })
+      });
       console.log(validated);
       if (validated) {
         //If all elements in the form are valid (not empty), submit the form
