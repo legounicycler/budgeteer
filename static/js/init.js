@@ -668,7 +668,9 @@
       var method = $(this).attr('method');
       var id = '#' + $(this).attr('id');
       var remain_open = $(this).data('remain-open');
-      var $this = $(this);
+      var selected_date = $(this).find('input[name="date"]').val();
+      // var scheduled = $(this).find('input[name="scheduled"]').val();
+      var $form = $(this);
       var $envelope_selectors = $(this).find('.envelope-selector');
       var $account_selectors = $(this).find('.account-selector');
       var selected_envelopes = [];
@@ -697,8 +699,15 @@
           // If the form was submitted with the submit and new button
           $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
           data_reload(current_page).then( function () {
+
             //Clear the transaction name field
-            $this.find('input[name="name"]').val("");
+            $form.find('input[name="name"]').val("");
+
+            //Fill the date field
+            $form.find('input[name="date"]').val(selected_date)
+
+            //Ensure that the scheduling tab is the same as it was before
+            // console.log(scheduled)
 
             //Select the previously selected envelopes and their respective dropdowns
             $envelope_selectors.each(function(index) {
@@ -710,6 +719,7 @@
               $(this).find('option[value=' + selected_accounts[index] + ']').attr('selected', 'selected');
               $(this).formSelect();
             });
+
           });
         }
         //Standard toast
