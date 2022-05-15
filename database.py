@@ -229,7 +229,13 @@ def get_transactions(start, amount):
 
 def get_envelope_transactions(envelope_id, start, amount):
     """
-    Returns a list of transactions with a certain envelope_id for display
+    Given a start number and an amount of transactions to fetch, returns for a particular envelope:
+    1. A list of transaction objects for display
+    2. An offset signifying how many transactions are currently displayed, or where the next start should be.
+    3. limit - If this is true, there are no more transactions to fetch
+    
+    Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
+    with its summed total
     """
     # TODO: (ADD LATER?) If the envelope is unallocated, group envelope fill transactions
     c.execute("SELECT id FROM transactions WHERE envelope_id=? ORDER by day DESC, id DESC LIMIT ? OFFSET ?", (envelope_id,amount,start))
@@ -252,8 +258,13 @@ def get_envelope_transactions(envelope_id, start, amount):
 
 def get_account_transactions(account_id, start, amount):
     """
-    Returns a list of transactions with certain account_id for display.
-    (Groups split transactions and displays summed total)
+    Given a start number and an amount of transactions to fetch, returns for a particular account:
+    1. A list of transaction objects for display
+    2. An offset signifying how many transactions are currently displayed, or where the next start should be.
+    3. limit - If this is true, there are no more transactions to fetch
+    
+    Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
+    with its summed total
     """
     c.execute("SELECT id, SUM(amount) FROM transactions WHERE account_id=? GROUP BY grouping ORDER by day DESC, id DESC LIMIT ? OFFSET ?", (account_id,amount,start))
     ids = c.fetchall()
@@ -580,16 +591,16 @@ def get_envelope_dict():
     """
     c.execute("SELECT id FROM envelopes ORDER by id ASC")
     ids = c.fetchall()
-    edict = {}
+    e_dict = {}
     active_envelopes = False
     for id in ids:
         e = get_envelope(id[0])
         e.balance = stringify(e.balance)
         e.budget = stringify(e.budget)
-        edict[id[0]] = e
+        e_dict[id[0]] = e
         if e.deleted == 0 and e.id != 1:
             active_envelopes = True
-    return (active_envelopes, edict)
+    return (active_envelopes, e_dict)
 
 def delete_envelope(envelope_id):
     """
@@ -605,6 +616,25 @@ def delete_envelope(envelope_id):
         else:
             print("You can't delete the 'Unallocated' envelope you moron")
     log_write('E DELETE: ' + str(get_envelope(envelope_id))+ '\n')
+
+def restore_envelope(envelope_id):
+    """
+    Restores an envelope:
+    1. Subtracts envelope balance from the unallocated envelope
+    2. Sets envelope "deleted" flag to false
+    """
+    with conn:
+        if (envelope_id != UNALLOCATED):
+            update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - get_envelope_balance(envelope_id))
+            (tlist,offset,limit) = get_envelope_transactions(envelope_id,0,1)
+            t = tlist[0]
+            newt = get_transaction(t.id)
+            newbalance = newt.e_reconcile_bal
+            print(newbalance)
+            c.execute("UPDATE envelopes SET deleted=0,balance=? WHERE id=?",(newbalance,envelope_id,))
+        else:
+            print("You can't restore the 'Unallocated' envelope you moron")
+    log_write('E RESTORE: ' + str(get_envelope(envelope_id))+ '\n')
 
 def get_envelope_balance(id):
     """
