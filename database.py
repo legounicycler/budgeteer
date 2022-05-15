@@ -215,7 +215,6 @@ def get_transactions(start, amount):
             c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=1", (t.grouping,))
             t.amt = c.fetchone()[0] * -1
         t.amt = stringify(t.amt * -1)
-        print(t)
         t.a_reconcile_bal = stringify(t.a_reconcile_bal)
         t.e_reconcile_bal = stringify(t.e_reconcile_bal)
         tlist.append(t)
