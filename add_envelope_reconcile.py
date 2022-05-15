@@ -12,10 +12,11 @@ c = conn.cursor()
 
 #Adds the envelope reconcile balance column to the transactions table
 def add_e_reconcile_bal_column():
-    c.execute("""
-        ALTER TABLE transactions
-        ADD COLUMN e_reconcile_bal INTEGER NOT NULL DEFAULT 0
-        """)
+    with conn:
+        c.execute("""
+            ALTER TABLE transactions
+            ADD COLUMN e_reconcile_bal INTEGER NOT NULL DEFAULT 0
+            """)
 
 #Reset the reconcile balances to zero during testing
 def clear_e_reconcile_bal():
@@ -52,10 +53,11 @@ def create_e_reconcile_bal():
 
 #Renames the old reconcile_balance column which was only meant for account reconcile balances
 def rename_reconcile_bal():
-    c.execute("""
-            ALTER TABLE transactions
-            RENAME COLUMN reconcile_balance TO a_reconcile_bal;
-            """)
+    with conn:
+        c.execute("""
+                ALTER TABLE transactions
+                RENAME COLUMN reconcile_balance TO a_reconcile_bal;
+                """)
 
 def main():
     rename_reconcile_bal()       # 1. Rename the old column which was previously just for accounts
