@@ -107,7 +107,7 @@ def create_db():
             schedule TEXT,
             status BOOLEAN NOT NULL DEFAULT 0,
             user_id NOT NULL,
-            a_reconcile_bal INTEGER NOT NULL DEFAULT 0
+            a_reconcile_bal INTEGER NOT NULL DEFAULT 0,
             e_reconcile_bal INTEGER NOT NULL DEFAULT 0
             )
         """)

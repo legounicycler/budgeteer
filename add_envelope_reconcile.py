@@ -15,7 +15,7 @@ def add_e_reconcile_bal_column():
     with conn:
         c.execute("""
             ALTER TABLE transactions
-            ADD COLUMN e_reconcile_bal INTEGER NOT NULL DEFAULT 0
+            ADD e_reconcile_bal INTEGER NOT NULL DEFAULT 0
             """)
 
 #Reset the reconcile balances to zero during testing
@@ -54,10 +54,33 @@ def create_e_reconcile_bal():
 #Renames the old reconcile_balance column which was only meant for account reconcile balances
 def rename_reconcile_bal():
     with conn:
+        c.execute("""ALTER TABLE transactions RENAME TO transactions_old;""")
+
         c.execute("""
-                ALTER TABLE transactions
-                RENAME COLUMN reconcile_balance TO a_reconcile_bal;
+                    CREATE TABLE transactions (
+                        id INTEGER PRIMARY KEY,
+                        type INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        amount INTEGER NOT NULL,
+                        day DATE NOT NULL,
+                        envelope_id INTEGER,
+                        account_id INTEGER,
+                        grouping INTEGER NOT NULL,
+                        note TEXT NOT NULL DEFAULT '',
+                        schedule TEXT,
+                        status BOOLEAN NOT NULL DEFAULT 0,
+                        user_id NOT NULL,
+                        a_reconcile_bal INTEGER NOT NULL DEFAULT 0
+                    );
                 """)
+
+        c.execute("""
+                    INSERT INTO transactions (id, type, name, amount, day, envelope_id, account_id, grouping, note, schedule, status, user_id, a_reconcile_bal)
+                    SELECT id, type, name, amount, day, envelope_id, account_id, grouping, note, schedule, status, user_id, reconcile_balance
+                    FROM transactions_old;
+                """)
+
+        c.execute("""DROP TABLE transactions_old""")
 
 def main():
     rename_reconcile_bal()       # 1. Rename the old column which was previously just for accounts
