@@ -54,7 +54,7 @@ def create_e_reconcile_bal():
 def rename_reconcile_bal():
     c.execute("""
             ALTER TABLE transactions
-            RENAME COLUMN reconcile_balance TO e_reconcile_bal;
+            RENAME COLUMN reconcile_balance TO a_reconcile_bal;
             """)
 
 def main():

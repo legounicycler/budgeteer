@@ -40,7 +40,7 @@ USER_ID = 1
 # ------ CLASSES/DATABASE DEFINITIONS ------ #
 
 class Transaction:
-    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id):
+    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id, a_reconcile_bal=0, e_reconcile_bal=0):
         self.id = None
         self.type = type
         self.name = name
@@ -53,8 +53,8 @@ class Transaction:
         self.schedule = schedule
         self.status = status
         self.user_id = user_id
-        self.a_reconcile_bal = None
-        self.e_reconcile_bal = None
+        self.a_reconcile_bal = a_reconcile_bal
+        self.e_reconcile_bal = e_reconcile_bal
     def __repr__(self):
         return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, A_R_BAL:{}, E_R_BAL:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.a_reconcile_bal,self.e_reconcile_bal)
     def __str__(self):
@@ -215,6 +215,7 @@ def get_transactions(start, amount):
             c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=1", (t.grouping,))
             t.amt = c.fetchone()[0] * -1
         t.amt = stringify(t.amt * -1)
+        print(t)
         t.a_reconcile_bal = stringify(t.a_reconcile_bal)
         t.e_reconcile_bal = stringify(t.e_reconcile_bal)
         tlist.append(t)
@@ -770,10 +771,13 @@ def stringify(number):
     """
     Formats number into a nice string to display
     """
-    negative = number < 0
-    string = '$%.2f' % abs(number / 100)
-    if negative:
-        string = '-' + string
+    if number is None:
+        string = "NAN"
+    else:
+        negative = number < 0
+        string = '$%.2f' % abs(number / 100)
+        if negative:
+            string = '-' + string
     return string
 
 def date_parse(date_str):
