@@ -4,7 +4,7 @@ import platform
 
 platform = platform.system()
 if platform == 'Windows':
-    database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
+    database = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
 else:
     database = '/home/alimiero/database.sqlite'
 

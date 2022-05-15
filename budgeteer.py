@@ -1,3 +1,8 @@
+"""
+This file contains functions relevant the GUI, the flask app, and getting data from the browser
+This file interacts a lot with the javascript/jQuery running on the site
+"""
+
 from flask import Flask, render_template, url_for, request, redirect, jsonify
 from database import *
 from datetime import datetime
@@ -20,7 +25,7 @@ t_type_dict = {
   5: 'Envelope Fill'
 }
 
-t_type_dict2 = {
+t_type_icon_dict = {
   0: 'local_atm',
   1: 'swap_horiz',
   2: 'swap_vert',
@@ -36,6 +41,10 @@ def datetimeformatshort(value, format='%b %d\n%Y'):
   return value.strftime(format)
 
 def add_months(sourcedate, months):
+  """
+  Adds an integer amount of months to a given date.
+  Returns the new date.
+  """
   month = sourcedate.month - 1 + months
   year = sourcedate.year + month // 12
   month = month % 12 + 1
@@ -43,6 +52,10 @@ def add_months(sourcedate, months):
   return date(year, month, day)
 
 def schedule_date_calc(tdate, schedule):
+  """
+  Calculates the upcoming transaction date for a scheduled transaction based on its frequency.
+  Returns the date of the next transaction.
+  """
   if (schedule=="daily"):
     nextdate = tdate + timedelta(days=1)
   elif (schedule=="weekly"):
@@ -76,7 +89,7 @@ def home():
   total_funds = get_total(USER_ID)
   current_view = 'All transactions'
   current_total = total_funds
-  return render_template('layout.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, current_total=current_total, offset=offset, limit=limit)
+  return render_template('layout.html', t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_view=current_view, current_total=current_total, offset=offset, limit=limit)
 
 @app.route("/get_envelope_page", methods=["POST"], )
 def get_envelope_page():
@@ -86,7 +99,7 @@ def get_envelope_page():
   (active_accounts, accounts_data) = get_account_dict()
   page_total = stringify(get_envelope(envelope_id).balance)
   data = {}
-  data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
+  data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
   data['page_total'] = page_total
   data['envelope_name'] = get_envelope(envelope_id).name
   return jsonify(data)
@@ -99,7 +112,7 @@ def get_account_page():
   (active_accounts, accounts_data) = get_account_dict()
   page_total = stringify(get_account(account_id).balance)
   data = {}
-  data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
+  data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
   data['page_total'] = page_total
   data['account_name'] = get_account(account_id).name
   return jsonify(data)
@@ -124,14 +137,14 @@ def new_expense(edited=False):
     amounts[i] = int(round(float(amounts[i]) * 100))
     envelope_ids[i] = int(envelope_ids[i])
   for name in names:
-    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID, None)
+    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID)
     # Only insert a NEW scheduled transaction if it's not an edited transaction
     if scheduled and edited:
       t.schedule = schedule
     if scheduled and not edited:
       # Create placeholder scheduled transaction
       nextdate = schedule_date_calc(date,schedule)
-      scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID, None)
+      scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID)
 
     # If it is a single transaction
     if len(envelope_ids) == 1:
@@ -253,7 +266,7 @@ def new_income(edited=False):
   schedule = request.form['schedule']
   sched_t_submitted = False
   for name in names:
-    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, None, False, USER_ID, None)
+    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, None, False, USER_ID)
 
     # Only insert NEW scheduled transaction if it's not edited
     if scheduled and edited:
@@ -265,7 +278,7 @@ def new_income(edited=False):
       insert_transaction(t)
       # Insert scheduled transaction
       nextdate = schedule_date_calc(date,schedule)
-      scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID, None)
+      scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID)
       insert_transaction(scheduled_t)
       sched_t_submitted = True
     else:
@@ -310,7 +323,7 @@ def fill_envelopes(edited=False):
     for index in reversed(deletes):
       amounts.pop(index)
       envelope_ids.pop(index)
-    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, None)
+    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID)
     # Only insert NEW scheduled transaction if it's not edited
     if scheduled and edited:
       t.schedule = schedule
@@ -321,7 +334,7 @@ def fill_envelopes(edited=False):
       envelope_fill(t)
       # Insert scheduled transaction
       nextdate = schedule_date_calc(date,schedule)
-      scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID, None)
+      scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID)
       envelope_fill(scheduled_t)
       sched_t_submitted = True
     else:
@@ -365,7 +378,7 @@ def edit_transaction():
   return jsonify({'message': message, 'sched_t_submitted': sched_t_submitted})
 
 @app.route('/delete_transaction_page', methods=['POST'])
-# Change this to use an <id> in the URL instead of using the hidden form thing
+# TODO: Change this to use an <id> in the URL instead of using the hidden form thing (SEE gget_json)
 def delete_transaction_page():
   id = int(request.form['delete-id'])
   delete_transaction(id)
@@ -437,7 +450,7 @@ def transactions_function():
   data = {}
   data['total'] = get_total(USER_ID)
   data['unallocated'] = envelopes_data[1].balance
-  data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
+  data['transactions_html'] = render_template('transactions.html', t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
   data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
   data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
   data['account_selector_html'] = render_template('account_selector.html', accounts_data=accounts_data)
@@ -466,7 +479,7 @@ def load_more():
   # these 2 lines shouldn't be necessary here after updating to a join clause
   (active_envelopes, envelopes_data) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
-  more_transactions = render_template('more_transactions.html', t_type_dict=t_type_dict, t_type_dict2 = t_type_dict2, transactions_data=transactions_data, accounts_data=accounts_data, envelopes_data=envelopes_data)
+  more_transactions = render_template('more_transactions.html', t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, accounts_data=accounts_data, envelopes_data=envelopes_data)
   return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions})
 
 @app.route('/api/multi-delete', methods=['POST'])

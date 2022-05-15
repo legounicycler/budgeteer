@@ -114,6 +114,10 @@
           $('#transactions-bin').replaceWith(o['transactions_html']);
           $('#page-total').text(o['page_total']);
           $('#current-view').text(o['envelope_name']);
+          //Show the envelope reconcile balance
+          $('.envelope-reconcile-row').removeClass('gone');
+          $('.transaction-amount').removeClass('valign-wrapper')
+          $('.balance-row').addClass('balance-row-adjust');
         });
       });
 
@@ -131,8 +135,8 @@
           $('#transactions-bin').replaceWith(o['transactions_html']);
           $('#page-total').text(o['page_total']);
           $('#current-view').text(o['account_name']);
-          //Show the reconcile balance
-          $('.reconcile-row').removeClass('gone');
+          //Show the account reconcile balance
+          $('.account-reconcile-row').removeClass('gone');
           $('.transaction-amount').removeClass('valign-wrapper')
           $('.balance-row').addClass('balance-row-adjust');
         });
@@ -168,7 +172,7 @@
       envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
     });
 
-    // Formats a number into a string with a $ and - if necessary
+    // Formats a number into a string with a "$" and "-" if necessary
     function balance_format(number) {
       if (number < 0) {
         text = '-$' + Math.abs(number).toFixed(2)
@@ -284,7 +288,7 @@
       $(show).find('select').attr('required', true);
     });
 
-    // Envelope filler math n' stuff
+    // Envelope fill math n' stuff
     $('#envelope-fill-form').on("change", 'input[name="fill-amount"]', function() {
       var $span = $(this).parent().siblings(".envelope-balance").children()
       var index = $(this).parent().parent().index() - 1
@@ -375,10 +379,17 @@
           $('#load-more').attr('data-offset', o['offset'])
         }
 
-        //If loading more transactions on the accounts page, show the reconcile balances
+        //If loading more transactions on the accounts page, show the account reconcile balances
         if (current_page.includes("account")) {
-          //Show the reconcile balance
-          $('.reconcile-row').removeClass('gone');
+          //Show the account reconcile balance
+          $('.account-reconcile-row').removeClass('gone');
+          $('.transaction-amount').removeClass('valign-wrapper')
+          $('.balance-row').addClass('balance-row-adjust');
+        }
+        //If loading more transactions on the envelopes page, show the envelope reconcile balances
+        if (current_page.includes("account")) {
+          //Show the envelope reconcile balance
+          $('.envelope-reconcile-row').removeClass('gone');
           $('.transaction-amount').removeClass('valign-wrapper')
           $('.balance-row').addClass('balance-row-adjust');
         }
@@ -557,6 +568,7 @@
         $('#envelopes-bin').replaceWith(o['envelopes_html']);
 
         //Update selects in transaction editor
+        // TODO: These three select updates may be able to be combined with some clever CSS ID's and classes
         transaction_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
@@ -627,8 +639,14 @@
         //If you are on the accounts page, show the reconcile balances
         ////THIS MIGHT NOT BE NECSSARY HERE BUT IT WAS ADDED IN CAUTION. TEST THIS
         if (current_page.includes("account")) {
-          //Show the reconcile balance
-          $('.reconcile-row').removeClass('gone');
+          //Show the account reconcile balance
+          $('.account-reconcile-row').removeClass('gone');
+          $('.transaction-amount').removeClass('valign-wrapper')
+          $('.balance-row').addClass('balance-row-adjust');
+        }
+        if (current_page.includes("envelope")) {
+          //Show the envelope reconcile balance
+          $('.envelope-reconcile-row').removeClass('gone');
           $('.transaction-amount').removeClass('valign-wrapper')
           $('.balance-row').addClass('balance-row-adjust');
         }

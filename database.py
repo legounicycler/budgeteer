@@ -1,3 +1,7 @@
+"""
+This file contains functions relevant to actually manipulating values in the database
+"""
+
 import sqlite3
 import datetime
 from datetime import datetime
@@ -7,7 +11,7 @@ import platform
 
 platform = platform.system()
 if platform == 'Windows':
-    database = 'C:\\Users\\norma\Dropbox\\database.sqlite'
+    database = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
 else:
     database = '/home/alimiero/database.sqlite'
 
@@ -17,6 +21,7 @@ c = conn.cursor()
 # Going to have to CHANGE since each user has their own unique unallocated envelope
 UNALLOCATED = 1
 
+#Should this eventually be an ENUM instead?
 BASIC_TRANSACTION = 0
 ENVELOPE_TRANSFER = 1
 ACCOUNT_TRANSFER = 2
@@ -25,6 +30,7 @@ SPLIT_TRANSACTION = 4
 ENVELOPE_FILL = 5
 PLACEHOLDER = 6
 
+#Should this also eventually be an ENUM?
 REMOVE = False
 INSERT = True
 
@@ -34,7 +40,7 @@ USER_ID = 1
 # ------ CLASSES/DATABASE DEFINITIONS ------ #
 
 class Transaction:
-    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id, reconcile_balance):
+    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id):
         self.id = None
         self.type = type
         self.name = name
@@ -47,11 +53,12 @@ class Transaction:
         self.schedule = schedule
         self.status = status
         self.user_id = user_id
-        self.reconcile_balance = reconcile_balance
+        self.a_reconcile_bal = None
+        self.e_reconcile_bal = None
     def __repr__(self):
-        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, R_AMT:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_balance)
+        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, A_R_BAL:{}, E_R_BAL:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.a_reconcile_bal,self.e_reconcile_bal)
     def __str__(self):
-        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, R_AMT:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.reconcile_balance)
+        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, A_R_BAL:{}, E_R_BAL:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.a_reconcile_bal,self.e_reconcile_bal)
 
 
 class Account:
@@ -81,8 +88,11 @@ class Envelope:
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
 
 
-# Creates the database file
+
 def create_db():
+    """
+    Creates the database file
+    """
     c.execute("""
         CREATE TABLE transactions (
             id INTEGER PRIMARY KEY,
@@ -97,7 +107,8 @@ def create_db():
             schedule TEXT,
             status BOOLEAN NOT NULL DEFAULT 0,
             user_id NOT NULL,
-            reconcile_balance INTEGER NOT NULL DEFAULT 0
+            a_reconcile_bal INTEGER NOT NULL DEFAULT 0
+            e_reconcile_bal INTEGER NOT NULL DEFAULT 0
             )
         """)
 
@@ -136,43 +147,62 @@ def create_db():
 # ---------------TRANSACTION FUNCTIONS--------------- #
 
 def insert_transaction(t):
-    # Inserts transaction into database, then updates account/envelope balances
+    """
+    Inserts transaction into database, then updates account/envelope balances
+    """
     with conn:
-        #if there's no account associated, set the reconcile_balance to 0
-        if t.reconcile_balance is None or t.account_id is None:
-            t.reconcile_balance = 0
-        #insert the transaction
-        c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id, t.reconcile_balance))
-        #THIS LINE WILL BREAK THE RECONCILE FUNCTION IF INSERTING A TRANSACTION IS EVER NOT THE TOP ONE IN THE DATABASE
-        c.execute("SELECT id FROM transactions ORDER BY ROWID DESC LIMIT 1")
+        
+        # ---1. MAKE SURE THE RECONCILE BALANCES EXIST---
+        #If there's no account/envelope associated, set the reconcile balance to 0
+        if t.a_reconcile_bal is None or t.account_id is None:
+            t.a_reconcile_bal = 0
+        if t.e_reconcile_bal is None or t.envelope_id is None:
+            t.e_reconcile_bal = 0
+        
+        # ---2. INSERT THE TRANSACTION INTO THE TABLE---
+        c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id, t.a_reconcile_bal, t.e_reconcile_bal))
+        
+        # ---3. UPDATE THE ACCOUNT/ENVELOPE BALANCES---
+        #TODO: I think this is a way of generating a new transaction ID, but this seems bad and slow
+        c.execute("SELECT id FROM transactions ORDER BY ROWID DESC LIMIT 1") #THIS LINE WILL BREAK THE RECONCILE FUNCTION IF INSERTING A TRANSACTION IS EVER NOT THE TOP ONE IN THE DATABASE
         t.id = c.fetchone()[0]
-        #update envelope/account balances if transaction is not scheduled for later
+        #Only update balances if transaction is not scheduled for later
         if (t.date < datetime.now()):
-            if not (t.account_id is None):
+            if t.account_id is not None:
                 newaccountbalance = get_account_balance(t.account_id) - t.amt
                 update_account_balance(t.account_id, newaccountbalance)
-            if not (t.envelope_id is None):
+            if t.envelope_id is not None:
                 newenvelopebalance = get_envelope_balance(t.envelope_id) - t.amt
                 update_envelope_balance(t.envelope_id, newenvelopebalance)
-    # Update the reconciled amounts if there is an account associated with the transaction
-    if t.account_id is not None:
-        update_reconcile_amounts(t.account_id, t.id, INSERT)
+
+        # ---4. UPDATE RECONCILE BALANCES---
+        update_reconcile_amounts(t.account_id, t.envelope_id, t.id, INSERT)
+    
     log_write('T INSERT: ' + str(t)+ '\n')
 
 def get_transaction(id):
-    # Retrieves transaction object from database given its ID
+    """
+    Retrieves transaction object from database given its ID
+    """
     c.execute("SELECT * FROM transactions WHERE id=?", (id,))
     tdata = c.fetchone()
-    t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11],tdata[12])
+    t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11],tdata[12],tdata[13])
     # converts string to datetime object
     t.date = date_parse(t.date)
     t.id = tdata[0]
     return t
 
 def get_transactions(start, amount):
-    # returns a list transactions for display
-    # (Groups split transactions and envelope fills and displays their summed total)
+    """
+    Given a start number and an amount of transactions to fetch, returns:
+    1. A list of transaction objects for display
+    2. An offset signifying how many transactions are currently displayed, or where the next start should be.
+    3. limit - If this is true, there are no more transactions to fetch
+    
+    Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
+    with its summed total
+    """
     c.execute("SELECT id from TRANSACTIONS GROUP BY (CASE WHEN type = 1 OR type = 2 THEN id ELSE grouping END) ORDER BY day DESC, id DESC LIMIT ? OFFSET ?", (amount, start))
     groupings = c.fetchall()
     tlist = []
@@ -185,7 +215,8 @@ def get_transactions(start, amount):
             c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=1", (t.grouping,))
             t.amt = c.fetchone()[0] * -1
         t.amt = stringify(t.amt * -1)
-        t.reconcile_balance = stringify(t.reconcile_balance)
+        t.a_reconcile_bal = stringify(t.a_reconcile_bal)
+        t.e_reconcile_bal = stringify(t.e_reconcile_bal)
         tlist.append(t)
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
@@ -197,15 +228,18 @@ def get_transactions(start, amount):
     return tlist, offset, limit
 
 def get_envelope_transactions(envelope_id, start, amount):
-    # returns a list of transactions with a certain envelope_id
-    # (ADD LATER?) If the envelope is unallocated, group envelope fill transactions
+    """
+    Returns a list of transactions with a certain envelope_id for display
+    """
+    # TODO: (ADD LATER?) If the envelope is unallocated, group envelope fill transactions
     c.execute("SELECT id FROM transactions WHERE envelope_id=? ORDER by day DESC, id DESC LIMIT ? OFFSET ?", (envelope_id,amount,start))
     ids = c.fetchall()
     tlist = []
     for id in ids:
         t = get_transaction(id[0])
         t.amt = stringify(t.amt * -1)
-        t.reconcile_balance = stringify(t.reconcile_balance)
+        t.a_reconcile_bal = stringify(t.a_reconcile_bal)
+        t.e_reconcile_bal = stringify(t.e_reconcile_bal)
         tlist.append(t)
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
@@ -217,15 +251,18 @@ def get_envelope_transactions(envelope_id, start, amount):
     return tlist, offset, limit
 
 def get_account_transactions(account_id, start, amount):
-    # returns a list of transactions with certain account_id
-    # (Groups split transactions and displays summed total)
+    """
+    Returns a list of transactions with certain account_id for display.
+    (Groups split transactions and displays summed total)
+    """
     c.execute("SELECT id, SUM(amount) FROM transactions WHERE account_id=? GROUP BY grouping ORDER by day DESC, id DESC LIMIT ? OFFSET ?", (account_id,amount,start))
     ids = c.fetchall()
     tlist = []
     for thing in ids:
         t = get_transaction(thing[0])
         t.amt = stringify(thing[1] * -1)
-        t.reconcile_balance = stringify(t.reconcile_balance)
+        t.a_reconcile_bal = stringify(t.a_reconcile_bal)
+        t.e_reconcile_bal = stringify(t.e_reconcile_bal)
         tlist.append(t)
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
@@ -237,6 +274,9 @@ def get_account_transactions(account_id, start, amount):
     return tlist, offset, limit
 
 def get_scheduled_transactions(user_id):
+    """
+    Returns a list of ALL scheduled transactions
+    """
     c.execute("SELECT id FROM transactions WHERE schedule IS NOT NULL AND user_id=? ORDER by day DESC, id DESC", (user_id,))
     ids = c.fetchall()
     tlist = []
@@ -246,58 +286,69 @@ def get_scheduled_transactions(user_id):
     return tlist
 
 def delete_transaction(id):
-    # deletes transaction and associated grouped transactions and updates appropriate envelope/account balances
+    """
+    Deletes transaction and associated grouped transactions and updates appropriate envelope/account balances
+    """
     with conn:
+        # 1. Get all the grouped transactions to delete
         grouping = get_grouping_from_id(id)
-        if not (grouping is None):
+        if grouping is not None:
             ids = get_ids_from_grouping(grouping)
             for id in ids:
                 t = get_transaction(id)
                 # if it is not a scheduled transaction, update envelope/account balances
-                if (t.date < datetime.now()):
-                    # Update envelope balance if it references an envelope
-                    if not (t.envelope_id is None):
+                if (t.date < datetime.now()): #TODO: This will probably need to change when timezones are implemented
+                    
+                    # 2. Update envelope/account balances
+                    if t.envelope_id is not None:
                         if not (get_envelope(t.envelope_id).deleted == True):
                             update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + t.amt)
-                    # Update account balance if it references an account
-                    if not (t.account_id is None):
+                    if t.account_id is not None:
                         if not (get_account(t.account_id).deleted == True):
                             update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
-                # Update the reconciled amounts if there is an account associated with the transaction
-                if t.account_id is not None:
-                    update_reconcile_amounts(t.account_id, t.id, REMOVE)
+                
+                    # 3. Update the reconciled amounts if there is an account associated with the transaction
+                    update_reconcile_amounts(t.account_id, t.envelope_id, t.id, REMOVE)
 
-                # Delete the actual transaction from the database
+                # 4. Delete the actual transaction from the database
                 c.execute("DELETE FROM transactions WHERE id=?", (id,))
                 log_write('T DELETE: ' + str(t)+ '\n')
         else:
             print("That transaction doesn't exist you twit")
+
 def new_split_transaction(t):
-    #takes a transaction with arrays of amt and envelope_id and creates individual transactions
+    """
+    Takes a transaction with arrays of amt and envelope_id and creates individual transactions
+    This is a grouped transaction with multiple envelopes!
+    """
     grouping = gen_grouping_num()
     for i in range(len(t.amt)):
-        new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.reconcile_balance)
+        new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id)
         insert_transaction(new_t)
 
 
 # ---------------ACCOUNT FUNCTIONS--------------- #
 
 def insert_account(name, balance, user_id):
-    #inserts new account and creates "initial account balance" transaction
+    """
+    Inserts new account and creates "initial account balance" transaction
+    """
     with conn:
         c.execute("INSERT INTO accounts (name, balance, user_id) VALUES (?, ?, ?)", (name, 0, user_id))
         account_id = c.lastrowid
         income_name = 'Initial Account Balance: ' + name
-        t = Transaction(INCOME, income_name, -1 * balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, user_id, 0)
+        t = Transaction(INCOME, income_name, -1 * balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, user_id, 0,0)
         insert_transaction(t)
         log_write('A INSERT: ' + str(get_account(account_id))+ '\n')
 
 def get_account(id):
-    # returns account associated with the given id
+    """
+    Returns account associated with the given id
+    """
     c.execute("SELECT * FROM accounts WHERE id=?", (id,))
     adata = c.fetchone()
     a = Account(adata[1], adata[2], adata[3], adata[4])
@@ -305,38 +356,52 @@ def get_account(id):
     return a
 
 def get_account_dict():
-    # returns a tuple with a dictionary with keys of account_id and values of account objects
-    # and a boolean that says whether there are accounts to render
+    """
+    Meant for displaying the accounts.
+    Returns:
+    1. A boolean that says whether there are accounts to render
+    2. A tuple with a dictionary with keys of account_id and values of account objects.
+    """
     c.execute("SELECT id FROM accounts ORDER by id ASC")
     ids = c.fetchall()
-    adict = {}
+    a_dict = {}
     active_accounts = False
     for id in ids:
         a = get_account(id[0])
         a.balance = stringify(a.balance)
-        adict[id[0]] = a
+        a_dict[id[0]] = a
         if a.deleted == 0:
             active_accounts = True
-    return (active_accounts, adict)
+    return (active_accounts, a_dict)
 
 def delete_account(account_id):
-    # subtracts balance from unallocated envelope, sets account balance to 0, and sets deleted to true
+    """
+    Subtracts balance from unallocated envelope, sets account balance to 0, and sets deleted to true
+    """
     with conn:
         update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - get_account_balance(account_id))
         c.execute("UPDATE accounts SET deleted=1,balance=0 WHERE id=?", (account_id,))
         log_write('A DELETE: ' + str(get_account(account_id))+ '\n')
 
 def get_account_balance(id):
-    # Returns float of account balance
+    """
+    Returns account balance
+    """
     c.execute("SELECT balance FROM accounts WHERE id=?", (id,))
     balance = c.fetchone()
-    if not (balance is None):
+    if balance is not None:
         return balance[0]
     else:
+        #TODO: Figure out where to log this and how to throw errors
         print("That account doesn't exist you twit.")
+        
 
 def edit_account(id, name, balance):
-    #updates account balalnce and name, then subtracts the change in balance from the unallocated envelope
+    """
+    Updates account balalnce and name, then subtracts the change in balance from the unallocated envelope
+    """
+
+    #TODO: This probably breaks the account reconcile amounts. Verify this!
     with conn:
         current_balance = get_account_balance(id)
         diff = current_balance - balance
@@ -347,93 +412,159 @@ def edit_account(id, name, balance):
         log_write('A EDIT: ' + str(get_account(id))+ '\n')
 
 def update_account_balance(id, balance):
-    # updates balance of account with given id
+    """
+    Updates balance of account with given id
+    """
     with conn:
         c.execute("UPDATE accounts SET balance=? WHERE id=?",(balance, id))
 
 def edit_accounts(old_accounts, new_accounts):
-    # updates database given 2 lists of account objects
+    """
+    Compares an old and new list of accounts, then:
+    1.  Updates info for accounts that exist in both lists
+    2.  Adds new accounts not present in old list
+    3.  Deletes old accounts not present in new list
+    """
     c.execute("SELECT id FROM accounts WHERE deleted=0")
     account_ids = c.fetchall()
     old_ids = []
-    # adds id to old_ids then updates the info for the old accounts
+    # 1. Updates info for accounts that exist in both lists
     for a in old_accounts:
         old_ids.append(int(a[0]))
         edit_account(int(a[0]), a[1], a[2])
-    # adds the new accounts
+    # 2. Adds new accounts not present in old list
     for a in new_accounts:
         insert_account(a[0], a[1], a[2])
-    # deletes accounts that are missing
+    # 3. Deletes old accounts not present in new list
     for id in account_ids:
         if not (id[0] in old_ids):
             delete_account(id[0])
 
 def account_transfer(name, amount, date, to_account, from_account, note, schedule, user_id):
-    # Creates one transaction draining an account, and one transaction filling another
+    """
+    Creates one transaction draining an account, and one transaction filling another
+    """
     grouping = gen_grouping_num()
     fill = Transaction(ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id, 0)
     insert_transaction(fill)
     empty = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id, 0)
     insert_transaction(empty)
 
-def update_reconcile_amounts(account_id, transaction_id, method):
-    # changes the reconcile amounts after a given transaction
-    # maybe optimize later to use the update function with subqueries to avoid doing a for loop
-    #   with separate sql calls
-    #   UPDATE transactions SET reconcile_balance = reconcile_balance + ? WHERE (SUB QUERY HERE for transactions past the inserted t)
+def update_reconcile_amounts(account_id, envelope_id, transaction_id, method):
+    """
+    Updates the envelope and account reconcile amounts for all transactions after the given transaction
+    """
+    # TODO: maybe optimize later to use the update function with subqueries to avoid doing a for loop
+    # with separate sql calls
+    # Something like: UPDATE transactions SET a_reconcile_bal = a_reconcile_bal + ? WHERE (SUB QUERY HERE for transactions past the inserted t)
     with conn:
-        #find the ID of the previous transaction and set it to transaction_id
-        c.execute("SELECT id FROM transactions WHERE (account_id=? AND date(day) == date((SELECT day from transactions where id=?)) AND id<?) OR (account_id=? AND day < date((SELECT day from transactions where id=?))) ORDER BY id DESC LIMIT 1", (account_id,transaction_id,transaction_id,account_id,transaction_id))
-        prev_transaction_id = c.fetchone()
-        if prev_transaction_id is not None:
-            prev_transaction_id = prev_transaction_id[0]
-        else:
-            #if there is no previous transaction, use the current transaction id
-            prev_transaction_id = transaction_id
 
-        if (method == INSERT):
-            # Fetches the transactions whose r_balances need to be updated starting from previous transaction
-            # (transactions with same account id and greater date OR same date and same account id but greater id than previous transaction)
-            c.execute("SELECT id,amount,reconcile_balance FROM transactions WHERE (account_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND account_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (account_id,prev_transaction_id,prev_transaction_id,account_id,prev_transaction_id))
-        elif (method == REMOVE):
-            # Fetches the transactions whose r_balances need to be updated starting from the current transaction
-            # # (transactions with same account id and greater date OR same date and same account id but greater id than current transaction)
-            c.execute("SELECT id,amount,reconcile_balance FROM transactions WHERE (account_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND account_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (account_id,transaction_id,transaction_id,account_id,transaction_id))
+        # UPDATE THE ACCOUNT RECONCILE AMOUNTS
+        if account_id is not None:
 
-        # Create lists for the collected transactions
-        #   If the suggested optimization above is implemented, this section would go away
-        t_ids = []
-        t_amounts =[]
-        t_r_bals =[]
-        for row in c:
-            t_ids.insert(0,row[0])
-            t_amounts.insert(0,row[1])
-            t_r_bals.insert(0,row[2])
-        if (method == INSERT):
-            if (transaction_id == prev_transaction_id):
-                t_r_bals[0] = -1* t_amounts[0]
-                c.execute("UPDATE transactions SET reconcile_balance=? WHERE id=?", (-1*t_amounts[0],t_ids[0]))
+            # 1. Find the ID of the previous transaction in the same account
+            c.execute("SELECT id FROM transactions WHERE (account_id=? AND date(day) == date((SELECT day from transactions where id=?)) AND id<?) OR (account_id=? AND day < date((SELECT day from transactions where id=?))) ORDER BY id DESC LIMIT 1", (account_id,transaction_id,transaction_id,account_id,transaction_id))
+            prev_transaction_id = c.fetchone()
+            if prev_transaction_id is not None:
+                prev_transaction_id = prev_transaction_id[0]
+            else:
+                #if there is no previous transaction, use the current transaction id
+                prev_transaction_id = transaction_id
+            
+            # 2. Fetch info for the transactions that need to be updated
+            if (method == INSERT):
+                # Fetches the transactions whose a_reconcile_bal's need to be updated starting from PREVIOUS transaction
+                # (transactions with same account id and greater date OR same date and same account id but greater id than previous transaction)
+                c.execute("SELECT id,amount,a_reconcile_bal FROM transactions WHERE (account_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND account_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (account_id,prev_transaction_id,prev_transaction_id,account_id,prev_transaction_id))
+            elif (method == REMOVE):
+                # Fetches the transactions whose a_reconcile_bal's need to be updated starting from the CURRENT transaction
+                # # (transactions with same account id and greater date OR same date and same account id but greater id than current transaction)
+                c.execute("SELECT id,amount,a_reconcile_bal FROM transactions WHERE (account_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND account_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (account_id,transaction_id,transaction_id,account_id,transaction_id))
+
+            # 3. Put contents of query into lists
+            t_ids = []
+            t_amounts =[]
+            t_r_bals =[]
+            for row in c:
+                t_ids.insert(0,row[0])
+                t_amounts.insert(0,row[1])
+                t_r_bals.insert(0,row[2])
+
+            # 4. Update the reconcile val
+            if (method == INSERT):
+                if (transaction_id == prev_transaction_id):
+                    t_r_bals[0] = -1* t_amounts[0]
+                    c.execute("UPDATE transactions SET a_reconcile_bal=? WHERE id=?", (-1*t_amounts[0],t_ids[0]))
+                for i in range(1,len(t_ids)):
+                    t_r_bals[i] = t_r_bals[i-1] - t_amounts[i]
+            elif (method == REMOVE):
+                # add the t_amount of given transaction from following a_reconcile_bal's
+                for i in range(1,len(t_ids)):
+                    t_r_bals[i] = t_r_bals[i] + t_amounts[0]
             for i in range(1,len(t_ids)):
-                t_r_bals[i] = t_r_bals[i-1] - t_amounts[i]
-        elif (method == REMOVE):
-            # add the t_amount of given transaction from following r_balances
+                c.execute("UPDATE transactions SET a_reconcile_bal=? WHERE id=?", (t_r_bals[i],t_ids[i]))
+        
+        # UPDATE THE ENVELOPE RECONCILE AMOUNTS
+        if envelope_id is not None:
+
+            # 1. Find the ID of the previous transaction in the same envelope
+            c.execute("SELECT id FROM transactions WHERE (envelope_id=? AND date(day) == date((SELECT day from transactions where id=?)) AND id<?) OR (envelope_id=? AND day < date((SELECT day from transactions where id=?))) ORDER BY id DESC LIMIT 1", (envelope_id,transaction_id,transaction_id,envelope_id,transaction_id))
+            prev_transaction_id = c.fetchone()
+            if prev_transaction_id is not None:
+                prev_transaction_id = prev_transaction_id[0]
+            else:
+                #If there is no previous transaction, use the current transaction id
+                prev_transaction_id = transaction_id
+
+            # 2. Fetch info for the transactions that need to be updated
+            if (method == INSERT):
+                # Fetches the transactions whose e_reconcile_bal's need to be updated starting from PREVIOUS transaction
+                # (transactions with same account id and greater date OR same date and same envelope id but greater id than previous transaction)
+                c.execute("SELECT id,amount,e_reconcile_bal FROM transactions WHERE (envelope_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND envelope_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (envelope_id,prev_transaction_id,prev_transaction_id,envelope_id,prev_transaction_id))
+            elif (method == REMOVE):
+                # Fetches the transactions whose e_reconcile_bal's need to be updated starting from the CURRENT transaction
+                # # (transactions with same account id and greater date OR same date and same envelope id but greater id than current transaction)
+                c.execute("SELECT id,amount,a_reconcile_bal FROM transactions WHERE (envelope_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND envelope_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (envelope_id,transaction_id,transaction_id,envelope_id,transaction_id))
+
+            # 3. Put contents of query into lists
+            t_ids = []
+            t_amounts =[]
+            t_r_bals =[]
+            for row in c:
+                t_ids.insert(0,row[0])
+                t_amounts.insert(0,row[1])
+                t_r_bals.insert(0,row[2])
+
+            # 4. Update the reconcile val
+            if (method == INSERT):
+                if (transaction_id == prev_transaction_id):
+                    t_r_bals[0] = -1* t_amounts[0]
+                    c.execute("UPDATE transactions SET e_reconcile_bal=? WHERE id=?", (-1*t_amounts[0],t_ids[0]))
+                for i in range(1,len(t_ids)):
+                    t_r_bals[i] = t_r_bals[i-1] - t_amounts[i]
+            elif (method == REMOVE):
+                # add the t_amount of given transaction from following e_reconcile_bal's
+                for i in range(1,len(t_ids)):
+                    t_r_bals[i] = t_r_bals[i] + t_amounts[0]
             for i in range(1,len(t_ids)):
-                t_r_bals[i] = t_r_bals[i] + t_amounts[0]
-        for i in range(1,len(t_ids)):
-            c.execute("UPDATE transactions SET reconcile_balance=? WHERE id=?", (t_r_bals[i],t_ids[i]))
+                c.execute("UPDATE transactions SET e_reconcile_bal=? WHERE id=?", (t_r_bals[i],t_ids[i]))
 
 
-# ---------------ENVELOPE FUNCTIONS--------------- #
+    # ---------------ENVELOPE FUNCTIONS--------------- #
 
-def insert_envelope(name, budget, user_id):
-    # Inserts an envelope into the database with givne name and budget and a balnce of 0
-    with conn:
-        c.execute("INSERT INTO envelopes (name, budget, user_id) VALUES (?, ?, ?)", (name,budget,user_id))
-        envelope_id = c.lastrowid
-        log_write('E INSERT: ' + str(get_envelope(envelope_id))+ '\n')
+    def insert_envelope(name, budget, user_id):
+        """
+        Inserts an envelope into the database with given name and budget and a balance of 0
+        """
+        with conn:
+            c.execute("INSERT INTO envelopes (name, budget, user_id) VALUES (?, ?, ?)", (name,budget,user_id))
+            envelope_id = c.lastrowid
+            log_write('E INSERT: ' + str(get_envelope(envelope_id))+ '\n')
 
 def get_envelope(id):
-    # returns an envelope object given an envelope_id
+    """
+    Returns an envelope object given an envelope_id
+    """
     c.execute("SELECT * FROM envelopes WHERE id=?", (id,))
     edata = c.fetchone()
     e = Envelope(edata[1], edata[2], edata[3], edata[4], edata[5])
@@ -441,7 +572,12 @@ def get_envelope(id):
     return e
 
 def get_envelope_dict():
-    # returns a dictionary with key of envelope_id and value of an envelope object
+    """
+    Meant for displaying the envelopes.
+    Returns:
+    1. A boolean that says whether there are envelopes to render
+    2. A tuple with a dictionary with keys of envelope_id and values of envelope objects.
+    """
     c.execute("SELECT id FROM envelopes ORDER by id ASC")
     ids = c.fetchall()
     edict = {}
@@ -456,56 +592,74 @@ def get_envelope_dict():
     return (active_envelopes, edict)
 
 def delete_envelope(envelope_id):
-    # adds envelope balance to the unallocated envelope, sets balance to 0, and sets deleted to true
+    """
+    Deletes an envelope:
+    1. Adds envelope balance to the unallocated envelope
+    2. Sets envelope balance to 0
+    3. Sets envelope "deleted" flag to true
+    """
     with conn:
         if (envelope_id != UNALLOCATED):
             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + get_envelope_balance(envelope_id))
             c.execute("UPDATE envelopes SET deleted=1,balance=0 WHERE id=?", (envelope_id,))
         else:
             print("You can't delete the 'Unallocated' envelope you moron")
-        log_write('E DELETE: ' + str(get_envelope(envelope_id))+ '\n')
+    log_write('E DELETE: ' + str(get_envelope(envelope_id))+ '\n')
 
 def get_envelope_balance(id):
-    # returns float of envelope balance given id
+    """
+    Returns envelope balance given envelope id
+    """
     c.execute("SELECT balance FROM envelopes WHERE id=?", (id,))
     balance = c.fetchone()
-    if not (balance is None):
+    if balance is not None:
         return balance[0]
     else:
         print("That envelope doesn't exist you imbicil")
 
 def update_envelope_balance(id, balance):
-    # updates envelope balance for given id
-    # NOTE: this isn't possible as a stand alone action
+    """
+    Updates envelope balance for given id.
+    NOTE: This shouldn't be possible as a stand alone action
+    """
     with conn:
         c.execute("UPDATE envelopes SET balance=? WHERE id=?",(balance, id))
 
 def edit_envelope(id, name, budget):
-    # updates the name and budget for given id
+    """
+    Updates the name and budget for given envelope id
+    """
     with conn:
         c.execute("UPDATE envelopes SET name=?, budget=? WHERE id=?",(name, budget, id))
-        log_write('E EDIT: ' + str(get_envelope(id))+ '\n')
+    log_write('E EDIT: ' + str(get_envelope(id))+ '\n')
 
 def edit_envelopes(old_envelopes, new_envelopes):
-    # updates database given 2 lists of envelope objects from envelope editor
+    """
+    Compares an old and new list of envelopes, then:
+    1.  Updates info for envelopes that exist in both lists
+    2.  Adds new envelopes not present in old list
+    3.  Deletes old envelopes not present in new list
+    """
     c.execute("SELECT id FROM envelopes WHERE deleted=0")
     envelope_ids = c.fetchall()
     envelope_ids.remove((1,)) # gets rid of unallocated id (1) in envelope list
     old_ids = []
-    # adds id to old_ids then updates the info for the old envelopes
+    # 1. Updates info for envelopes that exist in both lists
     for e in old_envelopes:
         old_ids.append(int(e[0]))
         edit_envelope(int(e[0]), e[1], e[2])
-    # adds the new envelopes
+    # 2. Adds new envelopes not present in old list
     for e in new_envelopes:
         insert_envelope(e[0], e[1], e[2])
-    # deletes envelopes that are missing
+    # 3. Deletes old envelopes not present in new list
     for id in envelope_ids:
         if not (id[0] in old_ids):
             delete_envelope(id[0])
 
 def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedule, user_id):
-    # Creates a transaction to fill one envelope and another to empty the other
+    """
+    Creates a transaction to fill one envelope and another to empty the other
+    """
     grouping = gen_grouping_num()
     fill = Transaction(ENVELOPE_TRANSFER, name, -1*amt, date, to_envelope, None, grouping, note, schedule, False, user_id, 0)
     insert_transaction(fill)
@@ -513,7 +667,9 @@ def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedul
     insert_transaction(empty)
 
 def envelope_fill(t):
-    # Takes a transaction with an array of envelope ids and amounts and creates sub-transactions to fill the envelopes
+    """
+    Takes an ENVELOPE_FILL transaction with an array of envelope ids and amounts and creates sub-transactions to fill the envelopes
+    """
     if t.type == ENVELOPE_FILL:
         grouping = gen_grouping_num()
         amts = t.amt
@@ -528,7 +684,9 @@ def envelope_fill(t):
 # ------ OTHER FUNCTIONS ------ #
 
 def get_total(user_id):
-    # Sums the account balances for display
+    """
+    Sums the account balances for display
+    """
     c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (user_id,))
     total = c.fetchone()[0]
     if not total is None:
@@ -537,8 +695,10 @@ def get_total(user_id):
         return stringify(0)
 
 def gen_grouping_num():
-    # Creates a new and unique grouping number
-    # POSSIBLY CAN DO +1 in SQLITE QUERRY RATHER THAN THIS LOGIC (TEST IN THIS PROGRAM)
+    """
+    Creates a new and unique grouping number
+    """
+    # TODO: POSSIBLY CAN DO +1 in SQLITE QUERRY RATHER THAN THIS LOGIC (TEST IN THIS PROGRAM)
     c.execute("SELECT MAX(grouping) FROM transactions")
     prevnum = c.fetchone()[0]
     if prevnum is not None:
@@ -548,7 +708,9 @@ def gen_grouping_num():
     return newnum
 
 def get_grouping_from_id(id):
-    # Gets the grouping number from the given id
+    """
+    Gets the grouping number from the given id
+    """
     c.execute("SELECT grouping FROM transactions WHERE id=?", (id,))
     grouping_touple = c.fetchone()
     if (grouping_touple is None):
@@ -557,7 +719,9 @@ def get_grouping_from_id(id):
         return grouping_touple[0]
 
 def get_ids_from_grouping(grouping):
-    # returns a list of ids associated with a particular grouping number
+    """
+    Returns a list of ids associated with a particular grouping number
+    """
     id_array = []
     c.execute("SELECT id from transactions WHERE grouping=?", (grouping,))
     id_touple = c.fetchall()
@@ -566,7 +730,9 @@ def get_ids_from_grouping(grouping):
     return id_array
 
 def type_to_icon(x):
-    # given a numeric transaction type, return the string name for the materialize icon
+    """
+    Given a numeric transaction type, return the string name for the materialize icon
+    """
     return {
         0: 'local_atm',
         1: 'swap_horiz',
@@ -577,7 +743,9 @@ def type_to_icon(x):
     }[x]
 
 def get_grouped_json(id):
-    # Given an id, return a json with the transaction data for each grouped transaction
+    """
+    Given an id, return a json with the transaction data for each grouped transaction
+    """
     grouping = get_grouping_from_id(id)
     ids = get_ids_from_grouping(grouping)
     data = {}
@@ -593,12 +761,15 @@ def get_grouped_json(id):
             'account_id': t.account_id,
             'grouping': t.grouping,
             'note': t.note,
-            'reconcile_balance': t.reconcile_balance
+            'a_reconcile_bal': t.a_reconcile_bal,
+            'e_reconcile_bal': t.e_reconcile_bal
         })
     return data
 
 def stringify(number):
-    # Formats number into a nice string to display
+    """
+    Formats number into a nice string to display
+    """
     negative = number < 0
     string = '$%.2f' % abs(number / 100)
     if negative:
@@ -606,7 +777,9 @@ def stringify(number):
     return string
 
 def date_parse(date_str):
-    # converts string to datetime object
+    """
+    Converts string to datetime object
+    """
     if len(date_str) == 10:
         date = datetime.strptime(date_str, "%Y-%m-%d")
     elif len(date_str)==19:
@@ -621,6 +794,9 @@ def date_parse(date_str):
     return date
 
 def print_database():
+    """
+    Literally prints the entire database to the console
+    """
     print()
     print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
     print("TRANSACTIONS:")
@@ -659,53 +835,22 @@ def print_database():
     print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
 
 
-# TEMPORARY FUNCTIONS
-def add_reconcile_balance_column():
-    c.execute("""
-        ALTER TABLE transactions
-        ADD COLUMN reconcile_balance INTEGER NOT NULL DEFAULT 0
-        """)
-
-def clear_reconcile_balance():
-    with conn:
-        c.execute("UPDATE transactions SET reconcile_balance=0")
-
-def create_reconcile_balance():
-    with conn:
-        account_ids = []
-        c.execute("SELECT account_id FROM transactions GROUP BY account_id")
-        for row in c:
-            if row[0] is not None:
-                    account_ids.append(row[0])
-        for a_id in account_ids:
-            c.execute("SELECT id,amount,reconcile_balance FROM transactions WHERE account_id=? ORDER BY day DESC, id DESC", (a_id,))
-            t_ids = []
-            t_amounts =[]
-            t_r_bals =[]
-            for row in c:
-                t_ids.append(row[0])
-                t_amounts.append(row[1])
-                t_r_bals.append(row[2])
-            t_ids.reverse()
-            t_amounts.reverse()
-            t_r_bals.reverse()
-            t_r_bals[0] = -1* t_amounts[0]
-            for i in range(1,len(t_ids)):
-                t_r_bals[i] = t_r_bals[i-1] - t_amounts[i]
-            for i in range(0,len(t_ids)):
-                t_id = t_ids[i]
-                t_r_bal = t_r_bals[i]
-                c.execute("UPDATE transactions SET reconcile_balance=? WHERE id=?", (t_r_bal,t_id))
-
 def health_check():
+    """
+    1. Compares the sum of all account balances to the sum of all envelope balances
+    2. Checks if stored/displayed account balances equal the sum of their transactions
+    3. Checks if stored/displayed envelope balances equal the sum of their transactions
+    4. TODO: Checks if last account reconcile balance matches the stored/displayed account balance??
+    5. TODO: Checks if last envelope reconcile balance matches the stored/displayed envelope balance??
+    """
     healthy = True
     log_message = ''
-    #Check if the envelope sum and account sum are consistent
     c.execute("SELECT user_id FROM accounts GROUP BY user_id")
     user_ids = c.fetchall()
     for row in user_ids:
         user_id = row[0]
-        # Get accounts total
+        
+        # 1. Compare the sum of all account balances to the sum of all envelope balances
         c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (user_id,))
         accounts_total = c.fetchone()[0]
         # Get envelopes total
@@ -715,7 +860,7 @@ def health_check():
             log_message = f'{log_message} [A/E Sum Mismatch -> A: {accounts_total} E: {envelopes_total}] Diff: {accounts_total-envelopes_total}\n'
             healthy = False
 
-        # Check if stored account totals equal the sum of their transactions
+        # 2. Check if stored/displayed account totals equal the sum of their transactions
         c.execute("SELECT id,balance,name from accounts")
         accounts = c.fetchall()
         for row in accounts:
@@ -732,7 +877,7 @@ def health_check():
                 log_message = f'{log_message} [A Total Err -> Name: {account_name}, ID: {account_id}, Disp/Total: {account_balance}/{a_balance}] Diff: {abs(a_balance + account_balance)}\n'
                 healthy = False
 
-        # Check if stored envelope totals equals the sum of their transactions
+        # 3. Check if stored/displayed envelope totals equals the sum of their transactions
         c.execute("SELECT id,balance,name from envelopes")
         envelopes = c.fetchall()
         for row in envelopes:
@@ -753,6 +898,9 @@ def health_check():
         return healthy
 
 def log_write(text):
+    """
+    Writes a message to an EventLog.txt file
+    """
     with open("EventLog.txt",'a') as f:
         f.write(text)
 
