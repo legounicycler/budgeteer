@@ -6,6 +6,7 @@ bad_e_names = []
 bad_a_ids = []
 bad_a_amts_new = []
 bad_a_names = []
+mismatched_totals = False
 
 # NOTE: None of this considers deleted accounts/envelopes, but that doesn't seem to be a problem
 # NOTE: This only works for a 1 user database. This will have to be updated when multi-accounts gets fully implemented
@@ -31,6 +32,7 @@ def health_check():
             print("HEALTHY")
         else:
             print("INCONSISTENT!!!")
+            mismatched_total = True
 
         print("\n>>> CHECKING ACCOUNTS <<<")
         c.execute("SELECT id,balance,name from accounts")
@@ -85,7 +87,7 @@ def health_check():
         print("HEALTH CHECK COMPLETE")
         print("---------------------\n")
 
-        if (len(bad_a_ids) > 0 or len(bad_e_ids) > 0):
+        if (len(bad_a_ids) > 0 or len(bad_e_ids) > 0 or mismatched_total == True):
             print("STATUS -> UNHEALTHY")
             choice_valid = False
             while (choice_valid == False):

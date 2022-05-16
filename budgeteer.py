@@ -22,7 +22,9 @@ t_type_dict = {
   2: 'Account Transfer',
   3: 'Income',
   4: 'Split Transaction',
-  5: 'Envelope Fill'
+  5: 'Envelope Fill',
+  6: 'Envelope Delete',
+  7: 'Account Delete'
 }
 
 t_type_icon_dict = {
@@ -31,7 +33,9 @@ t_type_icon_dict = {
   2: 'swap_vert',
   3: 'vertical_align_bottom',
   4: 'call_split',
-  5: 'input'
+  5: 'input',
+  6: 'layers_clear',
+  7: 'money_off'
 }
 
 def datetimeformat(value, format='%m/%d/%Y'):
@@ -355,11 +359,44 @@ def fill_envelopes(edited=False):
     message = message + " HEALTH ERROR!!!"
   return jsonify({'message': message, 'sched_message': sched_message, 'sched_t_submitted': sched_t_submitted})
 
+@app.route('/edit_delete_envelope', methods=['POST'])
+def edit_delete_envelope(envelope_id):
+  # edited=True if this is called from edit_transaction
+  name = request.form['name']
+  date = datetime.strptime(request.form['date'], '%m/%d/%Y')
+  note = request.form['note']
+
+  # A copy of the delete_envelope() function from database.py but with the info from the form pasted in
+  with conn:
+    if (envelope_id != UNALLOCATED): #You can't delete the unallocated envelope
+      e = get_envelope(envelope_id)
+      grouping = gen_grouping_num()
+      # 1. Empty the deleted envelope
+      t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, date, envelope_id, None, grouping, note, None, 0, USER_ID)
+      insert_transaction(t_envelope)
+      print()
+      # 2. Fill the unallocated envelope
+      t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, date, envelope_id, None, grouping, note, None, 0, USER_ID)
+      insert_transaction(t_unallocated)
+      # 3. Mark the envelope as deleted
+      c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
+    else:
+        print("You can't delete the 'Unallocated' envelope you moron")
+  
+  message = 'Updated envelope deletion!'
+  if (health_check() is False):
+    message = message + " HEALTH ERROR!!!"
+  return jsonify({'message': message})
+
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
   sched_t_submitted = False #This has to be here or else the javascript side breaks
   id = int(request.form['edit-id'])
   type = int(request.form['type'])
+  if (type == ENVELOPE_DELETE):
+    e_id = get_transaction(id).envelope_id
+  elif (type == ACCOUNT_DELETE):
+    a_id = get_transaction(id).account_id
   delete_transaction(id)
   if (type == BASIC_TRANSACTION):
     new_expense(True)
@@ -371,6 +408,10 @@ def edit_transaction():
     new_expense(True)
   elif (type == ENVELOPE_FILL):
     fill_envelopes(True)
+  elif (type == ENVELOPE_DELETE):
+    edit_delete_envelope(e_id)
+  elif (type == ACCOUNT_DELETE):
+    edit_delete_account(a_id)
 
   message = 'Transaction successfully edited!'
   if (health_check() is False):

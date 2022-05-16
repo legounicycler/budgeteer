@@ -28,7 +28,8 @@ ACCOUNT_TRANSFER = 2
 INCOME = 3
 SPLIT_TRANSACTION = 4
 ENVELOPE_FILL = 5
-PLACEHOLDER = 6
+ENVELOPE_DELETE = 6
+ACCOUNT_DELETE = 7
 
 #Should this also eventually be an ENUM?
 REMOVE = False
@@ -179,7 +180,7 @@ def insert_transaction(t):
         # ---4. UPDATE RECONCILE BALANCES---
         update_reconcile_amounts(t.account_id, t.envelope_id, t.id, INSERT)
     
-    log_write('T INSERT: ' + str(t)+ '\n')
+    log_write('T INSERT: ' + str(t) + '\n')
 
 def get_transaction(id):
     """
@@ -305,29 +306,40 @@ def delete_transaction(id):
         grouping = get_grouping_from_id(id)
         if grouping is not None:
             ids = get_ids_from_grouping(grouping)
-            for id in ids:
+            print("IDS: " + str(ids))
+            for id in ids:                
                 t = get_transaction(id)
-                # if it is not a scheduled transaction, update envelope/account balances
+
+                 # 2. If you're deleting an "ENVELOPE_DELETE" transaction, restore it so the balances can be updated
+                if t.type == ENVELOPE_DELETE:
+                    restore_envelope(t.envelope_id)
+                if t.type == ACCOUNT_DELETE:
+                    restore_account(t.account_id)
+
+                # 3. If it is not a transaction in the future, update envelope/account balances
                 if (t.date < datetime.now()): #TODO: This will probably need to change when timezones are implemented
-                    
-                    # 2. Update envelope/account balances
                     if t.envelope_id is not None:
                         if not (get_envelope(t.envelope_id).deleted == True):
                             update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
+                            print("UPDATE1")
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + t.amt)
+                            print("UPDATE2")
                     if t.account_id is not None:
                         if not (get_account(t.account_id).deleted == True):
                             update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
+                            print("UPDATE3")
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
-                
-                    # 3. Update the reconciled amounts if there is an account associated with the transaction
-                    update_reconcile_amounts(t.account_id, t.envelope_id, t.id, REMOVE)
+                            print("UPDATE4")
 
-                # 4. Delete the actual transaction from the database
+                    # 4. Update the reconciled amounts if there is an account associated with the transaction
+                    update_reconcile_amounts(t.account_id, t.envelope_id, t.id, REMOVE)
+                
+                # 5. Delete the actual transaction from the database
                 c.execute("DELETE FROM transactions WHERE id=?", (id,))
-                log_write('T DELETE: ' + str(t)+ '\n')
+
+                log_write('T DELETE: ' + str(t) + '\n')
         else:
             print("That transaction doesn't exist you twit")
 
@@ -605,35 +617,38 @@ def get_envelope_dict():
 def delete_envelope(envelope_id):
     """
     Deletes an envelope:
-    1. Adds envelope balance to the unallocated envelope
-    2. Sets envelope balance to 0
+    1. Creates a transaction that zeros envelope balance
+    2. Creates a transaction that adds envelope balance to unallocated envelope
     3. Sets envelope "deleted" flag to true
     """
     with conn:
-        if (envelope_id != UNALLOCATED):
-            update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + get_envelope_balance(envelope_id))
-            c.execute("UPDATE envelopes SET deleted=1,balance=0 WHERE id=?", (envelope_id,))
+        if (envelope_id != UNALLOCATED): #You can't delete the unallocated envelope
+            e = get_envelope(envelope_id)
+            grouping = gen_grouping_num()
+
+            # 1. Empty the deleted envelope
+            t_envelope = Transaction(ENVELOPE_DELETE,"Deleted '"+e.name+"' envelope", e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, "", None, 0, USER_ID)
+            insert_transaction(t_envelope)
+
+            # 2. Fill the unallocated envelope
+            t_unallocated = Transaction(ENVELOPE_DELETE,"Deleted '"+e.name+"' envelope", -1*e.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, None, grouping, "", None, 0, USER_ID)
+            insert_transaction(t_unallocated)
+
+            # 3. Mark the envelope as deleted
+            c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
         else:
             print("You can't delete the 'Unallocated' envelope you moron")
     log_write('E DELETE: ' + str(get_envelope(envelope_id))+ '\n')
 
 def restore_envelope(envelope_id):
     """
-    Restores an envelope:
-    1. Subtracts envelope balance from the unallocated envelope
-    2. Sets envelope "deleted" flag to false
+    Restores an envelope by setting its deleted flag to false
+    * Does NOT adjust the envelope balances, since this is done at the transaction level
     """
     with conn:
         if (envelope_id != UNALLOCATED):
-            update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - get_envelope_balance(envelope_id))
-            (tlist,offset,limit) = get_envelope_transactions(envelope_id,0,1)
-            t = tlist[0]
-            newt = get_transaction(t.id)
-            newbalance = newt.e_reconcile_bal
-            print(newbalance)
-            c.execute("UPDATE envelopes SET deleted=0,balance=? WHERE id=?",(newbalance,envelope_id,))
-        else:
-            print("You can't restore the 'Unallocated' envelope you moron")
+            c.execute("UPDATE envelopes SET deleted=0 WHERE id=?",(envelope_id,))
+            # Do nothing since the unallocated envelope should always be active
     log_write('E RESTORE: ' + str(get_envelope(envelope_id))+ '\n')
 
 def get_envelope_balance(id):
@@ -935,7 +950,7 @@ def log_write(text):
     Writes a message to an EventLog.txt file
     """
     with open("EventLog.txt",'a') as f:
-        f.write(text)
+        f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " " + text)
 
 
 def main():

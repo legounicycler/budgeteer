@@ -77,10 +77,12 @@
 
       // Editor modal setup
       editor_binds()
-      transaction_editor = $("#edit-expense").detach();
+      expense_editor = $("#edit-expense").detach();
       transfer_editor = $("#edit-transfer").detach();
       income_editor = $("#edit-income").detach();
       envelope_fill_editor = $("#edit-envelope-fill").detach();
+      envelope_restore = $("#edit-envelope-delete").detach();
+      account_restore = $("#edit-account-delete").detach();
 
       // Calculate budget bar color/area etc.
       budget_bars()
@@ -154,15 +156,20 @@
     const INCOME = 3;
     const SPLIT_TRANSACTION = 4;
     const ENVELOPE_FILL = 5;
+    const ENVELOPE_DELETE = 6;
+    const ACCOUNT_DELETE = 7;
 
-    var transaction_editor;
+    // Objects for various transaction editors
+    var expense_editor;
     var transfer_editor;
     var income_editor;
     var envelope_fill_editor;
-    var current_page = "";
+    var envelope_restore;
+    var account_restore;
 
-    var none_checked = true;
-    var delete_target;
+    var current_page = "";   //TODO: Add description
+    var none_checked = true; //TODO: Add description
+    var delete_target;       //TODO: Add description
 
     // Establish arrays of envelope blances etc. for envelope filler
     var envelope_fill_balances_array = [];
@@ -569,10 +576,10 @@
 
         //Update selects in transaction editor
         // TODO: These three select updates may be able to be combined with some clever CSS ID's and classes
-        transaction_editor.appendTo('#editor-row');
+        expense_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
-        transaction_editor.detach();
+        expense_editor.detach();
 
         //Update selects in transfer editor
         transfer_editor.appendTo('#editor-row');
@@ -656,7 +663,7 @@
     };
 
     // // Submits form data, closes the modal, clears the form, and reloads the data
-    $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form').submit(function(e) {
+    $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form, #edit-envelope-delete-form, #edit-account-delete-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
       var method = $(this).attr('method');
@@ -852,20 +859,27 @@
       }
 
       // Check which editor to show, detatch the others, update the special fields, and define checkbox_id
-      if (type == BASIC_TRANSACTION) {
-        transaction_editor.appendTo('#editor-row');
+      if (type == BASIC_TRANSACTION ) {
+        expense_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
+        $("#edit-account-delete").detach();
+        $("#edit-envelope-delete").detach();
         checkbox_id = '#edit-expense-schedule';
+        $("#edit-amount").val(amt.toFixed(2));
+        $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
+        $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
       } else if (type == ENVELOPE_TRANSFER || type == ACCOUNT_TRANSFER) {
         transfer_editor.appendTo('#editor-row');
         $("#edit-expense").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
+        $("#edit-account-delete").detach();
+        $("#edit-envelope-delete").detach();
         // Fill in the amount field
         $('#edit-transfer_type').val(type).formSelect({dropdownOptions: {container: 'body'}});
-        amt = Math.abs(amt);
+        $("#edit-amount").val(Math.abs(amt).toFixed(2));
         if (type == ENVELOPE_TRANSFER) {
           $('#account-transfer-edit').addClass('hide');
           $('#envelope-transfer-edit').removeClass('hide');
@@ -887,13 +901,21 @@
         $("#edit-expense").detach();
         $("#edit-transfer").detach();
         $("#edit-envelope-fill").detach();
-        amt = amt * -1;
+        $("#edit-account-delete").detach();
+        $("#edit-envelope-delete").detach();
+        $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
+        $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
+        $("#edit-amount").val((-1*amt).toFixed(2));
         checkbox_id = '#edit-income-schedule'
       } else if (type == SPLIT_TRANSACTION) {
-        transaction_editor.appendTo('#editor-row');
+        expense_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
+        $("#edit-account-delete").detach();
+        $("#edit-envelope-delete").detach();
+        $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
+        $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
         for (i=1 ; i<envelope_ids.length ; i++) {
           var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
           $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s5 input-field"><input required id="amount" class="validate" type="number" step=".01" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper remove-envelope-button-col"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
@@ -905,6 +927,8 @@
         $("#edit-transfer").detach();
         $("#edit-income").detach();
         $("#edit-expense").detach();
+        $("#edit-account-delete").detach();
+        $("#edit-envelope-delete").detach();
         // Fills input fields
         var $inputs = $('#edit-envelope-fill-form .envelope-fill-editor-bin :input[type=number]');
         envelope_fill_balances_array = [];
@@ -927,10 +951,26 @@
         $('#edit-fill-total').text(balance_format(envelope_fill_balances_array.reduce(getSum))).negative_check(parseFloat(envelope_fill_balances_array.reduce(getSum)));
         $('#edit-unallocated-balance-envelope-filler').text(balance_format(parseFloat(unallocated_balance))).negative_check(unallocated_balance)
         checkbox_id = '#edit-envelope-fill-schedule'
+      } else if (type == ENVELOPE_DELETE) {
+        envelope_restore.appendTo('#editor-row');
+        $("#edit-account-delete").detach();
+        $("#edit-expense").detach();
+        $("#edit-transfer").detach();
+        $("#edit-income").detach();
+        $("#edit-envelope-fill").detach();
+        $("#edit-amount").text(balance_format(amt)).negative_check(amt);
+
+      } else if (type == ACCOUNT_DELETE) {
+        account_restore.appendTo('#editor-row');
+        $("#edit-envelope-delete").detach();
+        $("#edit-expense").detach();
+        $("#edit-transfer").detach();
+        $("#edit-income").detach();
+        $("#edit-envelope-fill").detach();
+        // checkbox_id = '#edit-expense-schedule';
       }
 
-      // update the rest of the common fields
-      $("#edit-amount").val(amt.toFixed(2));
+      // Update the rest of the common fields
       $("#edit-date").val(date).datepicker({
         autoClose: true,
         format: 'mm/dd/yyyy',
@@ -939,33 +979,34 @@
       $('#edit-date').datepicker('setDate', new Date(date));
       $("#edit-name").val(name);
       $("#edit-note").val(note);
-      $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
-      $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
       $('#dtid').attr('value', id);
       $('#edit-id').attr('value', id);
       $('#type').attr('value', type); //Possibly change this to a less confusing ID
 
       //Logic for whether or not schedule checkbox/info shows or is disabled
-      if (schedule == 'None') {
-        // set to default (disabled)
-        if ($(checkbox_id).is(':checked')) {
-          // Uncheck box if it is checked
-          $(checkbox_id).siblings().click()
-        }
-        $(checkbox_id).attr('disabled', 'disabled')
-        $(checkbox_id).siblings().addClass('checkbox-disabled')
-      } else {
-        // Make sure checkbox is not disabled
-        $(checkbox_id).removeAttr('disabled')
-        $(checkbox_id).siblings().removeClass('checkbox-disabled')
-        // update scheduled values and show the section
-        $('#edit-schedule').val(schedule).formSelect({dropdownOptions: {container: 'body'}});
-        schedule_toggle($('#edit-schedule'));
-        $checkbox = ($('#' + $('#edit-schedule').data('checkbox-id')));
-        if (!($checkbox.is(':checked'))) {
-          $checkbox.siblings().click()
+      if (type != ENVELOPE_DELETE && type!= ACCOUNT_DELETE){
+        if (schedule == 'None') {
+          // set to default (disabled)
+          if ($(checkbox_id).is(':checked')) {
+            // Uncheck box if it is checked
+            $(checkbox_id).siblings().click()
+          }
+          $(checkbox_id).attr('disabled', 'disabled')
+          $(checkbox_id).siblings().addClass('checkbox-disabled')
+        } else {
+          // Make sure checkbox is not disabled
+          $(checkbox_id).removeAttr('disabled')
+          $(checkbox_id).siblings().removeClass('checkbox-disabled')
+          // update scheduled values and show the section
+          $('#edit-schedule').val(schedule).formSelect({dropdownOptions: {container: 'body'}});
+          schedule_toggle($('#edit-schedule'));
+          $checkbox = ($('#' + $('#edit-schedule').data('checkbox-id')));
+          if (!($checkbox.is(':checked'))) {
+            $checkbox.siblings().click()
+          }
         }
       }
+      
       M.updateTextFields();
     }; // End of t_editor_modal_open
 
