@@ -6,7 +6,6 @@ bad_e_names = []
 bad_a_ids = []
 bad_a_amts_new = []
 bad_a_names = []
-mismatched_totals = False
 
 # NOTE: None of this considers deleted accounts/envelopes, but that doesn't seem to be a problem
 # NOTE: This only works for a 1 user database. This will have to be updated when multi-accounts gets fully implemented
@@ -15,6 +14,7 @@ def health_check():
     print("----------------------")
     print("BEGINNING HEALTH CHECK")
     print("----------------------\n")
+    mismatched_totals = False
     c.execute("SELECT user_id FROM accounts GROUP BY user_id")
     user_ids = c.fetchall()
     for row in user_ids:
