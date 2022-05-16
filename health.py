@@ -32,7 +32,7 @@ def health_check():
             print("HEALTHY")
         else:
             print("INCONSISTENT!!!")
-            mismatched_total = True
+            mismatched_totals = True
 
         print("\n>>> CHECKING ACCOUNTS <<<")
         c.execute("SELECT id,balance,name from accounts")
@@ -87,7 +87,7 @@ def health_check():
         print("HEALTH CHECK COMPLETE")
         print("---------------------\n")
 
-        if (len(bad_a_ids) > 0 or len(bad_e_ids) > 0 or mismatched_total == True):
+        if (len(bad_a_ids) > 0 or len(bad_e_ids) > 0 or mismatched_totals == True):
             print("STATUS -> UNHEALTHY")
             choice_valid = False
             while (choice_valid == False):
