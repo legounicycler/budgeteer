@@ -394,7 +394,7 @@
           $('.balance-row').addClass('balance-row-adjust');
         }
         //If loading more transactions on the envelopes page, show the envelope reconcile balances
-        if (current_page.includes("account")) {
+        if (current_page.includes("envelope")) {
           //Show the envelope reconcile balance
           $('.envelope-reconcile-row').removeClass('gone');
           $('.transaction-amount').removeClass('valign-wrapper')

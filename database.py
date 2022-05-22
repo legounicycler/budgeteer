@@ -306,7 +306,6 @@ def delete_transaction(id):
         grouping = get_grouping_from_id(id)
         if grouping is not None:
             ids = get_ids_from_grouping(grouping)
-            print("IDS: " + str(ids))
             for id in ids:                
                 t = get_transaction(id)
 
@@ -321,17 +320,13 @@ def delete_transaction(id):
                     if t.envelope_id is not None:
                         if not (get_envelope(t.envelope_id).deleted == True):
                             update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
-                            print("UPDATE1")
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + t.amt)
-                            print("UPDATE2")
                     if t.account_id is not None:
                         if not (get_account(t.account_id).deleted == True):
                             update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
-                            print("UPDATE3")
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
-                            print("UPDATE4")
 
                     # 4. Update the reconciled amounts if there is an account associated with the transaction
                     update_reconcile_amounts(t.account_id, t.envelope_id, t.id, REMOVE)
