@@ -374,7 +374,6 @@ def edit_delete_envelope(envelope_id):
       # 1. Empty the deleted envelope
       t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, date, envelope_id, None, grouping, note, None, 0, USER_ID)
       insert_transaction(t_envelope)
-      print()
       # 2. Fill the unallocated envelope
       t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, date, envelope_id, None, grouping, note, None, 0, USER_ID)
       insert_transaction(t_unallocated)

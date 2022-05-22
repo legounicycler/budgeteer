@@ -180,7 +180,7 @@ def insert_transaction(t):
         # ---4. UPDATE RECONCILE BALANCES---
         update_reconcile_amounts(t.account_id, t.envelope_id, t.id, INSERT)
     
-    log_write('T INSERT: ' + str(t) + '\n')
+    log_write('T INSERT: ' + str(t))
 
 def get_transaction(id):
     """
@@ -334,7 +334,7 @@ def delete_transaction(id):
                 # 5. Delete the actual transaction from the database
                 c.execute("DELETE FROM transactions WHERE id=?", (id,))
 
-                log_write('T DELETE: ' + str(t) + '\n')
+                log_write('T DELETE: ' + str(t))
         else:
             print("That transaction doesn't exist you twit")
 
@@ -361,7 +361,7 @@ def insert_account(name, balance, user_id):
         income_name = 'Initial Account Balance: ' + name
         t = Transaction(INCOME, income_name, -1 * balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, user_id, 0,0)
         insert_transaction(t)
-        log_write('A INSERT: ' + str(get_account(account_id))+ '\n')
+        log_write('A INSERT: ' + str(get_account(account_id)))
 
 def get_account(id):
     """
@@ -399,7 +399,7 @@ def delete_account(account_id):
     with conn:
         update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - get_account_balance(account_id))
         c.execute("UPDATE accounts SET deleted=1,balance=0 WHERE id=?", (account_id,))
-        log_write('A DELETE: ' + str(get_account(account_id))+ '\n')
+        log_write('A DELETE: ' + str(get_account(account_id)))
 
 def get_account_balance(id):
     """
@@ -427,7 +427,7 @@ def edit_account(id, name, balance):
         new_unallocated_balance = unallocated_balance - diff
         update_envelope_balance(UNALLOCATED, new_unallocated_balance)
         c.execute("UPDATE accounts SET balance=?, name=? WHERE id=?", (balance, name, id))
-        log_write('A EDIT: ' + str(get_account(id))+ '\n')
+        log_write('A EDIT: ' + str(get_account(id)))
 
 def update_account_balance(id, balance):
     """
@@ -577,7 +577,7 @@ def update_reconcile_amounts(account_id, envelope_id, transaction_id, method):
         with conn:
             c.execute("INSERT INTO envelopes (name, budget, user_id) VALUES (?, ?, ?)", (name,budget,user_id))
             envelope_id = c.lastrowid
-            log_write('E INSERT: ' + str(get_envelope(envelope_id))+ '\n')
+            log_write('E INSERT: ' + str(get_envelope(envelope_id)))
 
 def get_envelope(id):
     """
@@ -633,7 +633,7 @@ def delete_envelope(envelope_id):
             c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
         else:
             print("You can't delete the 'Unallocated' envelope you moron")
-    log_write('E DELETE: ' + str(get_envelope(envelope_id))+ '\n')
+    log_write('E DELETE: ' + str(get_envelope(envelope_id)))
 
 def restore_envelope(envelope_id):
     """
@@ -644,7 +644,7 @@ def restore_envelope(envelope_id):
         if (envelope_id != UNALLOCATED):
             c.execute("UPDATE envelopes SET deleted=0 WHERE id=?",(envelope_id,))
             # Do nothing since the unallocated envelope should always be active
-    log_write('E RESTORE: ' + str(get_envelope(envelope_id))+ '\n')
+    log_write('E RESTORE: ' + str(get_envelope(envelope_id)))
 
 def get_envelope_balance(id):
     """
@@ -671,7 +671,7 @@ def edit_envelope(id, name, budget):
     """
     with conn:
         c.execute("UPDATE envelopes SET name=?, budget=? WHERE id=?",(name, budget, id))
-    log_write('E EDIT: ' + str(get_envelope(id))+ '\n')
+    log_write('E EDIT: ' + str(get_envelope(id)))
 
 def edit_envelopes(old_envelopes, new_envelopes):
     """
@@ -900,7 +900,7 @@ def health_check():
         c.execute("SELECT SUM(balance) FROM envelopes WHERE user_id=?", (user_id,))
         envelopes_total = c.fetchone()[0]
         if (accounts_total != envelopes_total):
-            log_message = f'{log_message} [A/E Sum Mismatch -> A: {accounts_total} E: {envelopes_total}] Diff: {accounts_total-envelopes_total}\n'
+            log_message = f'{log_message} [A/E Sum Mismatch -> A: {accounts_total} E: {envelopes_total}] Diff: {accounts_total-envelopes_total}'
             healthy = False
 
         # 2. Check if stored/displayed account totals equal the sum of their transactions
@@ -917,7 +917,7 @@ def health_check():
             if a_balance is None:
                 a_balance = 0
             if (-1*account_balance != a_balance):
-                log_message = f'{log_message} [A Total Err -> Name: {account_name}, ID: {account_id}, Disp/Total: {account_balance}/{a_balance}] Diff: {abs(a_balance + account_balance)}\n'
+                log_message = f'{log_message} [A Total Err -> Name: {account_name}, ID: {account_id}, Disp/Total: {account_balance}/{a_balance}] Diff: {abs(a_balance + account_balance)}'
                 healthy = False
 
         # 3. Check if stored/displayed envelope totals equals the sum of their transactions
@@ -934,10 +934,11 @@ def health_check():
             if e_balance is None:
                 e_balance = 0
             if (-1*envelope_balance != e_balance):
-                log_message = f'{log_message} [E Total Err -> Name: {envelope_name}, ID: {envelope_id}, Disp/Total: {envelope_balance}/{e_balance}] Diff: {abs(e_balance + envelope_balance)}\n'
+                log_message = f'{log_message} [E Total Err -> Name: {envelope_name}, ID: {envelope_id}, Disp/Total: {envelope_balance}/{e_balance}] Diff: {abs(e_balance + envelope_balance)}'
                 healthy = False
 
-        log_write(log_message)
+        if not healthy:
+            log_write(log_message)
         return healthy
 
 def log_write(text):
@@ -945,7 +946,7 @@ def log_write(text):
     Writes a message to an EventLog.txt file
     """
     with open("EventLog.txt",'a') as f:
-        f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " " + text)
+        f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " " + text+"\n")
 
 
 def main():
