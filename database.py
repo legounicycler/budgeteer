@@ -311,7 +311,8 @@ def delete_transaction(id):
 
                  # 2. If you're deleting an "ENVELOPE_DELETE" transaction, restore it so the balances can be updated
                 if t.type == ENVELOPE_DELETE:
-                    restore_envelope(t.envelope_id)
+                    if t.envelope_id is not UNALLOCATED: #Don't try to restore the unallocated envelope
+                        restore_envelope(t.envelope_id)
                 if t.type == ACCOUNT_DELETE:
                     restore_account(t.account_id)
 
@@ -375,7 +376,7 @@ def get_account(id):
 
 def get_account_dict():
     """
-    Meant for displaying the accounts.
+    Used for displaying the accounts in the side panel and selects.
     Returns:
     1. A boolean that says whether there are accounts to render
     2. A tuple with a dictionary with keys of account_id and values of account objects.
@@ -591,7 +592,7 @@ def get_envelope(id):
 
 def get_envelope_dict():
     """
-    Meant for displaying the envelopes.
+    Used for displaying the envelopes in the side panel and selects.
     Returns:
     1. A boolean that says whether there are envelopes to render
     2. A tuple with a dictionary with keys of envelope_id and values of envelope objects.
@@ -644,7 +645,7 @@ def restore_envelope(envelope_id):
         if (envelope_id != UNALLOCATED):
             c.execute("UPDATE envelopes SET deleted=0 WHERE id=?",(envelope_id,))
             # Do nothing since the unallocated envelope should always be active
-    log_write('E RESTORE: ' + str(get_envelope(envelope_id)))
+            log_write('E RESTORE: ' + str(get_envelope(envelope_id)))
 
 def get_envelope_balance(id):
     """

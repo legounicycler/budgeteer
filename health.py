@@ -7,7 +7,6 @@ bad_a_ids = []
 bad_a_amts_new = []
 bad_a_names = []
 
-# NOTE: None of this considers deleted accounts/envelopes, but that doesn't seem to be a problem
 # NOTE: This only works for a 1 user database. This will have to be updated when multi-accounts gets fully implemented
 
 def health_check():
@@ -18,6 +17,8 @@ def health_check():
     c.execute("SELECT user_id FROM accounts GROUP BY user_id")
     user_ids = c.fetchall()
     for row in user_ids:
+
+        # 1. CONFIRM CONSISTENCY BETWEEN SUM OF ENVELOPE BALANCES AND SUM OF ACCOUNT BALANCES
         user_id = row[0]
         print(">>> CHECKING TOTALS FOR USER ID:", user_id, "<<<")
         # Get accounts total
@@ -34,51 +35,84 @@ def health_check():
             print("INCONSISTENT!!!")
             mismatched_totals = True
 
+        # 2. CONFIRM THAT THESE THREE VALUES ARE THE SAME
+        #     a. Balances stored in accounts table
+        #     b. Sum of all transactions in an account
+        #     c. Account reconcile balance on latest transaction
         print("\n>>> CHECKING ACCOUNTS <<<")
         c.execute("SELECT id,balance,name from accounts")
         accounts = c.fetchall()
         for row in accounts:
-            account_name = row[2]
-            account_id = row[0]
-            # get account balance according to database
-            account_balance = row[1]
-            # get account balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE account_id=? AND date(day) <= date('now', 'localtime')", (account_id,))
-            a_balance = c.fetchone()[0]
-            if a_balance is None:
-                a_balance = 0
-            if (-1*account_balance == a_balance):
-                print("HEALTHY --->", account_name, account_id)
-            else:
-                bad_a_ids.append(account_id)
-                bad_a_amts_new.append(a_balance)
-                print("WRONG!! --->", account_name, account_id)
-                print("     Account balance VS Summed balance")
-                print("    ", -1*account_balance, 'vs', a_balance)
-                print("Difference: ", abs(a_balance + account_balance))
+            a_name = row[2]
+            a_id = row[0]
 
+            # a. Get account balance according to database
+            a_balance_db = -1*row[1]
+
+            # b. Get account balance according to summed transaction totals
+            c.execute("SELECT SUM(amount) from transactions WHERE account_id=? AND date(day) <= date('now', 'localtime')", (a_id,))
+            a_balance_summed = c.fetchone()[0]
+            if a_balance_summed is None: #If there's no transactions in the account yet, placeholder of zero
+                a_balance_summed = 0
+
+            # c. Get account balance according to latest account reconcile value
+            c.execute("SELECT a_reconcile_bal FROM transactions WHERE account_id=? AND date(day) <= date('now', 'localtime') ORDER by day DESC, id DESC LIMIT 1", (a_id,))
+            a_balance_reconcile_tuple = c.fetchone()
+            if a_balance_reconcile_tuple is None: #If there's no transactions in the account yet, placeholder of zero
+                a_balance_reconcile = 0
+            else:
+                a_balance_reconcile = -1*a_balance_reconcile_tuple[0]
+
+            # d. Check for health!
+            if (a_balance_db == a_balance_summed and a_balance_db == a_balance_reconcile and a_balance_summed == a_balance_reconcile):
+                print(f"HEALTHY ---> (ID:{a_id}) {a_name}")
+            else:
+                bad_a_ids.append(a_id)
+                bad_a_amts_new.append(a_balance_summed)
+                print(f"WRONG!! ---> (ID:{a_id}) {a_name}")
+                print("     Account balance VS Summed balance VS Reconcile balance")
+                print("    ", -1*a_balance_db, 'vs', a_balance_summed, 'vs',a_balance_reconcile)
+                print("Difference: ", abs(a_balance_summed + a_balance_db))
+
+        # 3. CONFIRM THAT THESE THREE VALUES ARE THE SAME
+        #     a. Balances stored in envelopes table
+        #     b. Sum of all transactions in an envelope
+        #     c. Envelope reconcile balance on latest transaction
         print("\n>>> CHECKING ENVELOPES <<<")
         c.execute("SELECT id,balance,name from envelopes")
         envelopes = c.fetchall()
         for row in envelopes:
-            envelope_name = row[2]
-            envelope_id = row[0]
-            # get envelope balance according to database
-            envelope_balance = row[1]
-            # get envelope balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND date(day) <= date('now', 'localtime')", (envelope_id,))
-            e_balance = c.fetchone()[0]
-            if e_balance is None:
-                e_balance = 0
-            if (-1*envelope_balance == e_balance):
-                print("HEALTHY --->", envelope_name, envelope_id)
+            e_name = row[2]
+            e_id = row[0]
+
+            # a. Get envelope balance according to database
+            e_balance_db = -1*row[1]
+
+            # b. Get envelope balance according to summed transaction totals
+            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND date(day) <= date('now', 'localtime')", (e_id,))
+            e_balance_summed = c.fetchone()[0]
+            if e_balance_summed is None: #If there's no transactions in the envelope yet, placeholder of zero
+                e_balance_summed = 0
+
+            # c. Get envelope balance according to latest envelope reconcile value
+            c.execute("SELECT e_reconcile_bal FROM transactions WHERE envelope_id=? AND date(day) <= date('now', 'localtime') ORDER by day DESC, id DESC LIMIT 1", (e_id,))
+            # NOTE: Sum of e_reconcile_bal to avoid nonetype error when no transactions are in the envelope
+            e_balance_reconcile_tuple = c.fetchone()
+            if e_balance_reconcile_tuple is None: #If there's no transactions in the envelope yet, placeholder of zero
+                e_balance_reconcile = 0
             else:
-                bad_e_ids.append(envelope_id)
-                bad_e_amts_new.append(e_balance)
-                print("WRONG!! --->", envelope_name, envelope_id)
-                print("     Envelope balance VS Summed balance")
-                print("    ", -1*envelope_balance, 'vs', e_balance)
-                print("Difference: ", abs(e_balance + envelope_balance))
+                e_balance_reconcile = -1*e_balance_reconcile_tuple[0]
+
+            # d. Check for health!
+            if (e_balance_db == e_balance_summed and e_balance_db == e_balance_reconcile and e_balance_summed == e_balance_reconcile):
+                print(f"HEALTHY ---> (ID:{e_id}) {e_name}")
+            else:
+                bad_e_ids.append(e_id)
+                bad_e_amts_new.append(e_balance_summed)
+                print(f"WRONG!! ---> (ID:{e_id}) {e_name}")
+                print("     Envelope balance VS Summed balance VS Reconcile Balance")
+                print("    ", e_balance_db, 'vs', e_balance_summed, 'vs', e_balance_reconcile)
+                print("Difference: ", abs(e_balance_db + e_balance_summed))
 
         print("\nBad Account IDs:", bad_a_ids)
         print("Bad Envelope IDs:", bad_e_ids)
@@ -117,13 +151,19 @@ def account_heal(a_id, new_balance):
     print("Account", a_id, "balance set to", new_balance)
     c.execute("SELECT id from transactions WHERE account_id=? ORDER BY day ASC, id ASC LIMIT 1", (a_id,))
     first_t_id = c.fetchone()[0]
-    update_reconcile_amounts(a_id, first_t_id, INSERT)
+    first_t = get_transaction(first_t_id)
+    update_reconcile_amounts(first_t.account_id, first_t.envelope_id, first_t_id, INSERT)
     print("Account", a_id, "reconcile balances updated.")
 
 def envelope_heal(e_id, new_balance):
     print("Healing envelope", e_id)
     update_envelope_balance(e_id, -1*new_balance)
     print("Envelope", e_id, "balance set to", new_balance)
+    c.execute("SELECT id from transactions WHERE envelope_id=? ORDER BY day ASC, id ASC LIMIT 1", (e_id,))
+    first_t_id = c.fetchone()[0]
+    first_t = get_transaction(first_t_id)
+    update_reconcile_amounts(first_t.account_id, first_t.envelope_id, first_t_id, INSERT)
+    print("Envelope", e_id, "reconcile balances updated.")
 
 
 def main():

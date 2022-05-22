@@ -31,8 +31,8 @@ def create_e_reconcile_bal():
         for row in c:
             if row[0] is not None:
                     envelope_ids.append(row[0])
-        for a_id in envelope_ids:
-            c.execute("SELECT id,amount,e_reconcile_bal FROM transactions WHERE envelope_id=? ORDER BY day DESC, id DESC", (a_id,))
+        for e_id in envelope_ids:
+            c.execute("SELECT id,amount,e_reconcile_bal FROM transactions WHERE envelope_id=? ORDER BY day DESC, id DESC", (e_id,))
             t_ids = []
             t_amounts =[]
             t_r_bals =[]
@@ -83,8 +83,9 @@ def rename_reconcile_bal():
         c.execute("""DROP TABLE transactions_old""")
 
 def main():
-    rename_reconcile_bal()       # 1. Rename the old column which was previously just for accounts
-    add_e_reconcile_bal_column() # 2. Add an envelope reconcile balance column
+    clear_e_reconcile_bal()        # 0. Clear the balance of the reconcile balance
+    # rename_reconcile_bal()       # 1. Rename the old column which was previously just for accounts
+    # add_e_reconcile_bal_column() # 2. Add an envelope reconcile balance column
     create_e_reconcile_bal()     # 3. Populate the numbers with their proper values
 
 
