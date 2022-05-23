@@ -424,6 +424,15 @@ def delete_account(account_id):
         c.execute("UPDATE accounts SET deleted=1,balance=0 WHERE id=?", (account_id,))
         log_write('A DELETE: ' + str(get_account(account_id)))
 
+def restore_account(account_id):
+    """
+    Restores an account by setting its deleted flag to false
+    * Does NOT adjust the account balances, since this is done at the transaction level
+    """
+    with conn:
+        c.execute("UPDATE accounts SET deleted=0 WHERE id=?",(account_id,))
+        log_write('A RESTORE: ' + str(get_account(account_id)))
+
 def get_account_balance(id):
     """
     Returns account balance
@@ -859,23 +868,26 @@ def date_parse(date_str):
         print("DATE PARSE ERROR: ", date_str)
     return date
 
-def print_database():
+def print_database(print_all=0):
     """
-    Literally prints the entire database to the console
+    Prints the contents of the database to the console.
+    If the parameter print_all is 1, it will print all the transactions.
+    If no parameter is provided, it will only print the envelopes and accounts
     """
     print()
-    print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
-    print("TRANSACTIONS:")
-    c.execute("PRAGMA table_info(transactions)")
-    colnames = ''
-    for row in c:
-        colnames = colnames + row[1] + ', '
-    print("(" + colnames[:-2] + ")\n")
-    c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
-    for row in c:
-        print(row)
-    print()
-
+    if print_all == 1:
+        print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
+        print("TRANSACTIONS:")
+        c.execute("PRAGMA table_info(transactions)")
+        colnames = ''
+        for row in c:
+            colnames = colnames + row[1] + ', '
+        print("(" + colnames[:-2] + ")\n")
+        c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
+        for row in c:
+            print(row)
+        print()
+    
     print('ACCOUNTS:')
     c.execute("PRAGMA table_info(accounts)")
     colnames = ''

@@ -142,28 +142,28 @@ def health_check():
                     print("Invalid option. Try again.")
 
         else:
-            print("STATUS -> HEALTHY")
-            print("No further action required.")
+            print("STATUS -> HEALTHY\n")
+            print("(No further action required.)\n\n")
 
 def account_heal(a_id, new_balance):
-    print("Healing account", a_id)
+    print("   Healing account", a_id)
     update_account_balance(a_id, -1*new_balance)
-    print("Account", a_id, "balance set to", new_balance)
+    print("   Account", a_id, "balance set to", -1*new_balance)
     c.execute("SELECT id from transactions WHERE account_id=? ORDER BY day ASC, id ASC LIMIT 1", (a_id,))
     first_t_id = c.fetchone()[0]
     first_t = get_transaction(first_t_id)
     update_reconcile_amounts(first_t.account_id, first_t.envelope_id, first_t_id, INSERT)
-    print("Account", a_id, "reconcile balances updated.")
+    print("   Account", a_id, "reconcile balances updated.")
 
 def envelope_heal(e_id, new_balance):
-    print("Healing envelope", e_id)
+    print("   Healing envelope", e_id)
     update_envelope_balance(e_id, -1*new_balance)
-    print("Envelope", e_id, "balance set to", new_balance)
+    print("   Envelope", e_id, "balance set to", -1*new_balance)
     c.execute("SELECT id from transactions WHERE envelope_id=? ORDER BY day ASC, id ASC LIMIT 1", (e_id,))
     first_t_id = c.fetchone()[0]
     first_t = get_transaction(first_t_id)
     update_reconcile_amounts(first_t.account_id, first_t.envelope_id, first_t_id, INSERT)
-    print("Envelope", e_id, "reconcile balances updated.")
+    print("   Envelope", e_id, "reconcile balances updated.")
 
 
 def main():
