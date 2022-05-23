@@ -353,9 +353,9 @@ h5 {
   background-color: #d50707;
 }
 
-/*.neutral {
-  background-color: black !important;
-}*/
+.neutral {
+  background-color: #656565 !important;
+}
 
 #edit-accounts, #edit-envelopes {
   margin-top: 5px;

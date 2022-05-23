@@ -196,6 +196,7 @@ def get_transaction(id):
 
 def get_transactions(start, amount):
     """
+    For displaying transactions on the HOME PAGE ONLY
     Given a start number and an amount of transactions to fetch, returns:
     1. A list of transaction objects for display
     2. An offset signifying how many transactions are currently displayed, or where the next start should be.
@@ -204,18 +205,37 @@ def get_transactions(start, amount):
     Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
     with its summed total
     """
-    c.execute("SELECT id from TRANSACTIONS GROUP BY (CASE WHEN type = 1 OR type = 2 THEN id ELSE grouping END) ORDER BY day DESC, id DESC LIMIT ? OFFSET ?", (amount, start))
+    c.execute("SELECT id from TRANSACTIONS GROUP BY grouping ORDER BY day DESC, id DESC LIMIT ? OFFSET ?", (amount, start))
     groupings = c.fetchall()
     tlist = []
     for thing in groupings:
         t = get_transaction(thing[0])
-        if t.type == SPLIT_TRANSACTION:
+
+        # Set the amount for display
+        if t.type == BASIC_TRANSACTION or t.type == INCOME:
+             t.amt = -1 * t.amt
+        elif t.type == ENVELOPE_TRANSFER:
+            t.amt = abs(t.amt)
+            # Get the id for the other envelope and put it in the t.account_id field for special display
+            t_ids = get_ids_from_grouping(t.grouping)
+            t_ids.remove(t.id)
+            e2_id = get_transaction(t_ids[0]).envelope_id
+            t.account_id = e2_id
+        elif t.type == ACCOUNT_TRANSFER:
+            t.amt = abs(t.amt)
+            # Get the id for the other account and put it in the t.envelope_id field for special display
+            t_ids = get_ids_from_grouping(t.grouping)
+            t_ids.remove(t.id)
+            a2_id = get_transaction(t_ids[0]).account_id
+            t.envelope_id = a2_id
+        elif t.type == SPLIT_TRANSACTION:
             c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?", (t.grouping,))
-            t.amt = c.fetchone()[0]
+            t.amt = -1 * c.fetchone()[0] # Total the amount for all the constituent transactions
         elif t.type == ENVELOPE_FILL:
-            c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=1", (t.grouping,))
-            t.amt = c.fetchone()[0] * -1
-        t.amt = stringify(t.amt * -1)
+            c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=?", (t.grouping,UNALLOCATED))
+            t.amt = c.fetchone()[0] # Total the amount for the envelope fill
+        
+        t.amt = stringify(t.amt)
         t.a_reconcile_bal = stringify(t.a_reconcile_bal)
         t.e_reconcile_bal = stringify(t.e_reconcile_bal)
         tlist.append(t)
@@ -230,6 +250,7 @@ def get_transactions(start, amount):
 
 def get_envelope_transactions(envelope_id, start, amount):
     """
+    For displaying transactions on the ENVELOPE PAGE ONLY
     Given a start number and an amount of transactions to fetch, returns for a particular envelope:
     1. A list of transaction objects for display
     2. An offset signifying how many transactions are currently displayed, or where the next start should be.
@@ -259,6 +280,7 @@ def get_envelope_transactions(envelope_id, start, amount):
 
 def get_account_transactions(account_id, start, amount):
     """
+    For displaying transactions on the ACCOUNTS PAGE ONLY
     Given a start number and an amount of transactions to fetch, returns for a particular account:
     1. A list of transaction objects for display
     2. An offset signifying how many transactions are currently displayed, or where the next start should be.

@@ -167,7 +167,7 @@
     var envelope_restore;
     var account_restore;
 
-    var current_page = "";   //TODO: Add description
+    var current_page = "All Transactions";   //TODO: Add description
     var none_checked = true; //TODO: Add description
     var delete_target;       //TODO: Add description
 
@@ -958,7 +958,7 @@
         $("#edit-transfer").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
-        $("#edit-amount").text(balance_format(amt)).negative_check(amt);
+        $("#edit-amount").text(balance_format(-1*amt)).negative_check(-1*amt);
 
       } else if (type == ACCOUNT_DELETE) {
         account_restore.appendTo('#editor-row');
@@ -967,6 +967,7 @@
         $("#edit-transfer").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
+        $("#edit-amount").text(balance_format(-1*amt)).negative_check(-1*amt);
         // checkbox_id = '#edit-expense-schedule';
       }
 
