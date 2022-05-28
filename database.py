@@ -215,19 +215,31 @@ def get_transactions(start, amount):
         if t.type == BASIC_TRANSACTION or t.type == INCOME:
              t.amt = -1 * t.amt
         elif t.type == ENVELOPE_TRANSFER:
-            t.amt = abs(t.amt)
-            # Get the id for the other envelope and put it in the t.account_id field for special display
             t_ids = get_ids_from_grouping(t.grouping)
-            t_ids.remove(t.id)
-            e2_id = get_transaction(t_ids[0]).envelope_id
-            t.account_id = e2_id
+            if (t.amt > 0):
+                # Get the id for the other envelope and put it in the t.account_id field for special display
+                from_envelope_id = get_transaction(t_ids[0]).envelope_id
+                to_envelope_id = get_transaction(t_ids[1]).envelope_id
+            else:
+                from_envelope_id = get_transaction(t_ids[1]).envelope_id
+                to_envelope_id = get_transaction(t_ids[0]).envelope_id
+            # Display format (eID -> aID) or for envelope transfers, (fromEnvelope -> toEnvelope)
+            t.envelope_id = from_envelope_id # When displaying transactions, envelope ID is always displayed first.
+            t.account_id = to_envelope_id    # When displaying transactions, account ID is always displayed second
+            t.amt = abs(t.amt)
         elif t.type == ACCOUNT_TRANSFER:
-            t.amt = abs(t.amt)
-            # Get the id for the other account and put it in the t.envelope_id field for special display
             t_ids = get_ids_from_grouping(t.grouping)
-            t_ids.remove(t.id)
-            a2_id = get_transaction(t_ids[0]).account_id
-            t.envelope_id = a2_id
+            if (t.amt > 0):
+                # Get the id for the other account and put it in the t.account_id field for special display
+                from_account_id = get_transaction(t_ids[0]).account_id
+                to_account_id = get_transaction(t_ids[1]).account_id
+            else:
+                from_account_id = get_transaction(t_ids[1]).account_id
+                to_account_id = get_transaction(t_ids[0]).account_id
+            # Display format (eID -> aID) or for account transfers, (fromaccount -> toaccount)
+            t.envelope_id = from_account_id # When displaying transactions, envelope ID is always displayed first.
+            t.account_id = to_account_id    # When displaying transactions, account ID is always displayed second
+            t.amt = abs(t.amt)
         elif t.type == SPLIT_TRANSACTION:
             c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?", (t.grouping,))
             t.amt = -1 * c.fetchone()[0] # Total the amount for all the constituent transactions
@@ -265,6 +277,24 @@ def get_envelope_transactions(envelope_id, start, amount):
     tlist = []
     for id in ids:
         t = get_transaction(id[0])
+        # For display purposes, the envelope ID displays first, then the account ID
+        if t.type == ENVELOPE_TRANSFER:
+            t_ids = get_ids_from_grouping(t.grouping)
+            if (t.amt == 0): # If amt is 0: Display the envelope order based on the order they come out of the database
+                from_envelope_id = get_transaction(t_ids[1]).envelope_id
+                to_envelope_id = get_transaction(t_ids[0]).envelope_id
+            elif (t.amt > 0): # If amt is +: Actual amt is -, which means the envelope is being drained, which means it's FROM 
+                t_ids.remove(t.id) #Remove the transaction with the positive balance
+                from_envelope_id = t.envelope_id
+                to_envelope_id = get_transaction(t_ids[0]).envelope_id
+            elif (t.amt < 0): # If amt is -: Actual amt is +, which means the envelope is being filled, which means it's TO
+                t_ids.remove(t.id) #Remove the transaction with the positive balance
+                to_envelope_id = t.envelope_id
+                from_envelope_id = get_transaction(t_ids[0]).envelope_id
+            # Display format (eID -> aID) or for envelope transfers, (fromEnvelope -> toEnvelope)
+            t.envelope_id = from_envelope_id # When displaying transactions, envelope ID is always displayed first.
+            t.account_id = to_envelope_id    # When displaying transactions, account ID is always displayed second
+
         t.amt = stringify(t.amt * -1)
         t.a_reconcile_bal = stringify(t.a_reconcile_bal)
         t.e_reconcile_bal = stringify(t.e_reconcile_bal)
@@ -294,6 +324,25 @@ def get_account_transactions(account_id, start, amount):
     tlist = []
     for thing in ids:
         t = get_transaction(thing[0])
+        if t.type == ACCOUNT_TRANSFER:
+            # Get the id for the other account and put it in the t.account_id field for special display
+            t_ids = get_ids_from_grouping(t.grouping)
+            # Display format (eID -> aID) or for account transfers, (fromAccount -> toAccount)
+            t_ids = get_ids_from_grouping(t.grouping)
+            if (t.amt == 0): # If amt is 0: Display the account order based on the order they come out of the database
+                from_account_id = get_transaction(t_ids[1]).account_id
+                to_account_id = get_transaction(t_ids[0]).account_id
+            elif (t.amt > 0): # If amt is +: Actual amt is -, which means the account is being drained, which means it's FROM 
+                t_ids.remove(t.id) #Remove the transaction with the positive balance
+                from_account_id = t.account_id
+                to_account_id = get_transaction(t_ids[0]).account_id
+            elif (t.amt < 0): # If amt is -: Actual amt is +, which means the account is being filled, which means it's TO
+                t_ids.remove(t.id) #Remove the transaction with the positive balance
+                to_account_id = t.account_id
+                from_account_id = get_transaction(t_ids[0]).account_id
+            # Display format (eID -> aID) or for account transfers, (fromaccount -> toaccount)
+            t.envelope_id = from_account_id # When displaying transactions, envelope ID is always displayed first.
+            t.account_id = to_account_id    # When displaying transactions, account ID is always displayed second
         t.amt = stringify(thing[1] * -1)
         t.a_reconcile_bal = stringify(t.a_reconcile_bal)
         t.e_reconcile_bal = stringify(t.e_reconcile_bal)
@@ -868,7 +917,7 @@ def date_parse(date_str):
         print("DATE PARSE ERROR: ", date_str)
     return date
 
-def print_database(print_all=0):
+def print_database(print_all=0,reverse=1):
     """
     Prints the contents of the database to the console.
     If the parameter print_all is 1, it will print all the transactions.
@@ -883,7 +932,10 @@ def print_database(print_all=0):
         for row in c:
             colnames = colnames + row[1] + ', '
         print("(" + colnames[:-2] + ")\n")
-        c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
+        if reverse == 1:
+            c.execute("SELECT * FROM transactions ORDER BY day ASC, id ASC")
+        else:
+            c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
         for row in c:
             print(row)
         print()
