@@ -914,6 +914,7 @@
         $("#edit-envelope-fill").detach();
         $("#edit-account-delete").detach();
         $("#edit-envelope-delete").detach();
+        $("#edit-amount").val(amt.toFixed(2));
         $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
         $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
         for (i=1 ; i<envelope_ids.length ; i++) {
