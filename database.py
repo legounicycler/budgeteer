@@ -8,6 +8,7 @@ from datetime import datetime
 from datetime import date
 import json
 import platform
+import sys, os
 
 platform = platform.system()
 if platform == 'Windows':
@@ -383,7 +384,8 @@ def delete_transaction(id):
                  # 2. If you're deleting an "ENVELOPE_DELETE" transaction, restore it so the balances can be updated
                 if t.type == ENVELOPE_DELETE:
                     if t.envelope_id is not UNALLOCATED: #Don't try to restore the unallocated envelope
-                        restore_envelope(t.envelope_id)
+                        if (get_envelope(t.envelope_id).deleted is not False): #Don't try to restore an envelope that is not deleted
+                            restore_envelope(t.envelope_id)
                 if t.type == ACCOUNT_DELETE:
                     restore_account(t.account_id)
 
@@ -712,9 +714,9 @@ def delete_envelope(envelope_id):
 
             # 3. Mark the envelope as deleted
             c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
+            log_write('E DELETE: ' + str(get_envelope(envelope_id)))
         else:
             print("You can't delete the 'Unallocated' envelope you moron")
-    log_write('E DELETE: ' + str(get_envelope(envelope_id)))
 
 def restore_envelope(envelope_id):
     """
@@ -964,69 +966,224 @@ def print_database(print_all=0,reverse=1):
     print("TOTAL FUNDS: ", get_total(USER_ID))
     print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
 
-
-def health_check():
+def health_check(interactive=False):
     """
     1. Compares the sum of all account balances to the sum of all envelope balances
-    2. Checks if stored/displayed account balances equal the sum of their transactions
-    3. Checks if stored/displayed envelope balances equal the sum of their transactions
-    4. TODO: Checks if last account reconcile balance matches the stored/displayed account balance??
-    5. TODO: Checks if last envelope reconcile balance matches the stored/displayed envelope balance??
+    2. Ensures that all deleted envelopes and accounts have a balance of zero
+    3. Checks if stored/displayed account balances equal the sum of their transactions and latest reconcile balance
+    4. Checks if stored/displayed envelope balances equal the sum of their transactions and latest reconcile balance
     """
+
+    def account_heal(a_id, new_balance):
+        print("   Healing account", a_id)
+        update_account_balance(a_id, -1*new_balance)
+        print("   Account", a_id, "balance set to", -1*new_balance)
+        c.execute("SELECT id from transactions WHERE account_id=? ORDER BY day ASC, id ASC LIMIT 1", (a_id,))
+        first_t_id = c.fetchone()[0]
+        first_t = get_transaction(first_t_id)
+        update_reconcile_amounts(first_t.account_id, first_t.envelope_id, first_t_id, INSERT)
+        print("   Account", a_id, "reconcile balances updated.")
+
+    def envelope_heal(e_id, new_balance):
+        print("   Healing envelope", e_id)
+        update_envelope_balance(e_id, -1*new_balance)
+        print("   Envelope", e_id, "balance set to", -1*new_balance)
+        c.execute("SELECT id from transactions WHERE envelope_id=? ORDER BY day ASC, id ASC LIMIT 1", (e_id,))
+        first_t_id = c.fetchone()[0]
+        first_t = get_transaction(first_t_id)
+        update_reconcile_amounts(first_t.account_id, first_t.envelope_id, first_t_id, INSERT)
+        print("   Envelope", e_id, "reconcile balances updated.")
+    
     healthy = True
-    log_message = ''
+    deleted_healthy = True
+    bad_e_ids = []
+    bad_e_amts_new = []
+    bad_a_ids = []
+    bad_a_amts_new = []
+
+    # Turn print statements on or off 
+    if (interactive is True):
+        enablePrint()
+        print("----------------------")
+        print("BEGINNING HEALTH CHECK")
+        print("----------------------\n")
+    else:
+        blockPrint()
+    
+    
     c.execute("SELECT user_id FROM accounts GROUP BY user_id")
     user_ids = c.fetchall()
     for row in user_ids:
         user_id = row[0]
-        
-        # 1. Compare the sum of all account balances to the sum of all envelope balances
+
+        # ---1. CONFIRM CONSISTENCY BETWEEN SUM OF ENVELOPE BALANCES AND SUM OF ACCOUNT BALANCES---
+        print(">>> CHECKING TOTALS FOR USER ID:", user_id)
+        # Get accounts total
         c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (user_id,))
         accounts_total = c.fetchone()[0]
         # Get envelopes total
         c.execute("SELECT SUM(balance) FROM envelopes WHERE user_id=?", (user_id,))
         envelopes_total = c.fetchone()[0]
-        if (accounts_total != envelopes_total):
-            log_message = f'{log_message} [A/E Sum Mismatch -> A: {accounts_total} E: {envelopes_total}] Diff: {accounts_total-envelopes_total}'
+        print(" Accounts total:", accounts_total)
+        print(" Envelopes total:", envelopes_total)
+        if (accounts_total == envelopes_total):
+            print(" HEALTHY")
+        else:
+            print(" INCONSISTENT!!!")
+            log_message = f' [A/E Sum Mismatch -> A: {accounts_total} E: {envelopes_total}] Diff: {accounts_total-envelopes_total}'
             healthy = False
 
-        # 2. Check if stored/displayed account totals equal the sum of their transactions
+        # ---2. CONFIRM THAT DELETED ENVELOPES AND ACCOUNTS ALL HAVE A BALANCE OF ZERO---
+        print("\n>>> CHECKING BALANCES OF DELETED ENVELOPES AND ACCOUNTS FOR USER ID:", user_id)
+        c.execute("SELECT id,balance,name FROM accounts WHERE user_id=? AND deleted=1", (user_id,))
+        account_info = c.fetchall()
+        for account in account_info:
+            if account[1] != 0:
+                bad_a_ids.append(account[0])
+                bad_a_amts_new.append(0)
+                healthy = False
+                print(f" [Deleted A Bal NOT 0 -> {account[2]}({account[0]}) balance: {account[1]}]")
+        c.execute("SELECT id,balance,name FROM envelopes WHERE user_id=? AND deleted=1", (user_id,))
+        envelope_info = c.fetchall()
+        for envelope in envelope_info:
+            if envelope[1] != 0:
+                bad_e_ids.append(envelope[0])
+                bad_e_amts_new.append(0)
+                healthy = False
+                print(f" [Deleted E Bal NOT 0 -> {envelope[2]}({envelope[0]}) balance: {envelope[1]}]")
+        if healthy:
+            print(" HEALTHY")
+        else:
+            print(" UNHEALTHY")
+            deleted_healthy = False
+            log_message = ' [UNHEALTHY DELETED ENVELOPE OR ACCOUNT]'
+        
+
+        # ---3. ACCOUNTS: CONFIRM THAT THESE THREE VALUES ARE THE SAME---
+        #     a. Balances stored in accounts table
+        #     b. Sum of all transactions in an account
+        #     c. Account reconcile balance on latest transaction
+        print("\n>>> CHECKING ACCOUNTS")
         c.execute("SELECT id,balance,name from accounts")
         accounts = c.fetchall()
         for row in accounts:
-            account_name = row[2]
-            account_id = row[0]
-            # get account balance according to database
-            account_balance = row[1]
-            # get account balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE account_id=? AND date(day) <= date('now', 'localtime')", (account_id,))
-            a_balance = c.fetchone()[0]
-            if a_balance is None:
-                a_balance = 0
-            if (-1*account_balance != a_balance):
-                log_message = f'{log_message} [A Total Err -> Name: {account_name}, ID: {account_id}, Disp/Total: {account_balance}/{a_balance}] Diff: {abs(a_balance + account_balance)}'
-                healthy = False
+            a_name = row[2]
+            a_id = row[0]
 
-        # 3. Check if stored/displayed envelope totals equals the sum of their transactions
+            # a. Get account balance according to database
+            a_balance_db = -1*row[1]
+
+            # b. Get account balance according to summed transaction totals
+            c.execute("SELECT SUM(amount) from transactions WHERE account_id=? AND date(day) <= date('now', 'localtime')", (a_id,))
+            a_balance_summed = c.fetchone()[0]
+            if a_balance_summed is None: #If there's no transactions in the account yet, placeholder of zero
+                a_balance_summed = 0
+
+            # c. Get account balance according to latest account reconcile value
+            c.execute("SELECT a_reconcile_bal FROM transactions WHERE account_id=? AND date(day) <= date('now', 'localtime') ORDER by day DESC, id DESC LIMIT 1", (a_id,))
+            a_balance_reconcile_tuple = c.fetchone()
+            if a_balance_reconcile_tuple is None: #If there's no transactions in the account yet, placeholder of zero
+                a_balance_reconcile = 0
+            else:
+                a_balance_reconcile = -1*a_balance_reconcile_tuple[0]
+
+            # d. Check for health!
+            if (a_balance_db == a_balance_summed and a_balance_db == a_balance_reconcile and a_balance_summed == a_balance_reconcile):
+                print(f" HEALTHY ---> (ID:{a_id}) {a_name}")
+            else:
+                log_message = f' [A Total Err -> Name: {a_name}, ID: {a_id}, Disp/Total/Reconcile: {a_balance_db}/{a_balance_summed}/{a_balance_reconcile}]'
+                healthy = False
+                bad_a_ids.append(a_id)
+                bad_a_amts_new.append(a_balance_summed)
+                print(f" WRONG!! ---> (ID:{a_id}) {a_name}")
+                print("     Account balance VS Summed balance VS Reconcile balance")
+                print("    ", -1*a_balance_db, 'vs', a_balance_summed, 'vs',a_balance_reconcile)
+                print(" Difference: ", abs(a_balance_summed + a_balance_db))
+
+        # ---4. ENVELOPES: CONFIRM THAT THESE THREE VALUES ARE THE SAME---
+        #     a. Balances stored in envelopes table
+        #     b. Sum of all transactions in an envelope
+        #     c. Envelope reconcile balance on latest transaction
+        print("\n>>> CHECKING ENVELOPES")
         c.execute("SELECT id,balance,name from envelopes")
         envelopes = c.fetchall()
         for row in envelopes:
-            envelope_name = row[2]
-            envelope_id = row[0]
-            # get envelope balance according to database
-            envelope_balance = row[1]
-            # get envelope balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND date(day) <= date('now', 'localtime')", (envelope_id,))
-            e_balance = c.fetchone()[0]
-            if e_balance is None:
-                e_balance = 0
-            if (-1*envelope_balance != e_balance):
-                log_message = f'{log_message} [E Total Err -> Name: {envelope_name}, ID: {envelope_id}, Disp/Total: {envelope_balance}/{e_balance}] Diff: {abs(e_balance + envelope_balance)}'
-                healthy = False
+            e_name = row[2]
+            e_id = row[0]
 
-        if not healthy:
+            # a. Get envelope balance according to database
+            e_balance_db = -1*row[1]
+
+            # b. Get envelope balance according to summed transaction totals
+            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND date(day) <= date('now', 'localtime')", (e_id,))
+            e_balance_summed = c.fetchone()[0]
+            if e_balance_summed is None: #If there's no transactions in the envelope yet, placeholder of zero
+                e_balance_summed = 0
+
+            # c. Get envelope balance according to latest envelope reconcile value
+            c.execute("SELECT e_reconcile_bal FROM transactions WHERE envelope_id=? AND date(day) <= date('now', 'localtime') ORDER by day DESC, id DESC LIMIT 1", (e_id,))
+            # NOTE: Sum of e_reconcile_bal to avoid nonetype error when no transactions are in the envelope
+            e_balance_reconcile_tuple = c.fetchone()
+            if e_balance_reconcile_tuple is None: #If there's no transactions in the envelope yet, placeholder of zero
+                e_balance_reconcile = 0
+            else:
+                e_balance_reconcile = -1*e_balance_reconcile_tuple[0]
+
+            # d. Check for health!
+            if (e_balance_db == e_balance_summed and e_balance_db == e_balance_reconcile and e_balance_summed == e_balance_reconcile):
+                print(f" HEALTHY ---> (ID:{e_id}) {e_name}")
+            else:
+                log_message = f' [E Total Err -> Name: {e_name}, ID: {e_id}, Disp/Total/Reconcile: {e_balance_db}/{e_balance_summed}/{e_balance_reconcile}]'
+                healthy = False
+                bad_e_ids.append(e_id)
+                bad_e_amts_new.append(e_balance_summed)
+                print(f" WRONG!! ---> (ID:{e_id}) {e_name}")
+                print("     Envelope balance VS Summed balance VS Reconcile Balance")
+                print("    ", e_balance_db, 'vs', e_balance_summed, 'vs', e_balance_reconcile)
+                print(" Difference: ", abs(e_balance_db + e_balance_summed))
+
+        print("\nBad Account IDs:", bad_a_ids)
+        print("Bad Envelope IDs:", bad_e_ids)
+
+        print("\n---------------------")
+        print("HEALTH CHECK COMPLETE")
+        print("---------------------\n")
+
+        if (not healthy):
+            print("STATUS -> UNHEALTHY")
             log_write(log_message)
-        return healthy
+            if not interactive:
+                return healthy
+            else:
+                if (deleted_healthy is False):
+                    print("There is an error with your deleted envelopes or accounts that must be fixed manually!\n")
+                else:
+                    choice_valid = False
+                    while (choice_valid == False):
+                        choice = input("Would you like to continue healing the database? (y/n):")
+                        if (choice == 'y' or choice =='Y' or choice == 'yes' or choice == 'Yes' or choice =='YES'):
+                            choice_valid = True
+                            print("Healing database...")
+                            for i in range(0,len(bad_a_ids)):
+                                account_heal(bad_a_ids[i], bad_a_amts_new[i])
+
+                            for i in range(0,len(bad_e_ids)):
+                                envelope_heal(bad_e_ids[i], bad_e_amts_new[i])
+                            print("Database heal complete!")
+                            log_write('-----Account healed!-----\n')
+                        elif (choice == 'n' or choice == 'N' or choice =='no' or choice =='No' or choice =='NO'):
+                            choice_valid = True
+                            print("Database heal aborted.")
+                        else:
+                            print("Invalid option. Try again.")
+
+        else:
+            print("STATUS -> HEALTHY\n")
+            print("(No further action required.)\n\n")
+            return healthy
+    
+    # Turn print statements back on
+    enablePrint()
 
 def log_write(text):
     """
@@ -1035,9 +1192,17 @@ def log_write(text):
     with open("EventLog.txt",'a') as f:
         f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " " + text+"\n")
 
+def blockPrint():
+    """Disable Print Statements"""
+    sys.stdout = open(os.devnull, 'w')
+
+def enablePrint():
+    """Restore Print Statements"""
+    sys.stdout = sys.__stdout__
 
 def main():
-    print_database()
+    health_check(True)
+    # print_database()
 
 if __name__ == "__main__":
     main()

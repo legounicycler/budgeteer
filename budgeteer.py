@@ -368,6 +368,7 @@ def edit_delete_envelope(envelope_id):
   note = request.form['note']
 
   # A copy of the delete_envelope() function from database.py but with the info from the form pasted in
+  # This may be better as direct calls to editing the table instead of going through the API like this
   with conn:
     if (envelope_id != UNALLOCATED): #You can't delete the unallocated envelope
       e = get_envelope(envelope_id)
@@ -376,10 +377,11 @@ def edit_delete_envelope(envelope_id):
       t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, date, envelope_id, None, grouping, note, None, 0, USER_ID)
       insert_transaction(t_envelope)
       # 2. Fill the unallocated envelope
-      t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, date, envelope_id, None, grouping, note, None, 0, USER_ID)
+      t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, date, UNALLOCATED, None, grouping, note, None, 0, USER_ID)
       insert_transaction(t_unallocated)
       # 3. Mark the envelope as deleted
       c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
+      log_write('E DELETE: ' + str(get_envelope(envelope_id)))
     else:
         print("You can't delete the 'Unallocated' envelope you moron")
   
