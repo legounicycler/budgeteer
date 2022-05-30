@@ -97,3 +97,8 @@ nav .brand-logo {
   border-color: #949494;
   background-color: transparent;
 }
+
+/* Makes the icons in the transaction description align better with their text */
+i.material-icons {
+  vertical-align: bottom;
+}
