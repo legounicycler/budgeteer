@@ -3,6 +3,7 @@ This file contains functions relevant the GUI, the flask app, and getting data f
 This file interacts a lot with the javascript/jQuery running on the site
 """
 
+from hashlib import new
 from flask import Flask, render_template, url_for, request, redirect, jsonify
 from database import *
 from datetime import datetime
@@ -24,7 +25,8 @@ t_type_dict = {
   4: 'Split Transaction',
   5: 'Envelope Fill',
   6: 'Envelope Delete',
-  7: 'Account Delete'
+  7: 'Account Delete',
+  8: 'Account Adjust'
 }
 
 t_type_icon_dict = {
@@ -35,7 +37,8 @@ t_type_icon_dict = {
   4: 'call_split',
   5: 'input',
   6: 'layers_clear',
-  7: 'money_off'
+  7: 'money_off',
+  8: 'build'
 }
 
 def datetimeformat(value, format='%m/%d/%Y'):
@@ -271,7 +274,7 @@ def new_income(edited=False):
   schedule = request.form['schedule']
   sched_t_submitted = False
   for name in names:
-    t = Transaction(INCOME, name, -1 * amount, date, 1, account_id, gen_grouping_num(), note, None, False, USER_ID)
+    t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID)
 
     # Only insert NEW scheduled transaction if it's not edited
     if scheduled and edited:
@@ -361,45 +364,60 @@ def fill_envelopes(edited=False):
   return jsonify({'message': message, 'sched_message': sched_message, 'sched_t_submitted': sched_t_submitted})
 
 @app.route('/edit_delete_envelope', methods=['POST'])
-def edit_delete_envelope(envelope_id):
-  # edited=True if this is called from edit_transaction
+def edit_delete_envelope():
   name = request.form['name']
-  date = datetime.strptime(request.form['date'], '%m/%d/%Y')
   note = request.form['note']
-
+  envelope_id = request.form['envelope_id']
   # A copy of the delete_envelope() function from database.py but with the info from the form pasted in
-  # This may be better as direct calls to editing the table instead of going through the API like this
+  # TODO: This may be better as direct calls to editing the table instead of going through the API like this
   with conn:
     if (envelope_id != UNALLOCATED): #You can't delete the unallocated envelope
       e = get_envelope(envelope_id)
       grouping = gen_grouping_num()
       # 1. Empty the deleted envelope
-      t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, date, envelope_id, None, grouping, note, None, 0, USER_ID)
+      t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, note, None, 0, USER_ID)
       insert_transaction(t_envelope)
       # 2. Fill the unallocated envelope
-      t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, date, UNALLOCATED, None, grouping, note, None, 0, USER_ID)
+      t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, None, grouping, note, None, 0, USER_ID)
       insert_transaction(t_unallocated)
       # 3. Mark the envelope as deleted
       c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
       log_write('E DELETE: ' + str(get_envelope(envelope_id)))
     else:
-        print("You can't delete the 'Unallocated' envelope you moron")
-  
-  message = 'Updated envelope deletion!'
-  if (health_check() is False):
-    message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message})
+      print("You can't delete the 'Unallocated' envelope you moron")
+
+@app.route('/edit_delete_account', methods=['POST'])
+def edit_delete_account():
+  name = request.form['name']
+  note = request.form['note']
+  account_id = request.form['account_id']
+  # A copy of the delete_account() function from database.py but with the info from the form pasted in
+  # TODO: This may be better as direct calls to editing the table instead of going through the API like this
+  with conn:
+    a = get_account(account_id)
+    
+    # 1. Empty the deleted account
+    insert_transaction(Transaction(ACCOUNT_DELETE, name, a.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a.id, gen_grouping_num(), note, None, 0, USER_ID))
+
+    # 2. Mark the account as deleted
+    c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
+    log_write('A DELETE: ' + str(get_account(account_id)))
+
+@app.route('/edit_account_adjust', methods=['POST'])
+def edit_account_adjust():
+  name = request.form['name']
+  note = request.form['note']
+  balance_diff = int(round(float(request.form['amount'])*100))
+  account_id = int(request.form['account_id'])
+  insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID))
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
   sched_t_submitted = False #This has to be here or else the javascript side breaks
   id = int(request.form['edit-id'])
   type = int(request.form['type'])
-  if (type == ENVELOPE_DELETE):
-    e_id = get_transaction(id).envelope_id
-  elif (type == ACCOUNT_DELETE):
-    a_id = get_transaction(id).account_id
   delete_transaction(id)
+    
   if (type == BASIC_TRANSACTION):
     new_expense(True)
   elif (type == ENVELOPE_TRANSFER or type == ACCOUNT_TRANSFER):
@@ -411,9 +429,11 @@ def edit_transaction():
   elif (type == ENVELOPE_FILL):
     fill_envelopes(True)
   elif (type == ENVELOPE_DELETE):
-    edit_delete_envelope(e_id)
+    edit_delete_envelope()
   elif (type == ACCOUNT_DELETE):
-    edit_delete_account(a_id)
+    edit_delete_account()
+  elif (type == ACCOUNT_ADJUST):
+    edit_account_adjust()
 
   message = 'Transaction successfully edited!'
   if (health_check() is False):
@@ -433,24 +453,28 @@ def get_json(id):
 
 @app.route('/api/edit-accounts', methods=['POST'])
 def edit_accounts_page():
-  old_balances = request.form.getlist('edit-account-balance')
-  old_names = request.form.getlist('edit-account-name')
-  old_ids = request.form.getlist('account-id')
+  edit_balances = request.form.getlist('edit-account-balance')
+  original_balances = request.form.getlist('original-account-balance')
+  edit_names = request.form.getlist('edit-account-name')
+  original_names = request.form.getlist('original-account-name')
+  present_ids = request.form.getlist('account-id')
   new_balances = request.form.getlist('new-account-balance')
   new_names = request.form.getlist('new-account-name')
-  old_accounts = []
+  accounts_to_edit = []
   new_accounts = []
-  for i in range(len(old_ids)):
-    old_accounts.append([old_ids[i], old_names[i], int(round(float(old_balances[i])*100))])
+  for i in range(len(present_ids)):
+    if (edit_names[i] != original_names[i] or edit_balances[i] != original_balances[i]):
+      a = Account(edit_names[i], int(round(float(edit_balances[i])*100)), False, USER_ID)
+      a.id = present_ids[i]
+      accounts_to_edit.append(a)
   for i in range(len(new_names)):
-    new_accounts.append([new_names[i], int(round(float(new_balances[i])*100)), USER_ID])
-  edit_accounts(old_accounts, new_accounts)
+    new_accounts.append(Account(new_names[i], int(round(float(new_balances[i])*100)), False, USER_ID))
+  present_ids = list(map(int,present_ids)) # Turn the list of strings into a list of ints
+  message = edit_accounts(accounts_to_edit, new_accounts, present_ids)
 
-  message = 'Accounts successfully updated!'
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
   return message
-
 
 @app.route('/api/edit-envelopes', methods=['POST'])
 def edit_envelopes_page():

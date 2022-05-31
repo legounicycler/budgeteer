@@ -83,6 +83,7 @@
       envelope_fill_editor = $("#edit-envelope-fill").detach();
       envelope_restore = $("#edit-envelope-delete").detach();
       account_restore = $("#edit-account-delete").detach();
+      account_adjust = $("#edit-account-adjust").detach()
 
       // Calculate budget bar color/area etc.
       budget_bars()
@@ -158,6 +159,7 @@
     const ENVELOPE_FILL = 5;
     const ENVELOPE_DELETE = 6;
     const ACCOUNT_DELETE = 7;
+    const ACCOUNT_ADJUST = 8;
 
     // Objects for various transaction editors
     var expense_editor;
@@ -166,6 +168,7 @@
     var envelope_fill_editor;
     var envelope_restore;
     var account_restore;
+    var account_adjust;
 
     var current_page = "All Transactions";   //TODO: Add description
     var none_checked = true; //TODO: Add description
@@ -255,14 +258,14 @@
       // Opens delete warning modal when the envelope delete button is clicked
       $("#envelope-editor-bin").on("click", ".delete-envelope-button", function() {
         delete_target = $(this);
-        $('#delete-modal p').replaceWith('<p>This action cannot be undone. The balance of this envelope will be added to your unallocated balance.</p>');
+        $('#delete-modal p').replaceWith('<p>The balance of this envelope will be added to your unallocated balance.</p>');
         $('#delete-modal').modal('open');
       });
 
       // Opens delete warning modal when the account delete button is clicked
       $("#account-editor-bin").on("click", ".delete-account-button", function() {
         delete_target = $(this);
-        $('#delete-modal p').replaceWith('<p>This action cannot be undone. The balance of this account will be subtracted from your unallocated balance.</p>');
+        $('#delete-modal p').replaceWith('<p>The balance of this account will be subtracted from your unallocated balance.</p>');
         $('#delete-modal').modal('open');
       });
 
@@ -663,7 +666,7 @@
     };
 
     // // Submits form data, closes the modal, clears the form, and reloads the data
-    $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form, #edit-envelope-delete-form, #edit-account-delete-form').submit(function(e) {
+    $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form, #edit-envelope-delete-form, #edit-account-delete-form, #edit-account-adjust-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
       var method = $(this).attr('method');
@@ -866,6 +869,7 @@
         $("#edit-envelope-fill").detach();
         $("#edit-account-delete").detach();
         $("#edit-envelope-delete").detach();
+        $("#edit-account-adjust").detach()
         checkbox_id = '#edit-expense-schedule';
         $("#edit-amount").val(amt.toFixed(2));
         $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
@@ -877,6 +881,7 @@
         $("#edit-envelope-fill").detach();
         $("#edit-account-delete").detach();
         $("#edit-envelope-delete").detach();
+        $("#edit-account-adjust").detach()
         // Fill in the amount field
         $('#edit-transfer_type').val(type).formSelect({dropdownOptions: {container: 'body'}});
         $("#edit-amount").val(Math.abs(amt).toFixed(2));
@@ -903,6 +908,7 @@
         $("#edit-envelope-fill").detach();
         $("#edit-account-delete").detach();
         $("#edit-envelope-delete").detach();
+        $("#edit-account-adjust").detach()
         $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
         $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
         $("#edit-amount").val((-1*amt).toFixed(2));
@@ -914,6 +920,7 @@
         $("#edit-envelope-fill").detach();
         $("#edit-account-delete").detach();
         $("#edit-envelope-delete").detach();
+        $("#edit-account-adjust").detach()
         $("#edit-amount").val(amt.toFixed(2));
         $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
         $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
@@ -930,6 +937,7 @@
         $("#edit-expense").detach();
         $("#edit-account-delete").detach();
         $("#edit-envelope-delete").detach();
+        $("#edit-account-adjust").detach()
         // Fills input fields
         var $inputs = $('#edit-envelope-fill-form .envelope-fill-editor-bin :input[type=number]');
         envelope_fill_balances_array = [];
@@ -959,17 +967,31 @@
         $("#edit-transfer").detach();
         $("#edit-income").detach();
         $("#edit-envelope-fill").detach();
+        $("#edit-account-adjust").detach()
         $("#edit-amount").text(balance_format(-1*amt)).negative_check(-1*amt);
+        $("#edit-envelope-delete-id").val(envelope_id)
 
       } else if (type == ACCOUNT_DELETE) {
         account_restore.appendTo('#editor-row');
-        $("#edit-envelope-delete").detach();
         $("#edit-expense").detach();
-        $("#edit-transfer").detach();
         $("#edit-income").detach();
+        $("#edit-transfer").detach();
         $("#edit-envelope-fill").detach();
+        $("#edit-envelope-delete").detach();
+        $("#edit-account-adjust").detach()
         $("#edit-amount").text(balance_format(-1*amt)).negative_check(-1*amt);
+        $("#edit-account-delete-id").val(account_id)
         // checkbox_id = '#edit-expense-schedule';
+      } else if (type == ACCOUNT_ADJUST) {
+        account_adjust.appendTo('#editor-row');
+        $("#edit-expense").detach();
+        $("#edit-income").detach();
+        $("#edit-transfer").detach();
+        $("#edit-envelope-fill").detach();
+        $("#edit-account-delete").detach();
+        $("#edit-envelope-delete").detach();
+        $("#edit-amount").val((-1*amt).toFixed(2));
+        $("#edit-account-adjust-id").val(account_id)
       }
 
       // Update the rest of the common fields

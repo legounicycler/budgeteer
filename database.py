@@ -31,6 +31,7 @@ SPLIT_TRANSACTION = 4
 ENVELOPE_FILL = 5
 ENVELOPE_DELETE = 6
 ACCOUNT_DELETE = 7
+ACCOUNT_ADJUST = 8
 
 #Should this also eventually be an ENUM?
 REMOVE = False
@@ -88,7 +89,6 @@ class Envelope:
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
     def __str__(self):
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
-
 
 
 def create_db():
@@ -213,7 +213,7 @@ def get_transactions(start, amount):
         t = get_transaction(thing[0])
 
         # Set the amount for display
-        if t.type == BASIC_TRANSACTION or t.type == INCOME:
+        if t.type == BASIC_TRANSACTION or t.type == INCOME or t.type == ACCOUNT_ADJUST or t.type == ACCOUNT_DELETE:
              t.amt = -1 * t.amt
         elif t.type == ENVELOPE_TRANSFER:
             t_ids = get_ids_from_grouping(t.grouping)
@@ -381,12 +381,16 @@ def delete_transaction(id):
             for id in ids:                
                 t = get_transaction(id)
 
-                 # 2. If you're deleting an "ENVELOPE_DELETE" transaction, restore it so the balances can be updated
+                # 2a. If you're deleting an "ENVELOPE_DELETE" transaction, restore it so the balances can be updated
                 if t.type == ENVELOPE_DELETE:
-                    if t.envelope_id is not UNALLOCATED: #Don't try to restore the unallocated envelope
-                        if (get_envelope(t.envelope_id).deleted is not False): #Don't try to restore an envelope that is not deleted
+                    if t.envelope_id is not UNALLOCATED: # Don't try to restore the unallocated envelope
+                        if (get_envelope(t.envelope_id).deleted is not False): # Don't try to restore an envelope that is not deleted
                             restore_envelope(t.envelope_id)
+                
+                # 2b. If you're deleting an "ACCOUNT_DELETE" transaction, restore it so the balances can be updated
                 if t.type == ACCOUNT_DELETE:
+                    print(t)
+                    print(t.account_id)
                     restore_account(t.account_id)
 
                 # 3. If it is not a transaction in the future, update envelope/account balances
@@ -421,135 +425,6 @@ def new_split_transaction(t):
     for i in range(len(t.amt)):
         new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id)
         insert_transaction(new_t)
-
-
-# ---------------ACCOUNT FUNCTIONS--------------- #
-
-def insert_account(name, balance, user_id):
-    """
-    Inserts new account and creates "initial account balance" transaction
-    """
-    with conn:
-        c.execute("INSERT INTO accounts (name, balance, user_id) VALUES (?, ?, ?)", (name, 0, user_id))
-        account_id = c.lastrowid
-        income_name = 'Initial Account Balance: ' + name
-        t = Transaction(INCOME, income_name, -1 * balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, user_id, 0,0)
-        insert_transaction(t)
-        log_write('A INSERT: ' + str(get_account(account_id)))
-
-def get_account(id):
-    """
-    Returns account associated with the given id
-    """
-    c.execute("SELECT * FROM accounts WHERE id=?", (id,))
-    adata = c.fetchone()
-    a = Account(adata[1], adata[2], adata[3], adata[4])
-    a.id = adata[0]
-    return a
-
-def get_account_dict():
-    """
-    Used for displaying the accounts in the side panel and selects.
-    Returns:
-    1. A boolean that says whether there are accounts to render
-    2. A tuple with a dictionary with keys of account_id and values of account objects.
-    """
-    c.execute("SELECT id FROM accounts ORDER by id ASC")
-    ids = c.fetchall()
-    a_dict = {}
-    active_accounts = False
-    for id in ids:
-        a = get_account(id[0])
-        a.balance = stringify(a.balance)
-        a_dict[id[0]] = a
-        if a.deleted == 0:
-            active_accounts = True
-    return (active_accounts, a_dict)
-
-def delete_account(account_id):
-    """
-    Subtracts balance from unallocated envelope, sets account balance to 0, and sets deleted to true
-    """
-    with conn:
-        update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - get_account_balance(account_id))
-        c.execute("UPDATE accounts SET deleted=1,balance=0 WHERE id=?", (account_id,))
-        log_write('A DELETE: ' + str(get_account(account_id)))
-
-def restore_account(account_id):
-    """
-    Restores an account by setting its deleted flag to false
-    * Does NOT adjust the account balances, since this is done at the transaction level
-    """
-    with conn:
-        c.execute("UPDATE accounts SET deleted=0 WHERE id=?",(account_id,))
-        log_write('A RESTORE: ' + str(get_account(account_id)))
-
-def get_account_balance(id):
-    """
-    Returns account balance
-    """
-    c.execute("SELECT balance FROM accounts WHERE id=?", (id,))
-    balance = c.fetchone()
-    if balance is not None:
-        return balance[0]
-    else:
-        #TODO: Figure out where to log this and how to throw errors
-        print("That account doesn't exist you twit.")
-        
-
-def edit_account(id, name, balance):
-    """
-    Updates account balalnce and name, then subtracts the change in balance from the unallocated envelope
-    """
-
-    #TODO: This probably breaks the account reconcile amounts. Verify this!
-    with conn:
-        current_balance = get_account_balance(id)
-        diff = current_balance - balance
-        unallocated_balance = get_envelope_balance(1)
-        new_unallocated_balance = unallocated_balance - diff
-        update_envelope_balance(UNALLOCATED, new_unallocated_balance)
-        c.execute("UPDATE accounts SET balance=?, name=? WHERE id=?", (balance, name, id))
-        log_write('A EDIT: ' + str(get_account(id)))
-
-def update_account_balance(id, balance):
-    """
-    Updates balance of account with given id
-    """
-    with conn:
-        c.execute("UPDATE accounts SET balance=? WHERE id=?",(balance, id))
-
-def edit_accounts(old_accounts, new_accounts):
-    """
-    Compares an old and new list of accounts, then:
-    1.  Updates info for accounts that exist in both lists
-    2.  Adds new accounts not present in old list
-    3.  Deletes old accounts not present in new list
-    """
-    c.execute("SELECT id FROM accounts WHERE deleted=0")
-    account_ids = c.fetchall()
-    old_ids = []
-    # 1. Updates info for accounts that exist in both lists
-    for a in old_accounts:
-        old_ids.append(int(a[0]))
-        edit_account(int(a[0]), a[1], a[2])
-    # 2. Adds new accounts not present in old list
-    for a in new_accounts:
-        insert_account(a[0], a[1], a[2])
-    # 3. Deletes old accounts not present in new list
-    for id in account_ids:
-        if not (id[0] in old_ids):
-            delete_account(id[0])
-
-def account_transfer(name, amount, date, to_account, from_account, note, schedule, user_id):
-    """
-    Creates one transaction draining an account, and one transaction filling another
-    """
-    grouping = gen_grouping_num()
-    fill = Transaction(ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id, 0)
-    insert_transaction(fill)
-    empty = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id, 0)
-    insert_transaction(empty)
 
 def update_reconcile_amounts(account_id, envelope_id, transaction_id, method):
     """
@@ -650,17 +525,160 @@ def update_reconcile_amounts(account_id, envelope_id, transaction_id, method):
             for i in range(1,len(t_ids)):
                 c.execute("UPDATE transactions SET e_reconcile_bal=? WHERE id=?", (t_r_bals[i],t_ids[i]))
 
+# ---------------ACCOUNT FUNCTIONS--------------- #
 
-    # ---------------ENVELOPE FUNCTIONS--------------- #
+def insert_account(account):
+    """
+    Inserts new account and creates "initial account balance" transaction
+    """
+    with conn:
+        c.execute("INSERT INTO accounts (name, balance, user_id) VALUES (?, ?, ?)", (account.name, 0, account.user_id))
+        account_id = c.lastrowid
+        income_name = 'Initial Account Balance: ' + account.name
+        insert_transaction(Transaction(INCOME, income_name, -1 * account.balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, account.user_id))
+        log_write('A INSERT: ' + str(get_account(account_id)))
 
-    def insert_envelope(name, budget, user_id):
-        """
-        Inserts an envelope into the database with given name and budget and a balance of 0
-        """
-        with conn:
-            c.execute("INSERT INTO envelopes (name, budget, user_id) VALUES (?, ?, ?)", (name,budget,user_id))
-            envelope_id = c.lastrowid
-            log_write('E INSERT: ' + str(get_envelope(envelope_id)))
+def get_account(id):
+    """
+    Returns account associated with the given id
+    """
+    c.execute("SELECT * FROM accounts WHERE id=?", (id,))
+    adata = c.fetchone()
+    a = Account(adata[1], adata[2], adata[3], adata[4])
+    a.id = adata[0]
+    return a
+
+def get_account_dict():
+    """
+    Used for displaying the accounts in the side panel and selects.
+    Returns:
+    1. A boolean that says whether there are accounts to render
+    2. A tuple with a dictionary with keys of account_id and values of account objects.
+    """
+    c.execute("SELECT id FROM accounts ORDER by id ASC")
+    ids = c.fetchall()
+    a_dict = {}
+    active_accounts = False
+    for id in ids:
+        a = get_account(id[0])
+        a.balance = stringify(a.balance)
+        a_dict[id[0]] = a
+        if a.deleted == 0:
+            active_accounts = True
+    return (active_accounts, a_dict)
+
+def delete_account(account_id):
+    """
+    Deletes an account:
+    1. Creates a transaction that zeros account balance (basically a negative income)
+    2. Sets account "deleted" flag to true
+    """
+    with conn:
+        a = get_account(account_id)
+
+        # 1. Empty the deleted account
+        insert_transaction(Transaction(ACCOUNT_DELETE,f"Deleted account: {a.name}", a.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a.id, gen_grouping_num(), "", None, 0, USER_ID))
+
+        # 2. Mark the account as deleted
+        c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
+        log_write('A DELETE: ' + str(get_account(account_id)))
+
+def restore_account(account_id):
+    """
+    Restores an account by setting its deleted flag to false
+    * Does NOT adjust the account balances, since this is done at the transaction level
+    """
+    with conn:
+        c.execute("UPDATE accounts SET deleted=0 WHERE id=?",(account_id,))
+        log_write('A RESTORE: ' + str(get_account(account_id)))
+
+def get_account_balance(id):
+    """
+    Returns account balance
+    """
+    c.execute("SELECT balance FROM accounts WHERE id=?", (id,))
+    balance = c.fetchone()
+    if balance is not None:
+        return balance[0]
+    else:
+        #TODO: Figure out where to log this and how to throw errors
+        print("That account doesn't exist you twit.")
+        
+def edit_account(id, new_name, new_balance):
+    """
+    Updates account balalnce and name, then subtracts the change in balance from the unallocated envelope
+    """
+    with conn:
+        balance_diff = get_account_balance(id) - new_balance
+        adjust_account_balance(id,balance_diff)
+        c.execute("UPDATE accounts SET name=? WHERE id=?", (new_name, id))
+        log_write('A EDIT: ' + str(get_account(id)))
+
+def update_account_balance(id, balance):
+    """
+    Updates balance of account with given id
+    """
+    with conn:
+        c.execute("UPDATE accounts SET balance=? WHERE id=?",(balance, id))
+
+def edit_accounts(accounts_to_edit, new_accounts, present_ids):
+    """
+    Compares an old and new list of accounts, then:
+    1.  Updates accounts in DB if their fields are different from those in old_accounts
+    2.  Adds new accounts not present in old list
+    3.  Deletes old accounts not present in new list
+    """
+    done_something = False
+    c.execute("SELECT id FROM accounts WHERE deleted=0")
+    original_account_ids = c.fetchall()
+
+    # 1. Updates info for accounts that exist in both lists
+    for a in accounts_to_edit:
+        edit_account(int(a.id), a.name, a.balance)
+        done_something = True
+    # 2. Adds new accounts not present in old list
+    for a in new_accounts:
+        insert_account(a)
+        done_something = True
+    # 3. Deletes old accounts not present in new list
+    for id in original_account_ids:
+        if not (id[0] in present_ids):
+            delete_account(id[0])
+            done_something = True
+    if done_something:
+        return "Accounts successfully updated!"
+    else:
+        return "No changes were made"
+
+def account_transfer(name, amount, date, to_account, from_account, note, schedule, user_id):
+    """
+    Creates one transaction draining an account, and one transaction filling another
+    """
+    grouping = gen_grouping_num()
+    fill = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, to_account, grouping, note, schedule, False, user_id, 0)
+    insert_transaction(fill)
+    empty = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id, 0)
+    insert_transaction(empty)
+
+def adjust_account_balance(id, balance_diff):
+    """
+    Creates ACCOUNT_ADJUST transactions for when the user manually sets the account balance in the account editor
+    This transfers the difference into the unallocated envelope.
+    """
+    # 1. Add a transaction with an amount that will make the account balance equal to the specied balance
+    insert_transaction(Transaction(ACCOUNT_ADJUST, f"{get_account(id).name}: Balance Adjustment", balance_diff, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, id, gen_grouping_num(), "", None, False, USER_ID))
+
+
+# ---------------ENVELOPE FUNCTIONS--------------- #
+
+def insert_envelope(name, budget, user_id):
+    """
+    Inserts an envelope into the database with given name and budget and a balance of 0
+    """
+    with conn:
+        c.execute("INSERT INTO envelopes (name, budget, user_id) VALUES (?, ?, ?)", (name,budget,user_id))
+        envelope_id = c.lastrowid
+        log_write('E INSERT: ' + str(get_envelope(envelope_id)))
 
 def get_envelope(id):
     """
@@ -705,11 +723,11 @@ def delete_envelope(envelope_id):
             grouping = gen_grouping_num()
 
             # 1. Empty the deleted envelope
-            t_envelope = Transaction(ENVELOPE_DELETE,"Deleted '"+e.name+"' envelope", e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, "", None, 0, USER_ID)
+            t_envelope = Transaction(ENVELOPE_DELETE,f"Deleted envelope: {e.name}", e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, "", None, 0, USER_ID)
             insert_transaction(t_envelope)
 
             # 2. Fill the unallocated envelope
-            t_unallocated = Transaction(ENVELOPE_DELETE,"Deleted '"+e.name+"' envelope", -1*e.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, None, grouping, "", None, 0, USER_ID)
+            t_unallocated = Transaction(ENVELOPE_DELETE,f"Deleted envelope: {e.name}", -1*e.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, None, grouping, "", None, 0, USER_ID)
             insert_transaction(t_unallocated)
 
             # 3. Mark the envelope as deleted
@@ -852,19 +870,6 @@ def get_ids_from_grouping(grouping):
         id_array.append(i[0])
     return id_array
 
-def type_to_icon(x):
-    """
-    Given a numeric transaction type, return the string name for the materialize icon
-    """
-    return {
-        0: 'local_atm',
-        1: 'swap_horiz',
-        2: 'swap_vert',
-        3: 'vertical_align_bottom',
-        4: 'call_split',
-        5: 'input'
-    }[x]
-
 def get_grouped_json(id):
     """
     Given an id, return a json with the transaction data for each grouped transaction
@@ -973,6 +978,9 @@ def health_check(interactive=False):
     3. Checks if stored/displayed account balances equal the sum of their transactions and latest reconcile balance
     4. Checks if stored/displayed envelope balances equal the sum of their transactions and latest reconcile balance
     """
+    def hidden_print(str):
+        if interactive is True:
+            print(str)
 
     def account_heal(a_id, new_balance):
         print("   Healing account", a_id)
@@ -993,7 +1001,7 @@ def health_check(interactive=False):
         first_t = get_transaction(first_t_id)
         update_reconcile_amounts(first_t.account_id, first_t.envelope_id, first_t_id, INSERT)
         print("   Envelope", e_id, "reconcile balances updated.")
-    
+
     healthy = True
     deleted_healthy = True
     bad_e_ids = []
@@ -1003,12 +1011,9 @@ def health_check(interactive=False):
 
     # Turn print statements on or off 
     if (interactive is True):
-        enablePrint()
-        print("----------------------")
-        print("BEGINNING HEALTH CHECK")
-        print("----------------------\n")
-    else:
-        blockPrint()
+        hidden_print("----------------------")
+        hidden_print("BEGINNING HEALTH CHECK")
+        hidden_print("----------------------\n")
     
     
     c.execute("SELECT user_id FROM accounts GROUP BY user_id")
@@ -1017,24 +1022,24 @@ def health_check(interactive=False):
         user_id = row[0]
 
         # ---1. CONFIRM CONSISTENCY BETWEEN SUM OF ENVELOPE BALANCES AND SUM OF ACCOUNT BALANCES---
-        print(">>> CHECKING TOTALS FOR USER ID:", user_id)
+        hidden_print(f">>> CHECKING TOTALS FOR USER ID:{user_id}")
         # Get accounts total
         c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (user_id,))
         accounts_total = c.fetchone()[0]
         # Get envelopes total
         c.execute("SELECT SUM(balance) FROM envelopes WHERE user_id=?", (user_id,))
         envelopes_total = c.fetchone()[0]
-        print(" Accounts total:", accounts_total)
-        print(" Envelopes total:", envelopes_total)
+        hidden_print(f" Accounts total: {accounts_total}")
+        hidden_print(f" Envelopes total: {envelopes_total}")
         if (accounts_total == envelopes_total):
-            print(" HEALTHY")
+            hidden_print(" HEALTHY")
         else:
-            print(" INCONSISTENT!!!")
+            hidden_print(" INCONSISTENT!!!")
             log_message = f' [A/E Sum Mismatch -> A: {accounts_total} E: {envelopes_total}] Diff: {accounts_total-envelopes_total}'
             healthy = False
 
         # ---2. CONFIRM THAT DELETED ENVELOPES AND ACCOUNTS ALL HAVE A BALANCE OF ZERO---
-        print("\n>>> CHECKING BALANCES OF DELETED ENVELOPES AND ACCOUNTS FOR USER ID:", user_id)
+        hidden_print(f"\n>>> CHECKING BALANCES OF DELETED ENVELOPES AND ACCOUNTS FOR USER ID:{user_id}")
         c.execute("SELECT id,balance,name FROM accounts WHERE user_id=? AND deleted=1", (user_id,))
         account_info = c.fetchall()
         for account in account_info:
@@ -1042,7 +1047,7 @@ def health_check(interactive=False):
                 bad_a_ids.append(account[0])
                 bad_a_amts_new.append(0)
                 healthy = False
-                print(f" [Deleted A Bal NOT 0 -> {account[2]}({account[0]}) balance: {account[1]}]")
+                hidden_print(f" [Deleted A Bal NOT 0 -> {account[2]}({account[0]}) balance: {account[1]}]")
         c.execute("SELECT id,balance,name FROM envelopes WHERE user_id=? AND deleted=1", (user_id,))
         envelope_info = c.fetchall()
         for envelope in envelope_info:
@@ -1050,11 +1055,11 @@ def health_check(interactive=False):
                 bad_e_ids.append(envelope[0])
                 bad_e_amts_new.append(0)
                 healthy = False
-                print(f" [Deleted E Bal NOT 0 -> {envelope[2]}({envelope[0]}) balance: {envelope[1]}]")
+                hidden_print(f" [Deleted E Bal NOT 0 -> {envelope[2]}({envelope[0]}) balance: {envelope[1]}]")
         if healthy:
-            print(" HEALTHY")
+            hidden_print(" HEALTHY")
         else:
-            print(" UNHEALTHY")
+            hidden_print(" UNHEALTHY")
             deleted_healthy = False
             log_message = ' [UNHEALTHY DELETED ENVELOPE OR ACCOUNT]'
         
@@ -1063,7 +1068,7 @@ def health_check(interactive=False):
         #     a. Balances stored in accounts table
         #     b. Sum of all transactions in an account
         #     c. Account reconcile balance on latest transaction
-        print("\n>>> CHECKING ACCOUNTS")
+        hidden_print("\n>>> CHECKING ACCOUNTS")
         c.execute("SELECT id,balance,name from accounts")
         accounts = c.fetchall()
         for row in accounts:
@@ -1089,22 +1094,22 @@ def health_check(interactive=False):
 
             # d. Check for health!
             if (a_balance_db == a_balance_summed and a_balance_db == a_balance_reconcile and a_balance_summed == a_balance_reconcile):
-                print(f" HEALTHY ---> (ID:{a_id}) {a_name}")
+                hidden_print(f" HEALTHY ---> (ID:{a_id}) {a_name}")
             else:
                 log_message = f' [A Total Err -> Name: {a_name}, ID: {a_id}, Disp/Total/Reconcile: {a_balance_db}/{a_balance_summed}/{a_balance_reconcile}]'
                 healthy = False
                 bad_a_ids.append(a_id)
                 bad_a_amts_new.append(a_balance_summed)
-                print(f" WRONG!! ---> (ID:{a_id}) {a_name}")
-                print("     Account balance VS Summed balance VS Reconcile balance")
-                print("    ", -1*a_balance_db, 'vs', a_balance_summed, 'vs',a_balance_reconcile)
-                print(" Difference: ", abs(a_balance_summed + a_balance_db))
+                hidden_print(f" WRONG!! ---> (ID:{a_id}) {a_name}")
+                hidden_print("     Account balance VS Summed balance VS Reconcile balance")
+                hidden_print(f"    {a_balance_db} vs {a_balance_summed} vs {a_balance_reconcile}")
+                hidden_print(f" Difference: {abs(a_balance_summed + a_balance_db) + abs(a_balance_summed + a_balance_reconcile)}")
 
         # ---4. ENVELOPES: CONFIRM THAT THESE THREE VALUES ARE THE SAME---
         #     a. Balances stored in envelopes table
         #     b. Sum of all transactions in an envelope
         #     c. Envelope reconcile balance on latest transaction
-        print("\n>>> CHECKING ENVELOPES")
+        hidden_print("\n>>> CHECKING ENVELOPES")
         c.execute("SELECT id,balance,name from envelopes")
         envelopes = c.fetchall()
         for row in envelopes:
@@ -1131,59 +1136,56 @@ def health_check(interactive=False):
 
             # d. Check for health!
             if (e_balance_db == e_balance_summed and e_balance_db == e_balance_reconcile and e_balance_summed == e_balance_reconcile):
-                print(f" HEALTHY ---> (ID:{e_id}) {e_name}")
+                hidden_print(f" HEALTHY ---> (ID:{e_id}) {e_name}")
             else:
                 log_message = f' [E Total Err -> Name: {e_name}, ID: {e_id}, Disp/Total/Reconcile: {e_balance_db}/{e_balance_summed}/{e_balance_reconcile}]'
                 healthy = False
                 bad_e_ids.append(e_id)
                 bad_e_amts_new.append(e_balance_summed)
-                print(f" WRONG!! ---> (ID:{e_id}) {e_name}")
-                print("     Envelope balance VS Summed balance VS Reconcile Balance")
-                print("    ", e_balance_db, 'vs', e_balance_summed, 'vs', e_balance_reconcile)
-                print(" Difference: ", abs(e_balance_db + e_balance_summed))
+                hidden_print(f" WRONG!! ---> (ID:{e_id}) {e_name}")
+                hidden_print("     Envelope balance VS Summed balance VS Reconcile Balance")
+                hidden_print(f"    {e_balance_db} vs {e_balance_summed} vs {e_balance_reconcile}")
+                hidden_print(f" Difference: {abs(e_balance_db - e_balance_summed) + abs(e_balance_db - e_balance_reconcile)}")
 
-        print("\nBad Account IDs:", bad_a_ids)
-        print("Bad Envelope IDs:", bad_e_ids)
+        hidden_print(f"\nBad Account IDs: {bad_a_ids}")
+        hidden_print(f"Bad Envelope IDs: {bad_e_ids}")
 
-        print("\n---------------------")
-        print("HEALTH CHECK COMPLETE")
-        print("---------------------\n")
+        hidden_print("\n---------------------")
+        hidden_print("HEALTH CHECK COMPLETE")
+        hidden_print("---------------------\n")
 
         if (not healthy):
-            print("STATUS -> UNHEALTHY")
+            hidden_print("STATUS -> UNHEALTHY")
             log_write(log_message)
             if not interactive:
                 return healthy
             else:
                 if (deleted_healthy is False):
-                    print("There is an error with your deleted envelopes or accounts that must be fixed manually!\n")
+                    hidden_print("There is an error with your deleted envelopes or accounts that must be fixed manually!\n")
                 else:
                     choice_valid = False
                     while (choice_valid == False):
                         choice = input("Would you like to continue healing the database? (y/n):")
                         if (choice == 'y' or choice =='Y' or choice == 'yes' or choice == 'Yes' or choice =='YES'):
                             choice_valid = True
-                            print("Healing database...")
+                            hidden_print("Healing database...")
                             for i in range(0,len(bad_a_ids)):
                                 account_heal(bad_a_ids[i], bad_a_amts_new[i])
 
                             for i in range(0,len(bad_e_ids)):
                                 envelope_heal(bad_e_ids[i], bad_e_amts_new[i])
-                            print("Database heal complete!")
+                            hidden_print("Database heal complete!")
                             log_write('-----Account healed!-----\n')
                         elif (choice == 'n' or choice == 'N' or choice =='no' or choice =='No' or choice =='NO'):
                             choice_valid = True
-                            print("Database heal aborted.")
+                            hidden_print("Database heal aborted.")
                         else:
-                            print("Invalid option. Try again.")
+                            hidden_print("Invalid option. Try again.")
 
         else:
-            print("STATUS -> HEALTHY\n")
-            print("(No further action required.)\n\n")
+            hidden_print("STATUS -> HEALTHY\n")
+            hidden_print("(No further action required.)\n\n")
             return healthy
-    
-    # Turn print statements back on
-    enablePrint()
 
 def log_write(text):
     """
@@ -1191,14 +1193,6 @@ def log_write(text):
     """
     with open("EventLog.txt",'a') as f:
         f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " " + text+"\n")
-
-def blockPrint():
-    """Disable Print Statements"""
-    sys.stdout = open(os.devnull, 'w')
-
-def enablePrint():
-    """Restore Print Statements"""
-    sys.stdout = sys.__stdout__
 
 def main():
     health_check(True)
