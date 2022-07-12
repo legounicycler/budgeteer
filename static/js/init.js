@@ -6,8 +6,8 @@
 
       // Prevent tabs flashing content for a second on document reload
       $('#envelopes, #accounts').removeClass('hide');
-
-      $('.modal').modal({onOpenEnd: $(this).find('.tabs').tabs()});
+      
+      $('.modal').modal();
 
       $('#transaction-modal').modal({
         onOpenEnd: function () {
@@ -20,6 +20,9 @@
           } else if (tab_index == 2) {
             $('#new-income-form').find('input').first().select();
           }
+        },
+        onCloseStart: function() {
+          $('#transaction-modal').find('.select-dropdown').dropdown('close')
         }
       })
 
@@ -46,6 +49,9 @@
 
       // Initialize the editor modal
       $('#editor-modal').modal({
+        onCloseStart: function() {
+          $('#editor-modal').find('.select-dropdown').dropdown('close')
+        },
         onCloseEnd: function() {
           // Removes user-added rows in editor when the modal is closed
           $(".new-envelope-row").remove()
