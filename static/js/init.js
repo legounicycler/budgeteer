@@ -733,6 +733,7 @@
 
             //Fill the date field
             $form.find('input[name="date"]').val(selected_date)
+            $form.find('.datepicker').datepicker('setDate', new Date(selected_date));
 
             //Ensure that the scheduling tab is the same as it was before
             // console.log(scheduled)
