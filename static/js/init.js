@@ -667,6 +667,8 @@
           $('.balance-row').addClass('balance-row-adjust');
         }
 
+        $("#multi-delete-submit").hide();
+
         console.log("Page data reloaded!")
       });
     };
