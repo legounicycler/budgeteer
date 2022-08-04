@@ -655,7 +655,7 @@ def account_transfer(name, amount, date, to_account, from_account, note, schedul
     Creates one transaction draining an account, and one transaction filling another
     """
     grouping = gen_grouping_num()
-    fill = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, to_account, grouping, note, schedule, False, user_id, 0)
+    fill = Transaction(ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id, 0)
     insert_transaction(fill)
     empty = Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id, 0)
     insert_transaction(empty)
@@ -987,20 +987,28 @@ def health_check(interactive=False):
         update_account_balance(a_id, -1*new_balance)
         print("   Account", a_id, "balance set to", -1*new_balance)
         c.execute("SELECT id from transactions WHERE account_id=? ORDER BY day ASC, id ASC LIMIT 1", (a_id,))
-        first_t_id = c.fetchone()[0]
-        first_t = get_transaction(first_t_id)
-        update_reconcile_amounts(first_t.account_id, first_t.envelope_id, first_t_id, INSERT)
-        print("   Account", a_id, "reconcile balances updated.")
+        first_t_id = c.fetchone()
+        if first_t_id is not None:
+            first_t_id = first_t_id[0]
+            first_t = get_transaction(first_t_id)
+            update_reconcile_amounts(first_t.account_id, first_t.envelope_id, first_t_id, INSERT)
+            print("   Account", a_id, "reconcile balances updated.")
+        else:
+            print("   No transactions in this account!")
 
     def envelope_heal(e_id, new_balance):
         print("   Healing envelope", e_id)
         update_envelope_balance(e_id, -1*new_balance)
         print("   Envelope", e_id, "balance set to", -1*new_balance)
         c.execute("SELECT id from transactions WHERE envelope_id=? ORDER BY day ASC, id ASC LIMIT 1", (e_id,))
-        first_t_id = c.fetchone()[0]
-        first_t = get_transaction(first_t_id)
-        update_reconcile_amounts(first_t.account_id, first_t.envelope_id, first_t_id, INSERT)
-        print("   Envelope", e_id, "reconcile balances updated.")
+        first_t_id = c.fetchone()
+        if first_t_id is not None:
+            first_t_id = first_t_id[0]
+            first_t = get_transaction(first_t_id)
+            update_reconcile_amounts(first_t.account_id, first_t.envelope_id, first_t_id, INSERT)
+            print("   Envelope", e_id, "reconcile balances updated.")
+        else:
+            print("   No transactions in this envelope!")
 
     healthy = True
     deleted_healthy = True
@@ -1031,6 +1039,7 @@ def health_check(interactive=False):
         envelopes_total = c.fetchone()[0]
         hidden_print(f" Accounts total: {accounts_total}")
         hidden_print(f" Envelopes total: {envelopes_total}")
+        hidden_print(f" Difference: {abs(accounts_total - envelopes_total)}")
         if (accounts_total == envelopes_total):
             hidden_print(" HEALTHY")
         else:
@@ -1046,7 +1055,7 @@ def health_check(interactive=False):
             if account[1] != 0:
                 bad_a_ids.append(account[0])
                 bad_a_amts_new.append(0)
-                healthy = False
+                deleted_healthy = False
                 hidden_print(f" [Deleted A Bal NOT 0 -> {account[2]}({account[0]}) balance: {account[1]}]")
         c.execute("SELECT id,balance,name FROM envelopes WHERE user_id=? AND deleted=1", (user_id,))
         envelope_info = c.fetchall()
@@ -1054,13 +1063,13 @@ def health_check(interactive=False):
             if envelope[1] != 0:
                 bad_e_ids.append(envelope[0])
                 bad_e_amts_new.append(0)
-                healthy = False
+                deleted_healthy = False
                 hidden_print(f" [Deleted E Bal NOT 0 -> {envelope[2]}({envelope[0]}) balance: {envelope[1]}]")
-        if healthy:
+        if deleted_healthy:
             hidden_print(" HEALTHY")
         else:
             hidden_print(" UNHEALTHY")
-            deleted_healthy = False
+            healthy = False
             log_message = ' [UNHEALTHY DELETED ENVELOPE OR ACCOUNT]'
         
 
@@ -1122,7 +1131,7 @@ def health_check(interactive=False):
             # b. Get envelope balance according to summed transaction totals
             c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND date(day) <= date('now', 'localtime')", (e_id,))
             e_balance_summed = c.fetchone()[0]
-            if e_balance_summed is None: #If there's no transactions in the envelope yet, placeholder of zero
+            if e_balance_summed is None: #If there are no transactions in the envelope yet, placeholder of zero
                 e_balance_summed = 0
 
             # c. Get envelope balance according to latest envelope reconcile value
