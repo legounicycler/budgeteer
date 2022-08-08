@@ -673,7 +673,7 @@
       });
     };
 
-    // // Submits form data, closes the modal, clears the form, and reloads the data
+    // // Submits transaction EDITOR form data, closes the modal, clears the form, and reloads the data
     $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form, #edit-envelope-delete-form, #edit-account-delete-form, #edit-account-adjust-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
@@ -684,7 +684,7 @@
         url: url,
         data: $(this).serialize(),
       }).done(function( o ) {
-        $('.modal').modal("close")
+        $('#editor-modal').modal("close")
         //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
         //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
         $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
@@ -697,7 +697,7 @@
       });
     });
 
-    // // Submits form data, closes the modal, clears the form, and reloads the data
+    // // Submits transaction CREATOR form data, closes the modal, clears the form, and reloads the data
     $('#transaction-modal form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
@@ -725,7 +725,7 @@
       }).done(function( o ) {
         if (remain_open == 0) {
           // If the form was submitted with the standard submit button or enter
-          $('.modal').modal("close")
+          $('#transaction-modal').modal("close")
           //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
           //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
           $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
@@ -749,12 +749,12 @@
             //Select the previously selected envelopes and their respective dropdowns
             $envelope_selectors.each(function(index) {
               $(this).find('option[value=' + selected_envelopes[index] + ']').attr('selected', 'selected');
-              $(this).formSelect();
+              $(this).formSelect({dropdownOptions: {container: 'body'}});
             });
             //Select the previously selected account in its dropdown
             $account_selectors.each(function(index) {
               $(this).find('option[value=' + selected_accounts[index] + ']').attr('selected', 'selected');
-              $(this).formSelect();
+              $(this).formSelect({dropdownOptions: {container: 'body'}});
             });
 
           });
@@ -772,14 +772,14 @@
       e.preventDefault()
       var url = $(this).attr('action');
       var method = $(this).attr('method');
-      var parent_modal_id = '#' + $(this).parents('.modal').attr('id');
+      var parent_modal_id = '#' + $(this).parents('.modal').attr('id'); //Only the .deleter-form should have a parent modal
 
       $.ajax({
         type: method,
         url: url,
         data: $(this).serialize(),
       }).done(function( o ) {
-        $(".modal").modal("close");
+        $(parent_modal_id).modal("close");
         //Removes the new-envelope-row(s) from split transactions in the specific modal so that the next time you open
         //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
         $(parent_modal_id + ' .new-envelope-row').remove();
