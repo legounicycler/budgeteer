@@ -153,7 +153,6 @@ def insert_transaction(t):
     Inserts transaction into database, then updates account/envelope balances
     """
     with conn:
-        
         # ---1. MAKE SURE THE RECONCILE BALANCES EXIST---
         #If there's no account/envelope associated, set the reconcile balance to 0
         if t.a_reconcile_bal is None or t.account_id is None:
@@ -180,7 +179,7 @@ def insert_transaction(t):
 
         # ---4. UPDATE RECONCILE BALANCES---
         update_reconcile_amounts(t.account_id, t.envelope_id, t.id, INSERT)
-    
+
     log_write('T INSERT: ' + str(t))
 
 def get_transaction(id):
@@ -380,18 +379,16 @@ def delete_transaction(id):
             ids = get_ids_from_grouping(grouping)
             for id in ids:                
                 t = get_transaction(id)
-
-                # 2a. If you're deleting an "ENVELOPE_DELETE" transaction, restore it so the balances can be updated
+                # 2a. If you're deleting an "ENVELOPE_DELETE" transaction, restore the envelope
                 if t.type == ENVELOPE_DELETE:
-                    if t.envelope_id is not UNALLOCATED: # Don't try to restore the unallocated envelope
+                    if t.envelope_id is not UNALLOCATED: # Don't try to restore the unallocated envelope since it can't be deleted
                         if (get_envelope(t.envelope_id).deleted is not False): # Don't try to restore an envelope that is not deleted
                             restore_envelope(t.envelope_id)
                 
-                # 2b. If you're deleting an "ACCOUNT_DELETE" transaction, restore it so the balances can be updated
+                # 2b. If you're deleting an "ACCOUNT_DELETE" transaction, restore the account
                 if t.type == ACCOUNT_DELETE:
-                    print(t)
-                    print(t.account_id)
-                    restore_account(t.account_id)
+                    if (get_account(t.account_id).deleted is not False): # Don't try to restore an account that is not deleted
+                        restore_account(t.account_id)
 
                 # 3. If it is not a transaction in the future, update envelope/account balances
                 if (t.date < datetime.now()): #TODO: This will probably need to change when timezones are implemented
@@ -406,7 +403,7 @@ def delete_transaction(id):
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
 
-                    # 4. Update the reconciled amounts if there is an account associated with the transaction
+                    # 4. Update the reconciled amounts
                     update_reconcile_amounts(t.account_id, t.envelope_id, t.id, REMOVE)
                 
                 # 5. Delete the actual transaction from the database
@@ -437,7 +434,6 @@ def update_reconcile_amounts(account_id, envelope_id, transaction_id, method):
 
         # UPDATE THE ACCOUNT RECONCILE AMOUNTS
         if account_id is not None:
-
             # 1. Find the ID of the previous transaction in the same account
             c.execute("SELECT id FROM transactions WHERE (account_id=? AND date(day) == date((SELECT day from transactions where id=?)) AND id<?) OR (account_id=? AND day < date((SELECT day from transactions where id=?))) ORDER BY id DESC LIMIT 1", (account_id,transaction_id,transaction_id,account_id,transaction_id))
             prev_transaction_id = c.fetchone()
@@ -482,7 +478,6 @@ def update_reconcile_amounts(account_id, envelope_id, transaction_id, method):
         
         # UPDATE THE ENVELOPE RECONCILE AMOUNTS
         if envelope_id is not None:
-
             # 1. Find the ID of the previous transaction in the same envelope
             c.execute("SELECT id FROM transactions WHERE (envelope_id=? AND date(day) == date((SELECT day from transactions where id=?)) AND id<?) OR (envelope_id=? AND day < date((SELECT day from transactions where id=?))) ORDER BY id DESC LIMIT 1", (envelope_id,transaction_id,transaction_id,envelope_id,transaction_id))
             prev_transaction_id = c.fetchone()
@@ -495,12 +490,12 @@ def update_reconcile_amounts(account_id, envelope_id, transaction_id, method):
             # 2. Fetch info for the transactions that need to be updated
             if (method == INSERT):
                 # Fetches the transactions whose e_reconcile_bal's need to be updated starting from PREVIOUS transaction
-                # (transactions with same account id and greater date OR same date and same envelope id but greater id than previous transaction)
+                # (transactions with same envelope id and greater date OR same date and same envelope id but greater id than previous transaction)
                 c.execute("SELECT id,amount,e_reconcile_bal FROM transactions WHERE (envelope_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND envelope_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (envelope_id,prev_transaction_id,prev_transaction_id,envelope_id,prev_transaction_id))
             elif (method == REMOVE):
                 # Fetches the transactions whose e_reconcile_bal's need to be updated starting from the CURRENT transaction
-                # # (transactions with same account id and greater date OR same date and same envelope id but greater id than current transaction)
-                c.execute("SELECT id,amount,a_reconcile_bal FROM transactions WHERE (envelope_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND envelope_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (envelope_id,transaction_id,transaction_id,envelope_id,transaction_id))
+                # (transactions with same envelope id and greater date OR same date and same envelope id but greater id than current transaction)
+                c.execute("SELECT id,amount,e_reconcile_bal FROM transactions WHERE (envelope_id=? AND (date(day) > date((SELECT day FROM transactions WHERE id=?))) OR (id>=? AND envelope_id=? AND date(day) == date((SELECT day FROM transactions WHERE id=?)))) ORDER BY day DESC, id DESC", (envelope_id,transaction_id,transaction_id,envelope_id,transaction_id))
 
             # 3. Put contents of query into lists
             t_ids = []
@@ -513,13 +508,13 @@ def update_reconcile_amounts(account_id, envelope_id, transaction_id, method):
 
             # 4. Update the reconcile val
             if (method == INSERT):
-                if (transaction_id == prev_transaction_id):
+                if (transaction_id == prev_transaction_id): #If there are no previous transactions
                     t_r_bals[0] = -1* t_amounts[0]
                     c.execute("UPDATE transactions SET e_reconcile_bal=? WHERE id=?", (-1*t_amounts[0],t_ids[0]))
                 for i in range(1,len(t_ids)):
                     t_r_bals[i] = t_r_bals[i-1] - t_amounts[i]
             elif (method == REMOVE):
-                # add the t_amount of given transaction from following e_reconcile_bal's
+                # add the t_amount of the transaction you're deleting to all the following reconcile balances
                 for i in range(1,len(t_ids)):
                     t_r_bals[i] = t_r_bals[i] + t_amounts[0]
             for i in range(1,len(t_ids)):
@@ -742,10 +737,8 @@ def restore_envelope(envelope_id):
     * Does NOT adjust the envelope balances, since this is done at the transaction level
     """
     with conn:
-        if (envelope_id != UNALLOCATED):
-            c.execute("UPDATE envelopes SET deleted=0 WHERE id=?",(envelope_id,))
-            # Do nothing since the unallocated envelope should always be active
-            log_write('E RESTORE: ' + str(get_envelope(envelope_id)))
+        c.execute("UPDATE envelopes SET deleted=0 WHERE id=?",(envelope_id,))
+        log_write('E RESTORE: ' + str(get_envelope(envelope_id)))
 
 def get_envelope_balance(id):
     """
