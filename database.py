@@ -143,7 +143,7 @@ def create_db():
             )
         """)
 
-    insert_envelope('Unallocated', 0, USER_ID)
+    insert_envelope(Envelope('Unallocated', 0, 0, 0, USER_ID))
 
 
 # ---------------TRANSACTION FUNCTIONS--------------- #
@@ -666,12 +666,12 @@ def adjust_account_balance(id, balance_diff):
 
 # ---------------ENVELOPE FUNCTIONS--------------- #
 
-def insert_envelope(name, budget, user_id):
+def insert_envelope(e):
     """
     Inserts an envelope into the database with given name and budget and a balance of 0
     """
     with conn:
-        c.execute("INSERT INTO envelopes (name, budget, user_id) VALUES (?, ?, ?)", (name,budget,user_id))
+        c.execute("INSERT INTO envelopes (name, budget, user_id) VALUES (?, ?, ?)", (e.name, e.budget, e.user_id))
         envelope_id = c.lastrowid
         log_write('E INSERT: ' + str(get_envelope(envelope_id)))
 
@@ -759,36 +759,42 @@ def update_envelope_balance(id, balance):
     with conn:
         c.execute("UPDATE envelopes SET balance=? WHERE id=?",(balance, id))
 
-def edit_envelope(id, name, budget):
+def edit_envelope(id, new_name, new_budget):
     """
     Updates the name and budget for given envelope id
     """
     with conn:
-        c.execute("UPDATE envelopes SET name=?, budget=? WHERE id=?",(name, budget, id))
+        c.execute("UPDATE envelopes SET name=?, budget=? WHERE id=?",(new_name, new_budget, id))
     log_write('E EDIT: ' + str(get_envelope(id)))
 
-def edit_envelopes(old_envelopes, new_envelopes):
+def edit_envelopes(envelopes_to_edit, new_envelopes, present_ids):
     """
-    Compares an old and new list of envelopes, then:
-    1.  Updates info for envelopes that exist in both lists
+    Compares an old and new list of envelope, then:
+    1.  Updates envelope in DB if their fields are different from those in old_envelopes
     2.  Adds new envelopes not present in old list
     3.  Deletes old envelopes not present in new list
     """
+    done_something = False
     c.execute("SELECT id FROM envelopes WHERE deleted=0")
-    envelope_ids = c.fetchall()
-    envelope_ids.remove((1,)) # gets rid of unallocated id (1) in envelope list
-    old_ids = []
+    original_envelope_ids = c.fetchall()
+
     # 1. Updates info for envelopes that exist in both lists
-    for e in old_envelopes:
-        old_ids.append(int(e[0]))
-        edit_envelope(int(e[0]), e[1], e[2])
+    for e in envelopes_to_edit:
+        edit_envelope(int(e.id), e.name, e.budget)
+        done_something = True
     # 2. Adds new envelopes not present in old list
     for e in new_envelopes:
-        insert_envelope(e[0], e[1], e[2])
+        insert_envelope(e)
+        done_something = True
     # 3. Deletes old envelopes not present in new list
-    for id in envelope_ids:
-        if not (id[0] in old_ids):
+    for id in original_envelope_ids:
+        if not id[0] in present_ids and id[0] != UNALLOCATED:
             delete_envelope(id[0])
+            done_something = True
+    if done_something:
+        return "Envelopes successfully updated!"
+    else:
+        return "No changes were made"
 
 def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedule, user_id):
     """

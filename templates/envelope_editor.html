@@ -18,15 +18,18 @@
                 <div class="col m1 hide-on-small-only valign-wrapper envelope-icon"><i class="material-icons">mail_outline</i></div>
                 <div class="col s6 m4 envelope-name left-align input-field">
                   <input class="validate" type="text" value="{{envelope.name}}" name="edit-envelope-name" required>
+                  <input name="original-envelope-name" type="hidden" value="{{envelope.name}}" required>
                   <span class="helper-text" data-error="Envelope name required"></span>
                 </div>
                 <div class="col s5 m2 envelope-budget input-field">
                   <input class="validate" type="number" step=".01" autocomplete="off" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" name="edit-envelope-budget" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                  <input name="original-envelope-budget" type="hidden" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" required>
                   <input name="envelope-id" type="hidden" value="{{envelope.id}}" required>
                   <span class="helper-text" data-error="Must be numeric"></span>
                 </div>
                 <div class="col m3 hide-on-small-only valign-wrapper envelope-balance">
                   <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>
+                  <input name="envelope-balance" type="hidden" value="{% if envelope.balance[0] == '$' %}{{ envelope.balance[1:] }}{% else %}-{{ envelope.balance[2:] }}{% endif %}" required>
                 </div>
                 <div class="col s1 m2 valign-wrapper delete-envelope">
                   <a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a>

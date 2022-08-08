@@ -478,20 +478,26 @@ def edit_accounts_page():
 
 @app.route('/api/edit-envelopes', methods=['POST'])
 def edit_envelopes_page():
-  old_budgets = request.form.getlist('edit-envelope-budget')
-  old_names = request.form.getlist('edit-envelope-name')
-  old_ids = request.form.getlist('envelope-id')
+  edit_budgets = request.form.getlist('edit-envelope-budget')
+  original_budgets = request.form.getlist('original-envelope-budget')
+  envelope_balances = request.form.getlist('envelope-balance')
+  edit_names = request.form.getlist('edit-envelope-name')
+  original_names = request.form.getlist('original-envelope-name')
+  present_ids = request.form.getlist('envelope-id')
   new_budgets = request.form.getlist('new-envelope-budget')
   new_names = request.form.getlist('new-envelope-name')
-  old_envelopes = []
+  envelopes_to_edit = []
   new_envelopes = []
-  for i in range(len(old_ids)):
-    old_envelopes.append([old_ids[i], old_names[i], int(round(float(old_budgets[i])*100))])
+  for i in range(len(present_ids)):
+    if (edit_names[i] != original_names[i] or edit_budgets[i] != original_budgets[i]):
+      e = Envelope(edit_names[i], int(round(float(envelope_balances[i])*100)), int(round(float(edit_budgets[i])*100)), False, USER_ID)
+      e.id = present_ids[i]
+      envelopes_to_edit.append(e)
   for i in range(len(new_names)):
-    new_envelopes.append([new_names[i], int(round(float(new_budgets[i])*100)), USER_ID])
-  edit_envelopes(old_envelopes, new_envelopes)
+    new_envelopes.append(Envelope(new_names[i], 0, int(round(float(new_budgets[i])*100)), False, USER_ID))
+  present_ids = list(map(int,present_ids)) # Turn the list of strings into a list of ints
+  message = edit_envelopes(envelopes_to_edit, new_envelopes, present_ids)
 
-  message = 'Envelopes successfully updated!'
   if (health_check() is False):
     message = message + " HEALTH ERROR!!!"
   return message
