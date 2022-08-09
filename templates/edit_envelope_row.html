@@ -1,0 +1,21 @@
+<li class="row edit-envelope-row collection-item flex">
+    <div class="col m1 hide-on-small-only valign-wrapper envelope-icon editor-col">
+        <i class="material-icons">mail_outline</i>
+    </div>
+    <div class="col s6 m4 envelope-name left-align editor-col input-field">
+        <input required class="validate" type="text" name="new-envelope-name">
+        <span class="helper-text" data-error="Envelope name required"></span>
+    </div>
+    <div class="col s5 m2 envelope-budget editor-col input-field">
+        <input required class="validate" type="number" step=".01" name="new-envelope-budget" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$">
+        <span class="helper-text" data-error="Must be numeric"></span>
+    </div>
+    <div class="col m3 hide-on-small-only valign-wrapper envelope-balance editor-col">
+        <span class="balance neutral">$0.00</span>
+    </div>
+    <div class="col s1 m2 valign-wrapper delete-envelope editor-col">
+        <a href="#!" class="delete-envelope-button">
+            <i class="material-icons red-text">delete_forever</i>
+        </a>
+    </div>
+</li>

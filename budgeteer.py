@@ -567,6 +567,13 @@ def multi_delete():
     message = message + " HEALTH ERROR!!!"
   return message
 
+@app.route('/api/load-static-html', methods=["POST"])
+def load_static_html():
+  return jsonify({
+    'edit_envelope_row': render_template('edit_envelope_row.html'),
+    'edit_account_row': render_template('edit_account_row.html'),
+    't_editor_new_env_row': render_template('transaction_editor_new_envelope_row.html')
+  })
 
 #MAKE SURE DEBUG IS TURNED OFF FOR MAIN DEPLOYMENT
 if __name__ == '__main__':

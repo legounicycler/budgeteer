@@ -1,6 +1,42 @@
 (function($){
   $(function(){
 
+    // ----Declare global variables----
+
+    //Static HTML variables
+    var new_edit_envelope_row_html;
+    var new_edit_account_row_html;
+    var t_editor_new_env_row_html;
+
+    //Transaction types
+    const BASIC_TRANSACTION = 0;
+    const ENVELOPE_TRANSFER = 1;
+    const ACCOUNT_TRANSFER = 2;
+    const INCOME = 3;
+    const SPLIT_TRANSACTION = 4;
+    const ENVELOPE_FILL = 5;
+    const ENVELOPE_DELETE = 6;
+    const ACCOUNT_DELETE = 7;
+    const ACCOUNT_ADJUST = 8;
+
+    // Objects for various transaction editors
+    var expense_editor;
+    var transfer_editor;
+    var income_editor;
+    var envelope_fill_editor;
+    var envelope_restore;
+    var account_restore;
+    var account_adjust;
+
+    // Some other variables
+    var current_page = "All Transactions";   //TODO: Add description
+    var none_checked = true; //TODO: Add description
+    var delete_target;       //TODO: Add description
+
+    // Variables for envelope filler
+    var envelope_fill_balances_array = [];
+    var envelope_balances = [];
+
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
 
@@ -151,42 +187,28 @@
         });
       });
 
+      // Load the contents of the static HTML files into global variables
+      $.ajax({
+        type: 'POST',
+        url: '/api/load-static-html',
+      }).done( function(o) {
+        new_edit_envelope_row_html = o['edit_envelope_row'];
+        new_edit_account_row_html = o['edit_account_row'];
+        t_editor_new_env_row_html = o['t_editor_new_env_row'];
+
+        console.log("Static HTML loaded")
+      });
+
+      // Establish arrays of envelope blances etc. for envelope filler
+      var unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
+      $('#envelopes-bin .scroller').children().each( function() {
+        envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
+      });
+
     }); // end of document ready
 
 
     //------------- FUNCTIONAL JS -------------//
-
-    //TRANSACTION TYPES
-    const BASIC_TRANSACTION = 0;
-    const ENVELOPE_TRANSFER = 1;
-    const ACCOUNT_TRANSFER = 2;
-    const INCOME = 3;
-    const SPLIT_TRANSACTION = 4;
-    const ENVELOPE_FILL = 5;
-    const ENVELOPE_DELETE = 6;
-    const ACCOUNT_DELETE = 7;
-    const ACCOUNT_ADJUST = 8;
-
-    // Objects for various transaction editors
-    var expense_editor;
-    var transfer_editor;
-    var income_editor;
-    var envelope_fill_editor;
-    var envelope_restore;
-    var account_restore;
-    var account_adjust;
-
-    var current_page = "All Transactions";   //TODO: Add description
-    var none_checked = true; //TODO: Add description
-    var delete_target;       //TODO: Add description
-
-    // Establish arrays of envelope blances etc. for envelope filler
-    var envelope_fill_balances_array = [];
-    var envelope_balances = [];
-    var unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
-    $('#envelopes-bin .scroller').children().each( function() {
-      envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
-    });
 
     // Formats a number into a string with a "$" and "-" if necessary
     function balance_format(number) {
@@ -207,7 +229,7 @@
       };
     }
 
-    // Sums a 2 numbers
+    // Sums 2 numbers
     function getSum(total, num) {
       return total + num;
     }
@@ -251,13 +273,13 @@
       editor_row_check()
       // Adds new envelope row on button click and clears temporary no-envelopes message if there is one
       $("#new-envelope-row").click(function() {
-        $("#envelope-editor-bin").append('<li class="row edit-envelope-row collection-item flex"><div class="col m1 hide-on-small-only valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div><div class="col s6 m4 envelope-name left-align editor-col input-field"><input required class="validate" type="text" name="new-envelope-name"><span class="helper-text" data-error="Envelope name required"></span></div><div class="col s5 m2 envelope-budget editor-col input-field"><input required class="validate" type="number" step=".01" name="new-envelope-budget" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><span class="helper-text" data-error="Must be numeric"></span></div><div class="col m3 hide-on-small-only valign-wrapper envelope-balance editor-col"><span class="balance neutral">$0.00</span></div><div class="col s1 m2 valign-wrapper delete-envelope editor-col"><a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a></div></li>');
+        $("#envelope-editor-bin").append(new_edit_envelope_row_html);
         $('#no-envelopes').remove();
       });
 
       // Adds new account row on button click and clears temporary no-accounts message if there is one
       $("#new-account-row").click(function() {
-        $("#account-editor-bin").append('<li class="row account-row collection-item flex"><div class="col m1 hide-on-small-only valign-wrapper account-icon editor-col"><i class="material-icons">account_balance</i></div><div class="col s7 m6 account-name left-align editor-col input-field"><input required class="validate" type="text" name="new-account-name"><span class="helper-text" data-error="Account name required"></span></div><div class="col s4 m3 account-balance editor-col input-field"><input required class="validate" type="number" step=".01" name="new-account-balance" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><span class="helper-text" data-error="Must be numeric"></span></div><div class="col s1 m2 valign-wrapper delete-account editor-col"><a href="#!" class="delete-account-button"><i class="material-icons red-text">delete_forever</i></a></div></li>');
+        $("#account-editor-bin").append(new_edit_account_row_html);
         $('#no-accounts').remove();
       });
 
@@ -363,7 +385,7 @@
       $envelope_selector.find('option').each(function(){$(this).removeAttr('selected')});
       $envelope_selector.find('option').first().attr('selected','selected');
       //Add the envelope row without the select in it yet
-      $('#envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s5 input-field"><input id="amount" required class="validate" type="number" step=".01" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount-">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper remove-envelope-button-col"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
+      $('#envelopes-and-amounts').append(t_editor_new_env_row_html);
       //Add the select to the row, then initialize the select
       $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect({dropdownOptions: {container: 'body'}});
     });
@@ -371,7 +393,7 @@
     // Adds envelope row for transaction editor and initializes Material Select
     $("#edit-add-envelope").click(function() {
       var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
-      $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s5 input-field"><input id="amount" required class="validate" type="number" step=".01" name="amount" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper remove-envelope-button-col"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
+      $('#edit-envelopes-and-amounts').append(t_editor_new_env_row_html);
       $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect({dropdownOptions: {container: 'body'}});
     });
 
@@ -936,7 +958,7 @@
         $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
         for (i=1 ; i<envelope_ids.length ; i++) {
           var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
-          $('#edit-envelopes-and-amounts').append('<div class="row new-envelope-row flex"><div class="input-field col s6 addedEnvelope"><label>Envelope</label></div><div class="input-field col s5 input-field"><input required id="amount" class="validate" type="number" step=".01" name="amount" value="'+amounts[i].toFixed(2)+'" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$"><label for="amount">Amount</label><span class="helper-text" data-error="Please enter a numeric value"></span></div><div class="col s1 valign-wrapper remove-envelope-button-col"><a href="#!" class="remove-envelope-button"><i class="material-icons grey-text">delete</i></a></div></div>');
+          $('#edit-envelopes-and-amounts').append(t_editor_new_env_row_html).find("#amount").attr("value", amounts[i].toFixed(2));
           $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect({dropdownOptions: {container: 'body'}});
         }
         checkbox_id = '#edit-expense-schedule'
