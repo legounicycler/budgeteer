@@ -4,3 +4,5 @@ Things To Do.txt
 Exported_Transactions/*.csv
 EventLog.txt
 *.sqlite
+*.ppk
+*.key
