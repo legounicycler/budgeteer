@@ -5,6 +5,9 @@
       <h3>Edit Envelopes</h3>
 
       <form id="envelope-editor-form" action="{{ url_for('edit_envelopes_page') }}" method="post">
+        <div class="row budget-total-row">
+          <h5>Total Budget: <b><span id="budget-total">{{budget_total}}</span></b></h5>
+        </div>
         <ul id="envelope-editor-bin" class="collection">
           <li class="row collection-item left-align grey lighten-3">
             <div class="col s6 m4 offset-m1 header left-align">Name</div>

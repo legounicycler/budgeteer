@@ -92,18 +92,18 @@ app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
 def home():
   current_page = 'All transactions'
   (transactions_data, offset, limit) = get_transactions(0,50)
-  (active_envelopes, envelopes_data) = get_envelope_dict()
+  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
   total_funds = get_total(USER_ID)
   current_total = total_funds
-  return render_template('layout.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_total=current_total, offset=offset, limit=limit)
+  return render_template('layout.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, active_envelopes=active_envelopes, envelopes_data=envelopes_data, budget_total=budget_total, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_total=current_total, offset=offset, limit=limit)
 
 @app.route("/get_envelope_page", methods=["POST"], )
 def get_envelope_page():
   envelope_id = request.get_json()['envelope_id']
   current_page = f'envelope/{envelope_id}'
   (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
-  (active_envelopes, envelopes_data) = get_envelope_dict()
+  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
   page_total = stringify(get_envelope(envelope_id).balance)
   data = {}
@@ -117,7 +117,7 @@ def get_account_page():
   account_id = request.get_json()['account_id']
   current_page = f'account/{account_id}'
   (transactions_data, offset, limit) = get_account_transactions(account_id,0,20)
-  (active_envelopes, envelopes_data) = get_envelope_dict()
+  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
   page_total = stringify(get_account(account_id).balance)
   data = {}
@@ -519,17 +519,17 @@ def transactions_function():
     current_page = 'All transactions'
     (transactions_data, offset, limit) = get_transactions(0,50)
     page_total = get_total(USER_ID)
-  (active_envelopes, envelopes_data) = get_envelope_dict()
+  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
   data = {}
   data['total'] = get_total(USER_ID)
   data['unallocated'] = envelopes_data[1].balance
   data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
   data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
-  data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
+  data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, budget_total=budget_total)
   data['account_selector_html'] = render_template('account_selector.html', accounts_data=accounts_data)
   data['envelope_selector_html'] = render_template('envelope_selector.html', envelopes_data=envelopes_data)
-  data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data)
+  data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total)
   data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
   data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
   data['page_total'] = page_total
@@ -551,7 +551,7 @@ def load_more():
     (transactions_data, offset, limit) = get_transactions(current_offset,50)
 
   # these 2 lines shouldn't be necessary here after updating to a join clause
-  (active_envelopes, envelopes_data) = get_envelope_dict()
+  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
   more_transactions = render_template('more_transactions.html', t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, accounts_data=accounts_data, envelopes_data=envelopes_data)
   return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions})

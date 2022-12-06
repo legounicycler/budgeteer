@@ -696,14 +696,16 @@ def get_envelope_dict():
     ids = c.fetchall()
     e_dict = {}
     active_envelopes = False
+    budget_total = 0
     for id in ids:
         e = get_envelope(id[0])
         e.balance = stringify(e.balance)
-        e.budget = stringify(e.budget)
         e_dict[id[0]] = e
         if e.deleted == 0 and e.id != 1:
             active_envelopes = True
-    return (active_envelopes, e_dict)
+            budget_total = budget_total + e.budget
+        e.budget = stringify(e.budget)
+    return (active_envelopes, e_dict, stringify(budget_total))
 
 def delete_envelope(envelope_id):
     """

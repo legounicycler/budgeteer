@@ -314,6 +314,15 @@
         });
       });
 
+      // Envelope budget math n' stuff
+      $('#envelope-editor-form').on("change", 'input[name="edit-envelope-budget"]', function() {
+        budget_total = 0
+        $('#envelope-editor-form').find('input[name="edit-envelope-budget"]').each(function(i,n) {
+          budget_total += parseFloat($(n).val())
+        });
+        $('#budget-total').text(balance_format(budget_total))
+      });
+
     }; //End of editor bind
 
     // Toggler code for transfer tab of transaction creator/editor
