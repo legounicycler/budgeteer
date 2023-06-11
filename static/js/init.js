@@ -229,6 +229,15 @@
       };
     }
 
+    function updateEnvelopeOrderValues() {
+      // Update the envelope-order input values to reflect new order
+      var i = 0;
+      $("#envelope-editor-bin").find('input[name="envelope-order"], input[name="new-envelope-order"]').each(function() {
+        $(this).attr("value", i);
+        i++;
+      })
+    }
+
     // Sums 2 numbers
     function getSum(total, num) {
       return total + num;
@@ -266,15 +275,45 @@
       if ( $('#envelope-editor-bin').children().length == 1 ) {
         $('#envelope-editor-bin').append("<div class='row collection-item' id='no-envelopes'><h5 class='no-margin no-message'>You don't have any envelopes yet!</h5></div>")
       };
+      updateEnvelopeOrderValues();
     };
 
     // Various event binds in the transaction/account/envelope editors
     function editor_binds() {
       editor_row_check()
-      // Adds new envelope row on button click and clears temporary no-envelopes message if there is one
+
       $("#new-envelope-row").click(function() {
+
+        // 1. Determine the new display order for the envelope (defaults to displaying last)
+        var e_disp_orders = [];
+        $("#envelope-editor-bin input[name='envelope-order']").each(function() {
+          e_disp_orders.push(parseInt($(this).attr('value')));
+        });
+        var new_e_disp_order = Math.max(...e_disp_orders) + 1;
+
+        // 2. Add the new envelope row
         $("#envelope-editor-bin").append(new_edit_envelope_row_html);
-        $('#no-envelopes').remove();
+
+        // 3. Update the display order value
+        $("#new-envelope-row").find('input[name="new-envelope-order"]').attr("value", new_e_disp_order);
+        $("#new-envelope-row").removeAttr("id"); //
+
+        // 4. Clears temporary no-envelopes message if there is one
+        $('#no-envelopes').remove(); 
+      });
+
+      // Makes the envelopes in the editor sortable
+      $('#envelope-editor-bin').sortable({
+        handle: ".sort-icon",
+        containment: "parent",
+        dropOnEmpty: true,
+        start: function(event, ui) {
+          $(ui.item).addClass("active-drag");
+        },
+        stop: function(event, ui) {
+          $(ui.item).removeClass("active-drag");
+          updateEnvelopeOrderValues();
+        }
       });
 
       // Adds new account row on button click and clears temporary no-accounts message if there is one

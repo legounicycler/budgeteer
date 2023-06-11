@@ -18,7 +18,11 @@
           {% for id, envelope in envelopes_data.items() %}
             {% if envelope.deleted == false and envelope.id != 1 %}
               <li class="row edit-envelope-row collection-item flex">
-                <div class="col m1 hide-on-small-only valign-wrapper envelope-icon"><i class="material-icons">mail_outline</i></div>
+                <div class="col m1 hide-on-small-only valign-wrapper envelope-icon">
+                  <i class="material-icons sort-icon">unfold_more</i>
+                  <input name="envelope-id" type="hidden" value="{{envelope.id}}" required>
+                  <input name="envelope-order" type="hidden" value="{{envelope.display_order}}" required>
+                </div>
                 <div class="col s6 m4 envelope-name left-align input-field">
                   <input class="validate" type="text" value="{{envelope.name}}" name="edit-envelope-name" required>
                   <input name="original-envelope-name" type="hidden" value="{{envelope.name}}" required>
@@ -27,7 +31,6 @@
                 <div class="col s5 m2 envelope-budget input-field">
                   <input class="validate" type="number" step=".01" autocomplete="off" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" name="edit-envelope-budget" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
                   <input name="original-envelope-budget" type="hidden" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" required>
-                  <input name="envelope-id" type="hidden" value="{{envelope.id}}" required>
                   <span class="helper-text" data-error="Must be numeric"></span>
                 </div>
                 <div class="col m3 hide-on-small-only valign-wrapper envelope-balance">

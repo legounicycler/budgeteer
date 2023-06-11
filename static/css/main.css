@@ -14,6 +14,11 @@
   width: 0px;
 }
 
+.active-drag {
+  background-color: #fff3e0 !important;
+  border-top: 1px solid #e0e0e0;
+}
+
 #loading-div-div {
   position:fixed;
   width:100%;
@@ -33,6 +38,10 @@
   margin:0;
   background: rgba(0,0,0,.6);
   z-index: 10000001;
+}
+
+.sort-icon {
+  cursor: pointer;
 }
 
 .checked-background {
