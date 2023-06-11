@@ -78,17 +78,18 @@ class Account:
 
 
 class Envelope:
-    def __init__(self, name, balance, budget, deleted, user_id):
+    def __init__(self, name, balance, budget, deleted, user_id, display_order):
         self.id = None
         self.name = name
         self.balance = balance
         self.budget = budget
         self.deleted = deleted
         self.user_id = user_id
+        self.display_order = display_order
     def __repr__(self):
-        return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
+        return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id,self.display_order)
     def __str__(self):
-        return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id)
+        return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id,self.display_order)
 
 
 def create_db():
@@ -131,6 +132,7 @@ def create_db():
             balance INTEGER NOT NULL DEFAULT 0,
             budget INTEGER NOT NULL DEFAULT 0,
             deleted BOOLEAN NOT NULL DEFAULT 0,
+            display_order INTEGER,
             user_id INTEGER NOT NULL
             )
         """)
@@ -145,6 +147,12 @@ def create_db():
 
     insert_envelope(Envelope('Unallocated', 0, 0, 0, USER_ID))
 
+# ----- Helper functions ----- #
+def unpack(list_of_tuples):
+    unpacked_array = []
+    for item in list_of_tuples:
+        unpacked_array.append(item[0])
+    return unpacked_array
 
 # ---------------TRANSACTION FUNCTIONS--------------- #
 
@@ -671,7 +679,7 @@ def insert_envelope(e):
     Inserts an envelope into the database with given name and budget and a balance of 0
     """
     with conn:
-        c.execute("INSERT INTO envelopes (name, budget, user_id) VALUES (?, ?, ?)", (e.name, e.budget, e.user_id))
+        c.execute("INSERT INTO envelopes (name, budget, user_id, display_order) VALUES (?, ?, ?, ?)", (e.name, e.budget, e.user_id, e.display_order))
         envelope_id = c.lastrowid
         log_write('E INSERT: ' + str(get_envelope(envelope_id)))
 
@@ -681,7 +689,7 @@ def get_envelope(id):
     """
     c.execute("SELECT * FROM envelopes WHERE id=?", (id,))
     edata = c.fetchone()
-    e = Envelope(edata[1], edata[2], edata[3], edata[4], edata[5])
+    e = Envelope(edata[1], edata[2], edata[3], edata[4], edata[5], edata[6])
     e.id = edata[0]
     return e
 
@@ -692,7 +700,7 @@ def get_envelope_dict():
     1. A boolean that says whether there are envelopes to render
     2. A tuple with a dictionary with keys of envelope_id and values of envelope objects.
     """
-    c.execute("SELECT id FROM envelopes ORDER by id ASC")
+    c.execute("SELECT id FROM envelopes ORDER by display_order ASC, id ASC")
     ids = c.fetchall()
     e_dict = {}
     active_envelopes = False
@@ -707,12 +715,27 @@ def get_envelope_dict():
         e.budget = stringify(e.budget)
     return (active_envelopes, e_dict, stringify(budget_total))
 
+def get_envelope_order():
+    """
+    Used for determining when the envelope order has changed within the envelope editor.
+    Returns:
+    1. A dictionary with keys of envelope id and values of display order
+    """
+    with conn:
+        c.execute("SELECT id,display_order FROM envelopes WHERE deleted=0 AND id!=? ORDER BY id ASC", (UNALLOCATED,))
+        tuple_array = c.fetchall()
+        display_dict = dict()
+        for id, display_order in tuple_array:
+            display_dict.setdefault(id,[]).append(display_order)
+        return display_dict
+
 def delete_envelope(envelope_id):
     """
     Deletes an envelope:
     1. Creates a transaction that zeros envelope balance
     2. Creates a transaction that adds envelope balance to unallocated envelope
     3. Sets envelope "deleted" flag to true
+    4. Sets display_order to NULL
     """
     with conn:
         if (envelope_id != UNALLOCATED): #You can't delete the unallocated envelope
@@ -730,6 +753,9 @@ def delete_envelope(envelope_id):
             # 3. Mark the envelope as deleted
             c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
             log_write('E DELETE: ' + str(get_envelope(envelope_id)))
+
+            # 4. Set display_order to NULL
+            c.execute("UPDATE envelopes SET display_order=NULL WHERE id=?", (envelope_id,))
         else:
             print("You can't delete the 'Unallocated' envelope you moron")
 
@@ -761,12 +787,12 @@ def update_envelope_balance(id, balance):
     with conn:
         c.execute("UPDATE envelopes SET balance=? WHERE id=?",(balance, id))
 
-def edit_envelope(id, new_name, new_budget):
+def edit_envelope(id, new_name, new_budget, new_order):
     """
     Updates the name and budget for given envelope id
     """
     with conn:
-        c.execute("UPDATE envelopes SET name=?, budget=? WHERE id=?",(new_name, new_budget, id))
+        c.execute("UPDATE envelopes SET name=?, budget=?, display_order=? WHERE id=?",(new_name, new_budget, new_order, id))
     log_write('E EDIT: ' + str(get_envelope(id)))
 
 def edit_envelopes(envelopes_to_edit, new_envelopes, present_ids):
@@ -782,7 +808,7 @@ def edit_envelopes(envelopes_to_edit, new_envelopes, present_ids):
 
     # 1. Updates info for envelopes that exist in both lists
     for e in envelopes_to_edit:
-        edit_envelope(int(e.id), e.name, e.budget)
+        edit_envelope(int(e.id), e.name, e.budget, e.display_order)
         done_something = True
     # 2. Adds new envelopes not present in old list
     for e in new_envelopes:
@@ -897,7 +923,7 @@ def get_grouped_json(id):
 
 def stringify(number):
     """
-    Formats number into a nice string to display
+    Formats amount numbers into a string with a "$" and "-" if necessary for display
     """
     if number is None:
         string = "NAN"
@@ -965,7 +991,7 @@ def print_database(print_all=0,reverse=1):
     for row in c:
         colnames = colnames + row[1] + ', '
     print("(" + colnames[:-2] + ")\n")
-    c.execute("SELECT * FROM envelopes")
+    c.execute("SELECT * FROM envelopes ORDER BY display_order ASC, id ASC")
     for row in c:
         print(row)
     print()
@@ -1023,8 +1049,8 @@ def health_check(interactive=False):
         hidden_print("----------------------")
         hidden_print("BEGINNING HEALTH CHECK")
         hidden_print("----------------------\n")
-    
-    
+
+
     c.execute("SELECT user_id FROM accounts GROUP BY user_id")
     user_ids = c.fetchall()
     for row in user_ids:
@@ -1072,7 +1098,7 @@ def health_check(interactive=False):
             hidden_print(" UNHEALTHY")
             healthy = False
             log_message = ' [UNHEALTHY DELETED ENVELOPE OR ACCOUNT]'
-        
+
 
         # ---3. ACCOUNTS: CONFIRM THAT THESE THREE VALUES ARE THE SAME---
         #     a. Balances stored in accounts table
@@ -1205,8 +1231,7 @@ def log_write(text):
         f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " " + text+"\n")
 
 def main():
-    health_check(True)
-    # print_database()
+    print_database()
 
 if __name__ == "__main__":
     main()

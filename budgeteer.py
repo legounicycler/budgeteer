@@ -483,19 +483,24 @@ def edit_envelopes_page():
   envelope_balances = request.form.getlist('envelope-balance')
   edit_names = request.form.getlist('edit-envelope-name')
   original_names = request.form.getlist('original-envelope-name')
-  present_ids = request.form.getlist('envelope-id')
-  new_budgets = request.form.getlist('new-envelope-budget')
+  present_ids = list(map(int, request.form.getlist('envelope-id'))) # Turn the list of strings into a list of ints
+  edit_e_order = list(map(int, request.form.getlist('envelope-order'))) # Turn the list of strings into a list of ints
+
   new_names = request.form.getlist('new-envelope-name')
+  new_budgets = request.form.getlist('new-envelope-budget')
+  new_e_order = list(map(int, request.form.getlist('new-envelope-order'))) # Turn the list of strings into a list of ints
+
+  original_e_order = get_envelope_order()
   envelopes_to_edit = []
   new_envelopes = []
   for i in range(len(present_ids)):
-    if (edit_names[i] != original_names[i] or edit_budgets[i] != original_budgets[i]):
-      e = Envelope(edit_names[i], int(round(float(envelope_balances[i])*100)), int(round(float(edit_budgets[i])*100)), False, USER_ID)
+    if (edit_names[i] != original_names[i] or edit_budgets[i] != original_budgets[i] or edit_e_order[i] != original_e_order[present_ids[i]]): #
+      e = Envelope(edit_names[i], int(round(float(envelope_balances[i])*100)), int(round(float(edit_budgets[i])*100)), False, USER_ID, edit_e_order[i])
       e.id = present_ids[i]
       envelopes_to_edit.append(e)
   for i in range(len(new_names)):
-    new_envelopes.append(Envelope(new_names[i], 0, int(round(float(new_budgets[i])*100)), False, USER_ID))
-  present_ids = list(map(int,present_ids)) # Turn the list of strings into a list of ints
+    new_envelopes.append(Envelope(new_names[i], 0, int(round(float(new_budgets[i])*100)), False, USER_ID, new_e_order[i]))
+
   message = edit_envelopes(envelopes_to_edit, new_envelopes, present_ids)
 
   if (health_check() is False):
@@ -575,7 +580,7 @@ def load_static_html():
     't_editor_new_env_row': render_template('transaction_editor_new_envelope_row.html')
   })
 
-#MAKE SURE DEBUG IS TURNED OFF FOR MAIN DEPLOYMENT
+#MAKES SURE DEBUG IS TURNED OFF FOR MAIN DEPLOYMENT
 if __name__ == '__main__':
   platform = platform.system()
   if platform == 'Windows':
