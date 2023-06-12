@@ -286,10 +286,14 @@
 
         // 1. Determine the new display order for the envelope (defaults to displaying last)
         var e_disp_orders = [];
-        $("#envelope-editor-bin input[name='envelope-order']").each(function() {
+        $("#envelope-editor-bin").find('input[name="envelope-order"], input[name="new-envelope-order"]').each(function() {
           e_disp_orders.push(parseInt($(this).attr('value')));
         });
-        var new_e_disp_order = Math.max(...e_disp_orders) + 1;
+        if (e_disp_orders.length == 0) {
+          new_e_disp_order = 0;
+        } else {
+          var new_e_disp_order = Math.max(...e_disp_orders) + 1;
+        }
 
         // 2. Add the new envelope row
         $("#envelope-editor-bin").append(new_edit_envelope_row_html);

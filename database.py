@@ -91,62 +91,6 @@ class Envelope:
     def __str__(self):
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id,self.display_order)
 
-
-def create_db():
-    """
-    Creates the database file
-    """
-    c.execute("""
-        CREATE TABLE transactions (
-            id INTEGER PRIMARY KEY,
-            type INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            amount INTEGER NOT NULL,
-            day DATE NOT NULL,
-            envelope_id INTEGER,
-            account_id INTEGER,
-            grouping INTEGER NOT NULL,
-            note TEXT NOT NULL DEFAULT '',
-            schedule TEXT,
-            status BOOLEAN NOT NULL DEFAULT 0,
-            user_id NOT NULL,
-            a_reconcile_bal INTEGER NOT NULL DEFAULT 0,
-            e_reconcile_bal INTEGER NOT NULL DEFAULT 0
-            )
-        """)
-
-    c.execute("""
-        CREATE TABLE accounts (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            balance INTEGER NOT NULL DEFAULT 0,
-            deleted BOOLEAN NOT NULL DEFAULT 0,
-            user_id INTEGER NOT NULL
-            )
-        """)
-
-    c.execute("""
-        CREATE TABLE envelopes (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            balance INTEGER NOT NULL DEFAULT 0,
-            budget INTEGER NOT NULL DEFAULT 0,
-            deleted BOOLEAN NOT NULL DEFAULT 0,
-            display_order INTEGER,
-            user_id INTEGER NOT NULL
-            )
-        """)
-
-    c.execute("""
-        CREATE TABLE users (
-            user_id INTEGER PRIMARY KEY,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
-            )
-        """)
-
-    insert_envelope(Envelope('Unallocated', 0, 0, 0, USER_ID))
-
 # ----- Helper functions ----- #
 def unpack(list_of_tuples):
     unpacked_array = []
@@ -202,7 +146,7 @@ def get_transaction(id):
     t.id = tdata[0]
     return t
 
-def get_transactions(start, amount):
+def get_home_transactions(start, amount):
     """
     For displaying transactions on the HOME PAGE ONLY
     Given a start number and an amount of transactions to fetch, returns:
@@ -398,25 +342,69 @@ def delete_transaction(id):
                     if (get_account(t.account_id).deleted is not False): # Don't try to restore an account that is not deleted
                         restore_account(t.account_id)
 
-                # 3. If it is not a transaction in the future, update envelope/account balances
+                # 4. If it is not a transaction in the future, update envelope/account balances
                 if (t.date < datetime.now()): #TODO: This will probably need to change when timezones are implemented
                     if t.envelope_id is not None:
-                        if not (get_envelope(t.envelope_id).deleted == True):
+                        if bool(get_envelope(t.envelope_id).deleted) is not True:
                             update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + t.amt)
+                            # When deleting a transaction referencing a deleted envelope, you must also update the amount of the
+                            # ENVELOPE_DELETE transactions so the deleted envelope maintains a balance of $0.
+                            # i.e. If you delete a $1 transaction in a deleted envelope, the money does not go back into the envelope since it's deleted
+                            #      instead, it goes to the unallocated envelope, but now the sum of transactions in your deleted envelopes will not be $0
+                            #      unless you change the amount ENVELOPE_DELETE transaction(s) (which drains the deleted envelope balance down to 0).
+
+                            # Step 1. Get both the ID's for the ENVELOPE_DELETE transactions of the deleted envelope referenced by the transaction
+                            c.execute("""SELECT id FROM transactions WHERE grouping = (
+                                            SELECT grouping FROM transactions WHERE (type=? AND envelope_id=?)
+                                        )""", (ENVELOPE_DELETE, t.envelope_id)
+                                      )
+                            e_delete_ids = unpack(c.fetchall())
+
+                            # Step 2. Get the ENVELOPE_DELETE transactions
+                            for e_delete_id in e_delete_ids:
+                                e_delete_t = get_transaction(e_delete_id)
+
+                                # Step 3. Change the amount by which you will adjust the transaction amount depending on whether
+                                #         it was filling or draining the envelopes in the ENVELOPE_DELETE transaction.
+                                if e_delete_t.envelope_id == UNALLOCATED:
+                                    amt = t.amt*-1
+                                else:
+                                    amt = t.amt
+
+                                # Step 4. Update the ENVELOPE_DELETE transaction amount (and reconcile amounts)
+                                c.execute("UPDATE transactions SET amount=?, e_reconcile_bal=? WHERE id=?",(e_delete_t.amt + amt, e_delete_t.e_reconcile_bal - amt, e_delete_id))
+                                log_write('T UPDATE: ' + str(e_delete_t))
+                            
                     if t.account_id is not None:
-                        if not (get_account(t.account_id).deleted == True):
+                        if bool(get_account(t.account_id).deleted) is not True:
                             update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
 
-                    # 4. Update the reconciled amounts
-                    update_reconcile_amounts(t.account_id, t.envelope_id, t.id, REMOVE)
-                
-                # 5. Delete the actual transaction from the database
-                c.execute("DELETE FROM transactions WHERE id=?", (id,))
+                            # When deleting a transaction referencing a deleted account, you must also update the amount of the
+                            # ACCOUNT_DELETE transactions so the deleted account maintains a balance of $0.
+                            # i.e. If you delete a $1 transaction in a deleted account, the money does not go back into the account since it's deleted
+                            #      instead, it goes to the unallocated envelope, but now the sum of transactions in your deleted account will not be $0
+                            #      unless you change the amount ACCOUNT_DELETE transaction (which drains the deleted account balance down to 0).
 
+                            # Step 1. Get the id of the ACCOUNT_DELETE transaction
+                            c.execute("""SELECT id FROM transactions WHERE (type=? AND account_id=?)""", (ACCOUNT_DELETE, t.account_id))
+                            a_delete_id = c.fetchone()[0]
+                            print(a_delete_id)
+                            a_delete_t = get_transaction(a_delete_id)
+                            print(a_delete_t)
+
+                            # Step 2. Update the ACCOUNT_DELETE transaction amount (and reconcile amounts)
+                            c.execute("UPDATE transactions SET amount=?, a_reconcile_bal=?, e_reconcile_bal=? WHERE id=?",(a_delete_t.amt + t.amt, a_delete_t.a_reconcile_bal - t.amt, a_delete_t.e_reconcile_bal - t.amt, a_delete_id))
+                            log_write('T UPDATE: ' + str(a_delete_t))
+
+                    # 5. Update the reconciled amounts
+                    update_reconcile_amounts(t.account_id, t.envelope_id, t.id, REMOVE)
+
+                # 6. Delete the actual transaction from the database
+                c.execute("DELETE FROM transactions WHERE id=?", (id,))
                 log_write('T DELETE: ' + str(t))
         else:
             print("That transaction doesn't exist you twit")
@@ -536,10 +524,10 @@ def insert_account(account):
     """
     with conn:
         c.execute("INSERT INTO accounts (name, balance, user_id) VALUES (?, ?, ?)", (account.name, 0, account.user_id))
-        account_id = c.lastrowid
-        income_name = 'Initial Account Balance: ' + account.name
-        insert_transaction(Transaction(INCOME, income_name, -1 * account.balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, account.user_id))
-        log_write('A INSERT: ' + str(get_account(account_id)))
+    account_id = c.lastrowid
+    income_name = 'Initial Account Balance: ' + account.name
+    log_write('A INSERT: ' + str(get_account(account_id)))
+    insert_transaction(Transaction(INCOME, income_name, -1 * account.balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, account.user_id))
 
 def get_account(id):
     """
@@ -896,6 +884,14 @@ def get_ids_from_grouping(grouping):
     for i in id_touple:
         id_array.append(i[0])
     return id_array
+
+def get_grouped_ids_from_id(id):
+    """
+    A combination of the get_ids_from_grouping and get_grouping_from_ids functions. Might be able to delete those based on usage
+    """
+    c.execute("SELECT id from transactions WHERE grouping = (SELECT grouping FROM transactions WHERE id=?)", (id,))
+    return unpack(c.fetchall())
+
 
 def get_grouped_json(id):
     """
