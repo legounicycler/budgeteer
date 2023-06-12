@@ -146,7 +146,7 @@ def get_transaction(id):
     t.id = tdata[0]
     return t
 
-def get_transactions(start, amount):
+def get_home_transactions(start, amount):
     """
     For displaying transactions on the HOME PAGE ONLY
     Given a start number and an amount of transactions to fetch, returns:
@@ -480,10 +480,10 @@ def insert_account(account):
     """
     with conn:
         c.execute("INSERT INTO accounts (name, balance, user_id) VALUES (?, ?, ?)", (account.name, 0, account.user_id))
-        account_id = c.lastrowid
-        income_name = 'Initial Account Balance: ' + account.name
-        insert_transaction(Transaction(INCOME, income_name, -1 * account.balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, account.user_id))
-        log_write('A INSERT: ' + str(get_account(account_id)))
+    account_id = c.lastrowid
+    income_name = 'Initial Account Balance: ' + account.name
+    log_write('A INSERT: ' + str(get_account(account_id)))
+    insert_transaction(Transaction(INCOME, income_name, -1 * account.balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, account.user_id))
 
 def get_account(id):
     """
@@ -840,6 +840,14 @@ def get_ids_from_grouping(grouping):
     for i in id_touple:
         id_array.append(i[0])
     return id_array
+
+def get_grouped_ids_from_id(id):
+    """
+    A combination of the get_ids_from_grouping and get_grouping_from_ids functions. Might be able to delete those based on usage
+    """
+    c.execute("SELECT id from transactions WHERE grouping = (SELECT grouping FROM transactions WHERE id=?)", (id,))
+    return unpack(c.fetchall())
+
 
 def get_grouped_json(id):
     """

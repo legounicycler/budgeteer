@@ -4,7 +4,7 @@ This file interacts a lot with the javascript/jQuery running on the site
 """
 
 from hashlib import new
-from flask import Flask, render_template, url_for, request, redirect, jsonify
+from flask import Flask, render_template, request, jsonify
 from database import *
 from datetime import datetime
 from datetime import timedelta
@@ -91,7 +91,7 @@ app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
 @app.route("/home", methods=['GET'])
 def home():
   current_page = 'All transactions'
-  (transactions_data, offset, limit) = get_transactions(0,50)
+  (transactions_data, offset, limit) = get_home_transactions(0,50)
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
   total_funds = get_total(USER_ID)
@@ -522,7 +522,7 @@ def transactions_function():
     page_total = stringify(get_envelope(envelope_id).balance)
   else:
     current_page = 'All transactions'
-    (transactions_data, offset, limit) = get_transactions(0,50)
+    (transactions_data, offset, limit) = get_home_transactions(0,50)
     page_total = get_total(USER_ID)
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
@@ -553,7 +553,7 @@ def load_more():
     envelope_id = int(regex.findall(current_page)[0])
     (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,current_offset,50)
   else:
-    (transactions_data, offset, limit) = get_transactions(current_offset,50)
+    (transactions_data, offset, limit) = get_home_transactions(current_offset,50)
 
   # these 2 lines shouldn't be necessary here after updating to a join clause
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
