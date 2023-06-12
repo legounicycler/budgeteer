@@ -342,25 +342,69 @@ def delete_transaction(id):
                     if (get_account(t.account_id).deleted is not False): # Don't try to restore an account that is not deleted
                         restore_account(t.account_id)
 
-                # 3. If it is not a transaction in the future, update envelope/account balances
+                # 4. If it is not a transaction in the future, update envelope/account balances
                 if (t.date < datetime.now()): #TODO: This will probably need to change when timezones are implemented
                     if t.envelope_id is not None:
-                        if not (get_envelope(t.envelope_id).deleted == True):
+                        if bool(get_envelope(t.envelope_id).deleted) is not True:
                             update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + t.amt)
+                            # When deleting a transaction referencing a deleted envelope, you must also update the amount of the
+                            # ENVELOPE_DELETE transactions so the deleted envelope maintains a balance of $0.
+                            # i.e. If you delete a $1 transaction in a deleted envelope, the money does not go back into the envelope since it's deleted
+                            #      instead, it goes to the unallocated envelope, but now the sum of transactions in your deleted envelopes will not be $0
+                            #      unless you change the amount ENVELOPE_DELETE transaction(s) (which drains the deleted envelope balance down to 0).
+
+                            # Step 1. Get both the ID's for the ENVELOPE_DELETE transactions of the deleted envelope referenced by the transaction
+                            c.execute("""SELECT id FROM transactions WHERE grouping = (
+                                            SELECT grouping FROM transactions WHERE (type=? AND envelope_id=?)
+                                        )""", (ENVELOPE_DELETE, t.envelope_id)
+                                      )
+                            e_delete_ids = unpack(c.fetchall())
+
+                            # Step 2. Get the ENVELOPE_DELETE transactions
+                            for e_delete_id in e_delete_ids:
+                                e_delete_t = get_transaction(e_delete_id)
+
+                                # Step 3. Change the amount by which you will adjust the transaction amount depending on whether
+                                #         it was filling or draining the envelopes in the ENVELOPE_DELETE transaction.
+                                if e_delete_t.envelope_id == UNALLOCATED:
+                                    amt = t.amt*-1
+                                else:
+                                    amt = t.amt
+
+                                # Step 4. Update the ENVELOPE_DELETE transaction amount (and reconcile amounts)
+                                c.execute("UPDATE transactions SET amount=?, e_reconcile_bal=? WHERE id=?",(e_delete_t.amt + amt, e_delete_t.e_reconcile_bal - amt, e_delete_id))
+                                log_write('T UPDATE: ' + str(e_delete_t))
+                            
                     if t.account_id is not None:
-                        if not (get_account(t.account_id).deleted == True):
+                        if bool(get_account(t.account_id).deleted) is not True:
                             update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
                         else:
                             update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
 
-                    # 4. Update the reconciled amounts
-                    update_reconcile_amounts(t.account_id, t.envelope_id, t.id, REMOVE)
-                
-                # 5. Delete the actual transaction from the database
-                c.execute("DELETE FROM transactions WHERE id=?", (id,))
+                            # When deleting a transaction referencing a deleted account, you must also update the amount of the
+                            # ACCOUNT_DELETE transactions so the deleted account maintains a balance of $0.
+                            # i.e. If you delete a $1 transaction in a deleted account, the money does not go back into the account since it's deleted
+                            #      instead, it goes to the unallocated envelope, but now the sum of transactions in your deleted account will not be $0
+                            #      unless you change the amount ACCOUNT_DELETE transaction (which drains the deleted account balance down to 0).
 
+                            # Step 1. Get the id of the ACCOUNT_DELETE transaction
+                            c.execute("""SELECT id FROM transactions WHERE (type=? AND account_id=?)""", (ACCOUNT_DELETE, t.account_id))
+                            a_delete_id = c.fetchone()[0]
+                            print(a_delete_id)
+                            a_delete_t = get_transaction(a_delete_id)
+                            print(a_delete_t)
+
+                            # Step 2. Update the ACCOUNT_DELETE transaction amount (and reconcile amounts)
+                            c.execute("UPDATE transactions SET amount=?, a_reconcile_bal=?, e_reconcile_bal=? WHERE id=?",(a_delete_t.amt + t.amt, a_delete_t.a_reconcile_bal - t.amt, a_delete_t.e_reconcile_bal - t.amt, a_delete_id))
+                            log_write('T UPDATE: ' + str(a_delete_t))
+
+                    # 5. Update the reconciled amounts
+                    update_reconcile_amounts(t.account_id, t.envelope_id, t.id, REMOVE)
+
+                # 6. Delete the actual transaction from the database
+                c.execute("DELETE FROM transactions WHERE id=?", (id,))
                 log_write('T DELETE: ' + str(t))
         else:
             print("That transaction doesn't exist you twit")
