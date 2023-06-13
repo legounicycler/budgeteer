@@ -22,12 +22,6 @@
   z-index: 1000;
 }
 
-.gone {
-  display: none;
-  height: 0px;
-  width: 0px;
-}
-
 .active-drag {
   background-color: #fff3e0 !important;
   border-top: 1px solid #e0e0e0;
@@ -63,15 +57,13 @@
 }
 
 /*Makes balance and reconcile balance look proper in their box*/
-.account-reconcile-row, .envelope-reconcile-row {
+.reconcile-row {
   margin-top: -5px !important;
-  /*Keeps a single transaction in the bin from creating a scroll bar by overflowing*/
   height: 19px;
   overflow: hidden;
 }
 
-/*Makes balance and reconcile balance look proper in their box*/
-.balance-row-adjust {
+.balance-row {
   margin-top: 5px !important;
 }
 
