@@ -414,10 +414,26 @@ def new_split_transaction(t):
     Takes a transaction with arrays of amt and envelope_id and creates individual transactions
     This is a grouped transaction with multiple envelopes!
     """
+    # 1. Combine/sum subtransactions from the same envelope
+    compressed_e_ids = []
+    compressed_amts = []
+    for i in range(len(t.envelope_id)):
+        if t.envelope_id[i] not in compressed_e_ids:
+            compressed_e_ids.append(t.envelope_id[i])
+            compressed_amts.append(t.amt[i])
+        else:
+            n = compressed_e_ids.index(t.envelope_id[i])
+            compressed_amts[n] = compressed_amts[n] + t.amt[i]
+
+    # 2. Generate shared grouping number
     grouping = gen_grouping_num()
-    for i in range(len(t.amt)):
-        new_t = Transaction(SPLIT_TRANSACTION, t.name, t.amt[i], t.date, t.envelope_id[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id)
-        insert_transaction(new_t)
+
+    # 3. Insert the transaction
+    if len(compressed_e_ids) == 1: #If every part of the split transaction went to the same envelope, it's basically a normal transaction
+        insert_transaction(Transaction(BASIC_TRANSACTION, t.name, compressed_amts[0], t.date, compressed_e_ids[0], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id))
+    else:
+        for i in range(len(compressed_e_ids)):
+            insert_transaction(Transaction(SPLIT_TRANSACTION, t.name, compressed_amts[i], t.date, compressed_e_ids[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id))
 
 def update_reconcile_amounts(account_id, envelope_id, transaction_id, method):
     """
