@@ -72,7 +72,7 @@
       $('.tabs').tabs();
 
       // Initialize all materializeselects
-      $('select').formSelect({dropdownOptions: {container: 'body'}});
+      $('select').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
 
       // Initialize all materialize datapickers
       $('.datepicker').datepicker({
@@ -439,14 +439,14 @@
       //Add the envelope row without the select in it yet
       $('#envelopes-and-amounts').append(t_editor_new_env_row_html);
       //Add the select to the row, then initialize the select
-      $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect({dropdownOptions: {container: 'body'}});
+      $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
     });
 
     // Adds envelope row for transaction editor and initializes Material Select
     $("#edit-add-envelope").click(function() {
       var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
       $('#edit-envelopes-and-amounts').append(t_editor_new_env_row_html);
-      $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect({dropdownOptions: {container: 'body'}});
+      $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
     });
 
     // Removes new envelope row in transaction builder
@@ -721,7 +721,7 @@
         M.updateTextFields();
 
         //Update all the selects
-        $('select').formSelect({dropdownOptions: {container: 'body'}});
+        $('select').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
 
         //Set the page total
         $('#page-total').text(o['page_total'])
@@ -824,12 +824,12 @@
             //Select the previously selected envelopes and their respective dropdowns
             $envelope_selectors.each(function(index) {
               $(this).find('option[value=' + selected_envelopes[index] + ']').attr('selected', 'selected');
-              $(this).formSelect({dropdownOptions: {container: 'body'}});
+              $(this).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
             });
             //Select the previously selected account in its dropdown
             $account_selectors.each(function(index) {
               $(this).find('option[value=' + selected_accounts[index] + ']').attr('selected', 'selected');
-              $(this).formSelect({dropdownOptions: {container: 'body'}});
+              $(this).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
             });
 
           });
@@ -956,8 +956,8 @@
         $("#edit-account-adjust").detach()
         checkbox_id = '#edit-expense-schedule';
         $("#edit-amount").val(amt.toFixed(2));
-        $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
-        $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
+        $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+        $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
       } else if (type == ENVELOPE_TRANSFER || type == ACCOUNT_TRANSFER) {
         transfer_editor.appendTo('#editor-row');
         $("#edit-expense").detach();
@@ -967,22 +967,22 @@
         $("#edit-envelope-delete").detach();
         $("#edit-account-adjust").detach()
         // Fill in the amount field
-        $('#edit-transfer_type').val(type).formSelect({dropdownOptions: {container: 'body'}});
+        $('#edit-transfer_type').val(type).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         $("#edit-amount").val(Math.abs(amt).toFixed(2));
         if (type == ENVELOPE_TRANSFER) {
           $('#account-transfer-edit').addClass('hide');
           $('#envelope-transfer-edit').removeClass('hide');
           $('#account-transfer-edit').find('select').removeAttr('required');
           $('#envelope-transfer-edit').find('select').attr('required', true);
-          $('#edit-from_envelope').val(from_envelope).formSelect({dropdownOptions: {container: 'body'}});
-          $('#edit-to_envelope').val(to_envelope).formSelect({dropdownOptions: {container: 'body'}});
+          $('#edit-from_envelope').val(from_envelope).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+          $('#edit-to_envelope').val(to_envelope).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         } else if (type == ACCOUNT_TRANSFER) {
           $('#envelope-transfer-edit').addClass('hide');
           $('#account-transfer-edit').removeClass('hide');
           $('#envelope-transfer-edit').find('select').removeAttr('required');
           $('#account-transfer-edit').find('select').attr('required', true);
-          $('#edit-to_account').val(to_account).formSelect({dropdownOptions: {container: 'body'}});
-          $('#edit-from_account').val(from_account).formSelect({dropdownOptions: {container: 'body'}});
+          $('#edit-to_account').val(to_account).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+          $('#edit-from_account').val(from_account).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         }
         checkbox_id = '#edit-transfer-schedule'
       } else if (type == INCOME) {
@@ -993,8 +993,8 @@
         $("#edit-account-delete").detach();
         $("#edit-envelope-delete").detach();
         $("#edit-account-adjust").detach()
-        $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
-        $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
+        $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+        $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         $("#edit-amount").val((-1*amt).toFixed(2));
         checkbox_id = '#edit-income-schedule'
       } else if (type == SPLIT_TRANSACTION) {
@@ -1006,12 +1006,12 @@
         $("#edit-envelope-delete").detach();
         $("#edit-account-adjust").detach()
         $("#edit-amount").val(amt.toFixed(2));
-        $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: 'body'}});
-        $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: 'body'}});
+        $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+        $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         for (i=1 ; i<envelope_ids.length ; i++) {
           var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
           $('#edit-envelopes-and-amounts').append(t_editor_new_env_row_html).find("#amount").attr("value", amounts[i].toFixed(2));
-          $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect({dropdownOptions: {container: 'body'}});
+          $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         }
         checkbox_id = '#edit-expense-schedule'
       } else if (type == ENVELOPE_FILL) {
@@ -1106,7 +1106,7 @@
           $(checkbox_id).removeAttr('disabled')
           $(checkbox_id).siblings().removeClass('checkbox-disabled')
           // update scheduled values and show the section
-          $('#edit-schedule').val(schedule).formSelect({dropdownOptions: {container: 'body'}});
+          $('#edit-schedule').val(schedule).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
           schedule_toggle($('#edit-schedule'));
           $checkbox = ($('#' + $('#edit-schedule').data('checkbox-id')));
           if (!($checkbox.is(':checked'))) {

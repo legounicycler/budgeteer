@@ -1,3 +1,17 @@
+#fullscreen-wrapper {
+  height: calc(100% - 20px);
+  width: 100%;
+  position: fixed;
+  z-index: 10000;
+  top: 10px;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.select-dropdown {
+  pointer-events: auto;
+}
+
 /* fixes transaction button to bottom-right of page*/
 .fixed-action-btn {
   position: fixed;
