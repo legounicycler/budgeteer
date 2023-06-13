@@ -999,7 +999,8 @@
         $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         for (i=1 ; i<envelope_ids.length ; i++) {
           var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
-          $('#edit-envelopes-and-amounts').append(t_editor_new_env_row_html).find("#amount").attr("value", amounts[i].toFixed(2));
+          $('#edit-envelopes-and-amounts').append(t_editor_new_env_row_html);
+          $(".new-envelope-row").last().find("input[name='amount']").attr("value", amounts[i].toFixed(2));
           $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         }
         checkbox_id = '#edit-expense-schedule'
