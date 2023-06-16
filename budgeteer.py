@@ -90,7 +90,7 @@ app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
 @app.route("/")
 @app.route("/home", methods=['GET'])
 def home():
-  current_page = 'All transactions'
+  current_page = 'All Transactions'
   (transactions_data, offset, limit) = get_home_transactions(0,50)
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
@@ -521,7 +521,7 @@ def transactions_function():
     (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
     page_total = stringify(get_envelope(envelope_id).balance)
   else:
-    current_page = 'All transactions'
+    current_page = 'All Transactions'
     (transactions_data, offset, limit) = get_home_transactions(0,50)
     page_total = get_total(USER_ID)
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
@@ -558,7 +558,7 @@ def load_more():
   # these 2 lines shouldn't be necessary here after updating to a join clause
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
-  more_transactions = render_template('more_transactions.html', t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, accounts_data=accounts_data, envelopes_data=envelopes_data)
+  more_transactions = render_template('more_transactions.html', t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, accounts_data=accounts_data, envelopes_data=envelopes_data, current_page=current_page)
   return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions})
 
 @app.route('/api/multi-delete', methods=['POST'])

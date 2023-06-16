@@ -159,10 +159,7 @@
           $('#transactions-bin').replaceWith(o['transactions_html']);
           $('#page-total').text(o['page_total']);
           $('#current-view').text(o['envelope_name']);
-          //Show the envelope reconcile balance
-          $('.envelope-reconcile-row').removeClass('gone');
-          $('.transaction-amount').removeClass('valign-wrapper')
-          $('.balance-row').addClass('balance-row-adjust');
+          refresh_reconcile()
         });
       });
 
@@ -180,10 +177,7 @@
           $('#transactions-bin').replaceWith(o['transactions_html']);
           $('#page-total').text(o['page_total']);
           $('#current-view').text(o['account_name']);
-          //Show the account reconcile balance
-          $('.account-reconcile-row').removeClass('gone');
-          $('.transaction-amount').removeClass('valign-wrapper')
-          $('.balance-row').addClass('balance-row-adjust');
+          refresh_reconcile()
         });
       });
 
@@ -205,10 +199,27 @@
         envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
       });
 
+      refresh_reconcile();
+
     }); // end of document ready
 
 
     //------------- FUNCTIONAL JS -------------//
+
+    function refresh_reconcile() {
+      var reconcile_balance = text_to_num($("#page-total").text())
+      var i = 0;
+      $("#transactions-bin .balance").each(function() {
+        var amt = text_to_num($(this).text());
+        var $reconcile_span = $(this).parent().parent().find(".reconcile-span");
+        if ($(this).hasClass("neutral")) {
+          $reconcile_span.text(balance_format(reconcile_balance))
+        } else {
+          $reconcile_span.text(balance_format(reconcile_balance))
+          reconcile_balance = reconcile_balance - amt
+        }
+      })
+    }
 
     // Formats a number into a string with a "$" and "-" if necessary
     function balance_format(number) {
@@ -218,6 +229,11 @@
         text = '$' + number.toFixed(2)
       }
       return text;
+    }
+
+    function text_to_num(txt) {
+      num = parseFloat(txt.replace("$","")) //Remove the "$" character
+      return num
     }
 
     // Adds/removes negative class based on number
@@ -468,21 +484,7 @@
         } else {
           $('#load-more').attr('data-offset', o['offset'])
         }
-
-        //If loading more transactions on the accounts page, show the account reconcile balances
-        if (current_page.includes("account")) {
-          //Show the account reconcile balance
-          $('.account-reconcile-row').removeClass('gone');
-          $('.transaction-amount').removeClass('valign-wrapper')
-          $('.balance-row').addClass('balance-row-adjust');
-        }
-        //If loading more transactions on the envelopes page, show the envelope reconcile balances
-        if (current_page.includes("envelope")) {
-          //Show the envelope reconcile balance
-          $('.envelope-reconcile-row').removeClass('gone');
-          $('.transaction-amount').removeClass('valign-wrapper')
-          $('.balance-row').addClass('balance-row-adjust');
-        }
+        refresh_reconcile()
       });
     });
 
@@ -726,22 +728,9 @@
         //Set the page total
         $('#page-total').text(o['page_total'])
 
-        //If you are on the accounts page, show the reconcile balances
-        ////THIS MIGHT NOT BE NECSSARY HERE BUT IT WAS ADDED IN CAUTION. TEST THIS
-        if (current_page.includes("account")) {
-          //Show the account reconcile balance
-          $('.account-reconcile-row').removeClass('gone');
-          $('.transaction-amount').removeClass('valign-wrapper')
-          $('.balance-row').addClass('balance-row-adjust');
-        }
-        if (current_page.includes("envelope")) {
-          //Show the envelope reconcile balance
-          $('.envelope-reconcile-row').removeClass('gone');
-          $('.transaction-amount').removeClass('valign-wrapper')
-          $('.balance-row').addClass('balance-row-adjust');
-        }
-
         $("#multi-delete-submit").hide();
+
+        refresh_reconcile()
 
         console.log("Page data reloaded!")
       });
@@ -1010,7 +999,8 @@
         $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         for (i=1 ; i<envelope_ids.length ; i++) {
           var $envelope_selector = $('#edit-envelope-selector-row').find('select[name="envelope_id"]').clone();
-          $('#edit-envelopes-and-amounts').append(t_editor_new_env_row_html).find("#amount").attr("value", amounts[i].toFixed(2));
+          $('#edit-envelopes-and-amounts').append(t_editor_new_env_row_html);
+          $(".new-envelope-row").last().find("input[name='amount']").attr("value", amounts[i].toFixed(2));
           $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         }
         checkbox_id = '#edit-expense-schedule'
