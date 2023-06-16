@@ -1,7 +1,8 @@
-<li class="row account-row collection-item flex">
-  <div class="col m1 hide-on-small-only valign-wrapper account-icon editor-col">
-    <i class="material-icons">account_balance</i>
-  </div>
+<li id="new-account-row" class="row account-row collection-item flex">
+  <div class="col m1 hide-on-small-only valign-wrapper editor-col account-icon">
+    <i class="material-icons sort-icon">unfold_more</i>
+    <input name="new-account-order" type="hidden" value="" required>
+</div>
   <div class="col s7 m6 account-name left-align editor-col input-field">
     <input required class="validate" type="text" name="new-account-name" />
     <span class="helper-text" data-error="Account name required"></span>

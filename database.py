@@ -63,16 +63,17 @@ class Transaction:
 
 
 class Account:
-    def __init__(self, name, balance, deleted, user_id):
+    def __init__(self, name, balance, deleted, user_id, display_order):
         self.id = None
         self.name = name
         self.balance = balance
         self.deleted = deleted
         self.user_id = user_id
+        self.display_order = display_order
     def __repr__(self):
-        return "ID:{}, NAME:{}, BAL:{}, DEL:{}, U_ID:{}".format(self.id,self.name,self.balance,self.deleted,self.user_id)
+        return "ID:{}, NAME:{}, BAL:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.deleted,self.user_id,self.display_order)
     def __str__(self):
-        return "ID:{}, NAME:{}, BAL:{}, DEL:{}, U_ID:{}".format(self.id,self.name,self.balance,self.deleted,self.user_id)
+        return "ID:{}, NAME:{}, BAL:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.deleted,self.user_id,self.display_order)
 
 
 class Envelope:
@@ -370,9 +371,7 @@ def delete_transaction(t_id):
                         # Step 1. Get the id of the ACCOUNT_DELETE transaction
                         c.execute("""SELECT id FROM transactions WHERE (type=? AND account_id=?)""", (ACCOUNT_DELETE, t.account_id))
                         a_delete_id = c.fetchone()[0]
-                        print(a_delete_id)
                         a_delete_t = get_transaction(a_delete_id)
-                        print(a_delete_t)
 
                         # Step 2. Update the ACCOUNT_DELETE transaction amount
                         c.execute("UPDATE transactions SET amount=? WHERE id=?",(a_delete_t.amt + t.amt, a_delete_id))
@@ -410,16 +409,16 @@ def new_split_transaction(t):
 
 # ---------------ACCOUNT FUNCTIONS--------------- #
 
-def insert_account(account):
+def insert_account(a):
     """
     Inserts new account and creates "initial account balance" transaction
     """
     with conn:
-        c.execute("INSERT INTO accounts (name, balance, user_id) VALUES (?, ?, ?)", (account.name, 0, account.user_id))
+        c.execute("INSERT INTO accounts (name, balance, user_id, display_order) VALUES (?, ?, ?, ?)", (a.name, 0, a.user_id, a.display_order))
     account_id = c.lastrowid
-    income_name = 'Initial Account Balance: ' + account.name
+    income_name = 'Initial Account Balance: ' + a.name
     log_write('A INSERT: ' + str(get_account(account_id)))
-    insert_transaction(Transaction(INCOME, income_name, -1 * account.balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, account.user_id))
+    insert_transaction(Transaction(INCOME, income_name, -1 * a.balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, a.user_id))
 
 def get_account(id):
     """
@@ -427,7 +426,7 @@ def get_account(id):
     """
     c.execute("SELECT * FROM accounts WHERE id=?", (id,))
     adata = c.fetchone()
-    a = Account(adata[1], adata[2], adata[3], adata[4])
+    a = Account(adata[1], adata[2], adata[3], adata[4], adata[5])
     a.id = adata[0]
     return a
 
@@ -438,33 +437,49 @@ def get_account_dict():
     1. A boolean that says whether there are accounts to render
     2. A tuple with a dictionary with keys of account_id and values of account objects.
     """
-    c.execute("SELECT id FROM accounts ORDER by id ASC")
-    ids = c.fetchall()
+    c.execute("SELECT id FROM accounts ORDER by display_order ASC, id ASC")
+    ids = unpack(c.fetchall())
     a_dict = {}
     active_accounts = False
     for id in ids:
-        a = get_account(id[0])
+        a = get_account(id)
         a.balance = stringify(a.balance)
-        a_dict[id[0]] = a
+        a_dict[id] = a
         if a.deleted == 0:
             active_accounts = True
     return (active_accounts, a_dict)
+
+def get_account_order():
+    """
+    Used for determining when the account order has changed within the account editor.
+    Returns:
+    1. A dictionary with keys of account id and values of display order
+    """
+    with conn:
+        c.execute("SELECT id,display_order FROM accounts WHERE deleted=0 ORDER BY id ASC")
+        tuple_array = c.fetchall()
+        display_dict = dict(tuple_array)
+        return display_dict
 
 def delete_account(account_id):
     """
     Deletes an account:
     1. Creates a transaction that zeros account balance (basically a negative income)
     2. Sets account "deleted" flag to true
+    3. Sets display_order to NULL
     """
     with conn:
         a = get_account(account_id)
 
         # 1. Empty the deleted account
-        insert_transaction(Transaction(ACCOUNT_DELETE,f"Deleted account: {a.name}", a.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a.id, gen_grouping_num(), "", None, 0, USER_ID))
+        insert_transaction(Transaction(ACCOUNT_DELETE, f"Deleted account: {a.name}", a.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a.id, gen_grouping_num(), "", None, 0, USER_ID))
 
         # 2. Mark the account as deleted
         c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
         log_write('A DELETE: ' + str(get_account(account_id)))
+
+        #3. Set the displaly_order to NULL
+        c.execute("UPDATE accounts SET display_order=NULL WHERE id=?", (account_id,))
 
 def restore_account(account_id):
     """
@@ -472,7 +487,13 @@ def restore_account(account_id):
     * Does NOT adjust the account balances, since this is done at the transaction level
     """
     with conn:
-        c.execute("UPDATE accounts SET deleted=0 WHERE id=?",(account_id,))
+        c.execute("SELECT MAX(display_order) FROM accounts WHERE user_id=?", (USER_ID,))
+        max_disp_order = c.fetchone()[0]
+        if max_disp_order is not None:
+            new_disp_order = max_disp_order + 1
+        else:
+            new_disp_order = 0
+        c.execute("UPDATE accounts SET deleted=0, display_order=? WHERE id=?",(new_disp_order, account_id))
         log_write('A RESTORE: ' + str(get_account(account_id)))
 
 def get_account_balance(id):
@@ -487,16 +508,6 @@ def get_account_balance(id):
         #TODO: Figure out where to log this and how to throw errors
         print("That account doesn't exist you twit.")
         
-def edit_account(id, new_name, new_balance):
-    """
-    Updates account balalnce and name, then subtracts the change in balance from the unallocated envelope
-    """
-    with conn:
-        balance_diff = get_account_balance(id) - new_balance
-        adjust_account_balance(id, balance_diff)
-        c.execute("UPDATE accounts SET name=? WHERE id=?", (new_name, id))
-        log_write('A EDIT: ' + str(get_account(id)))
-
 def update_account_balance(id, balance):
     """
     Updates balance of account with given id
@@ -504,6 +515,17 @@ def update_account_balance(id, balance):
     """
     with conn:
         c.execute("UPDATE accounts SET balance=? WHERE id=?",(balance, id))
+
+def edit_account(id, new_name, new_balance, new_order):
+    """
+    Updates account balalnce and name, then subtracts the change in balance from the unallocated envelope
+    """
+    with conn:
+        balance_diff = get_account_balance(id) - new_balance
+        if balance_diff != 0:
+            adjust_account_balance(id, balance_diff, new_name)
+        c.execute("UPDATE accounts SET name=?, display_order=? WHERE id=?", (new_name, new_order, id))
+        log_write('A EDIT: ' + str(get_account(id)))
 
 def edit_accounts(accounts_to_edit, new_accounts, present_ids):
     """
@@ -514,11 +536,11 @@ def edit_accounts(accounts_to_edit, new_accounts, present_ids):
     """
     done_something = False
     c.execute("SELECT id FROM accounts WHERE deleted=0")
-    original_account_ids = c.fetchall()
+    original_account_ids = unpack(c.fetchall())
 
     # 1. Updates info for accounts that exist in both lists
     for a in accounts_to_edit:
-        edit_account(int(a.id), a.name, a.balance)
+        edit_account(int(a.id), a.name, a.balance, a.display_order)
         done_something = True
     # 2. Adds new accounts not present in old list
     for a in new_accounts:
@@ -526,8 +548,8 @@ def edit_accounts(accounts_to_edit, new_accounts, present_ids):
         done_something = True
     # 3. Deletes old accounts not present in new list
     for id in original_account_ids:
-        if not (id[0] in present_ids):
-            delete_account(id[0])
+        if not (id in present_ids):
+            delete_account(id)
             done_something = True
     if done_something:
         return "Accounts successfully updated!"
@@ -542,13 +564,21 @@ def account_transfer(name, amount, date, to_account, from_account, note, schedul
     insert_transaction(Transaction(ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id)) #Fill
     insert_transaction(Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id))  #Empty
 
-def adjust_account_balance(id, balance_diff):
+def adjust_account_balance(id, balance_diff, name):
     """
     Creates ACCOUNT_ADJUST transactions for when the user manually sets the account balance in the account editor
     This transfers the difference into the unallocated envelope.
+    The name input exists so that your ACCOUNT_ADJUST transaction will match the name of the account if you renamed it at the same time
+    as adjusting the balance.
     """
-    # 1. Add a transaction with an amount that will make the account balance equal to the specied balance
-    insert_transaction(Transaction(ACCOUNT_ADJUST, f"{get_account(id).name}: Balance Adjustment", balance_diff, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, id, gen_grouping_num(), "", None, False, USER_ID))
+
+    # 1. Create the transaction note
+    if balance_diff > 0:
+        note = f"{stringify(-1*balance_diff)} was deducted from this account AND the Unallocated envelope."
+    else:
+        note = f"{stringify(-1*balance_diff)} was added to this account AND the Unallocated envelope."
+    # 2. Add a transaction with an amount that will make the account balance equal to the specied balance
+    insert_transaction(Transaction(ACCOUNT_ADJUST, f"{name}: Balance Adjustment", balance_diff, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, id, gen_grouping_num(), note, None, False, USER_ID))
 
 
 # ---------------ENVELOPE FUNCTIONS--------------- #
@@ -603,9 +633,7 @@ def get_envelope_order():
     with conn:
         c.execute("SELECT id,display_order FROM envelopes WHERE deleted=0 AND id!=? ORDER BY id ASC", (UNALLOCATED,))
         tuple_array = c.fetchall()
-        display_dict = dict()
-        for id, display_order in tuple_array:
-            display_dict.setdefault(id,[]).append(display_order)
+        display_dict = dict(tuple_array)
         return display_dict
 
 def delete_envelope(envelope_id):
@@ -642,7 +670,13 @@ def restore_envelope(envelope_id):
     * Does NOT adjust the envelope balances, since this is done at the transaction level
     """
     with conn:
-        c.execute("UPDATE envelopes SET deleted=0 WHERE id=?",(envelope_id,))
+        c.execute("SELECT MAX(display_order) FROM envelopes WHERE user_id=?", (USER_ID,))
+        max_disp_order = c.fetchone()[0]
+        if max_disp_order is not None:
+            new_disp_order = max_disp_order + 1
+        else:
+            new_disp_order = 0
+        c.execute("UPDATE envelopes SET deleted=0, display_order=? WHERE id=?",(new_disp_order, envelope_id))
         log_write('E RESTORE: ' + str(get_envelope(envelope_id)))
 
 def get_envelope_balance(id):
@@ -858,7 +892,7 @@ def print_database(print_all=0,reverse=1):
     for row in c:
         colnames = colnames + row[1] + ', '
     print("(" + colnames[:-2] + ")\n")
-    c.execute("SELECT * FROM accounts")
+    c.execute("SELECT * FROM accounts ORDER BY display_order ASC, id ASC")
     for row in c:
         print(row)
     print()

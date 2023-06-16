@@ -310,7 +310,7 @@ h5.no-margin {
   height: 42px;
 }
 
-.transaction-date, .transaction-status, .envelope-budget, .transaction-name, .transaction-amount, .envelope-balance, .account-balance, .transaction-type, .delete-account, .delete-envelope, .account-icon, .envelope-icon {
+.transaction-date, .transaction-status, .envelope-budget, .transaction-name, .transaction-amount, .envelope-balance, .account-balance, .transaction-type, .delete-account, .delete-envelope, .account-icon, .envelope-icon, .sort-icon {
   justify-content: center;
 }
 

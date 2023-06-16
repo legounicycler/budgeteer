@@ -36,7 +36,8 @@ c.execute("""
         name TEXT NOT NULL,
         balance INTEGER NOT NULL DEFAULT 0,
         deleted BOOLEAN NOT NULL DEFAULT 0,
-        user_id INTEGER NOT NULL
+        user_id INTEGER NOT NULL,
+        display_order INTEGER
         )
     """)
 
