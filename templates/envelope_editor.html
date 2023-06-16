@@ -9,7 +9,7 @@
           <h5>Total Budget: <b><span id="budget-total">{{budget_total}}</span></b></h5>
         </div>
         <ul id="envelope-editor-bin" class="collection">
-          <li class="row collection-item left-align grey lighten-3">
+          <li class="row collection-item left-align grey lighten-3 unsortable">
             <div class="col s6 m4 offset-m1 header left-align">Name</div>
             <div class="col s6 m2 header envelope-budget">Budgeted</div>
             <div class="col m3 hide-on-small-only header envelope-balance">Balance</div>
@@ -18,12 +18,12 @@
           {% for id, envelope in envelopes_data.items() %}
             {% if envelope.deleted == false and envelope.id != 1 %}
               <li class="row edit-envelope-row collection-item flex">
-                <div class="col m1 hide-on-small-only valign-wrapper envelope-icon">
+                <div class="col s1 m1 valign-wrapper sort-icon">
                   <i class="material-icons sort-icon">unfold_more</i>
                   <input name="envelope-id" type="hidden" value="{{envelope.id}}" required>
                   <input name="envelope-order" type="hidden" value="{{envelope.display_order}}" required>
                 </div>
-                <div class="col s6 m4 envelope-name left-align input-field">
+                <div class="col s5 m4 envelope-name left-align input-field">
                   <input class="validate" type="text" value="{{envelope.name}}" name="edit-envelope-name" required>
                   <input name="original-envelope-name" type="hidden" value="{{envelope.name}}" required>
                   <span class="helper-text" data-error="Envelope name required"></span>

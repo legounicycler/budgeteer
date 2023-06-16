@@ -118,7 +118,8 @@
       $('.tooltipped').tooltip();
 
       // Editor modal setup
-      editor_binds()
+      editor_binds();
+      editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the relevant editor
       expense_editor = $("#edit-expense").detach();
       transfer_editor = $("#edit-transfer").detach();
       income_editor = $("#edit-income").detach();
@@ -245,15 +246,6 @@
       };
     }
 
-    function updateEnvelopeOrderValues() {
-      // Update the envelope-order input values to reflect new order
-      var i = 0;
-      $("#envelope-editor-bin").find('input[name="envelope-order"], input[name="new-envelope-order"]').each(function() {
-        $(this).attr("value", i);
-        i++;
-      })
-    }
-
     // Sums 2 numbers
     function getSum(total, num) {
       return total + num;
@@ -291,12 +283,11 @@
       if ( $('#envelope-editor-bin').children().length == 1 ) {
         $('#envelope-editor-bin').append("<div class='row collection-item' id='no-envelopes'><h5 class='no-margin no-message'>You don't have any envelopes yet!</h5></div>")
       };
-      updateEnvelopeOrderValues();
     };
 
     // Various event binds in the transaction/account/envelope editors
+    // This is called upon initialization and re-called on each data_reload
     function editor_binds() {
-      editor_row_check()
 
       $("#new-envelope-row").click(function() {
 
@@ -322,24 +313,80 @@
         $('#no-envelopes').remove(); 
       });
 
+      $("#new-account-row").click(function() {
+
+        // 1. Determine the new display order for the account (defaults to displaying last)
+        var a_disp_orders = [];
+        $("#account-editor-bin").find('input[name="account-order"], input[name="new-account-order"]').each(function() {
+          a_disp_orders.push(parseInt($(this).attr('value')));
+        });
+        if (a_disp_orders.length == 0) {
+          new_a_disp_order = 0;
+        } else {
+          var new_a_disp_order = Math.max(...a_disp_orders) + 1;
+        }
+
+        // 2. Add the new account row
+        $("#account-editor-bin").append(new_edit_account_row_html);
+
+        // 3. Update the display order value
+        $("#new-account-row").find('input[name="new-account-order"]').attr("value", new_a_disp_order);
+        $("#new-account-row").removeAttr("id"); //
+
+        // 4. Clears temporary no-accounts message if there is one
+        $('#no-accounts').remove(); 
+      });
+
       // Makes the envelopes in the editor sortable
       $('#envelope-editor-bin').sortable({
         handle: ".sort-icon",
         containment: "parent",
         dropOnEmpty: true,
-        start: function(event, ui) {
+        start: function(e, ui) {
           $(ui.item).addClass("active-drag");
+          // Fix to enable sorting drag for first and last positions
+          // https://stackoverflow.com/questions/57733176/first-and-last-sortable-items-dont-consistently-move-out-of-the-way-in-jquery-u
+          var sort = $(this).sortable('instance');
+          ui.placeholder.height(ui.helper.height());
+          sort.containment[3] += ui.helper.height() * 1.5 - sort.offset.click.top;
+          sort.containment[1] -= sort.offset.click.top;
+        },
+        helper: function(e, row) {
+            row.children().each(function() {
+              $(this).width($(this).width());
+            });
+            return row;
         },
         stop: function(event, ui) {
           $(ui.item).removeClass("active-drag");
-          updateEnvelopeOrderValues();
-        }
+        },
+        items: "li:not(.unsortable)"
       });
 
-      // Adds new account row on button click and clears temporary no-accounts message if there is one
-      $("#new-account-row").click(function() {
-        $("#account-editor-bin").append(new_edit_account_row_html);
-        $('#no-accounts').remove();
+      // Makes the accounts in the editor sortable
+      $('#account-editor-bin').sortable({
+        handle: ".sort-icon",
+        containment: "parent",
+        dropOnEmpty: true,
+        start: function(e, ui) {
+          $(ui.item).addClass("active-drag");
+          // Fix to enable sorting drag for first and last positions
+          // https://stackoverflow.com/questions/57733176/first-and-last-sortable-items-dont-consistently-move-out-of-the-way-in-jquery-u
+          var sort = $(this).sortable('instance');
+          ui.placeholder.height(ui.helper.height());
+          sort.containment[3] += ui.helper.height() * 1.5 - sort.offset.click.top;
+          sort.containment[1] -= sort.offset.click.top;
+        },
+        helper: function(e, row) {
+            row.children().each(function() {
+              $(this).width($(this).width());
+            });
+            return row;
+        },
+        stop: function(event, ui) {
+          $(ui.item).removeClass("active-drag");
+        },
+        items: "li:not(.unsortable)"
       });
 
       // Opens delete warning modal when the envelope delete button is clicked
@@ -358,10 +405,28 @@
 
       //COLLECTS DATA from account/envelope editor modals and submits it to flask
       $('#account-editor-form, #envelope-editor-form').submit(function(e) {
-        e.preventDefault()
+        e.preventDefault();
         var url = $(this).attr('action');
         var method = $(this).attr('method');
-        $(".modal").modal("close")
+
+        // Update the account-order input values to reflect new order
+        if ($(this).attr('id') == 'account-editor-form') {
+          var i = 0;
+          $("#account-editor-bin").find('input[name="account-order"], input[name="new-account-order"]').each(function() {
+            $(this).attr("value", i);
+            i++;
+          })
+        }
+        // Update the envelope-order input values to reflect new order
+        if ($(this).attr('id') == 'envelope-editor-form') {
+          var i = 0;
+          $("#envelope-editor-bin").find('input[name="envelope-order"], input[name="new-envelope-order"]').each(function() {
+            $(this).attr("value", i);
+            i++;
+          })
+        }
+        
+        $(".modal").modal("close");
 
         $.ajax({
           type: method,
@@ -369,7 +434,7 @@
           data: $(this).serialize(),
         }).done(function( o ) {
           data_reload(current_page);
-          M.toast({html: o})
+          M.toast({html: o});
         });
       });
 
@@ -442,7 +507,7 @@
     // If the yes button is clicked in the delete modal, delete the appropriate row
     $('#yes').click(function() {
       delete_target.closest('.collection-item').remove();
-      editor_row_check()
+      editor_row_check();
     });
 
     // Adds envelope row for transaction creator and initializes Material Select
@@ -654,7 +719,7 @@
         data: JSON.stringify({"current_page": current_page}),
         contentType: 'application/json'
       }).done(function( o ) {
-        $('#load-more').remove()
+        $('#load-more').remove();
         $('#transactions-bin').replaceWith(o['transactions_html']);
         $('#accounts-bin').replaceWith(o['accounts_html']);
         $('#envelopes-bin').replaceWith(o['envelopes_html']);
@@ -702,9 +767,10 @@
 
         envelope_fill_editor.appendTo('#editor-row'); //Has to be added back to DOM before replacing HTML
         $('.envelope-fill-editor-bin').replaceWith(o['envelope_fill_editor_rows_html']);
-        $('#fill-total').text("$0.00").removeClass("negative")
+        $('#fill-total').text("$0.00").removeClass("negative");
 
-        editor_binds()
+        editor_binds();
+        editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the relevant editor
 
         unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
         envelope_balances = []
@@ -713,8 +779,8 @@
         });
         envelope_fill_balances_array = [];
 
-        budget_bars()
-        none_checked = true
+        budget_bars();
+        none_checked = true;
 
         // Hides scheduled tabs in modals and resets the message value
         $('.schedule-content').hide();
@@ -726,13 +792,13 @@
         $('select').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
 
         //Set the page total
-        $('#page-total').text(o['page_total'])
+        $('#page-total').text(o['page_total']);
 
         $("#multi-delete-submit").hide();
 
-        refresh_reconcile()
+        refresh_reconcile();
 
-        console.log("Page data reloaded!")
+        console.log("Page data reloaded!");
       });
     };
 

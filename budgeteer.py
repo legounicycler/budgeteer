@@ -457,19 +457,24 @@ def edit_accounts_page():
   original_balances = request.form.getlist('original-account-balance')
   edit_names = request.form.getlist('edit-account-name')
   original_names = request.form.getlist('original-account-name')
-  present_ids = request.form.getlist('account-id')
+  present_ids = list(map(int, request.form.getlist('account-id'))) # Turn the list of strings into a list of ints
+  edit_a_order = list(map(int, request.form.getlist('account-order'))) # Turn the list of strings into a list of ints
+
   new_balances = request.form.getlist('new-account-balance')
   new_names = request.form.getlist('new-account-name')
+  new_a_order = list(map(int, request.form.getlist('new-account-order'))) # Turn the list of strings into a list of ints
+
+  original_a_order = get_account_order()
   accounts_to_edit = []
   new_accounts = []
   for i in range(len(present_ids)):
-    if (edit_names[i] != original_names[i] or edit_balances[i] != original_balances[i]):
-      a = Account(edit_names[i], int(round(float(edit_balances[i])*100)), False, USER_ID)
+    if (edit_names[i] != original_names[i] or edit_balances[i] != original_balances[i] or edit_a_order[i] != original_a_order[present_ids[i]]):
+      a = Account(edit_names[i], int(round(float(edit_balances[i])*100)), False, USER_ID, edit_a_order[i])
       a.id = present_ids[i]
       accounts_to_edit.append(a)
   for i in range(len(new_names)):
-    new_accounts.append(Account(new_names[i], int(round(float(new_balances[i])*100)), False, USER_ID))
-  present_ids = list(map(int,present_ids)) # Turn the list of strings into a list of ints
+    new_accounts.append(Account(new_names[i], int(round(float(new_balances[i])*100)), False, USER_ID, new_a_order[i]))
+
   message = edit_accounts(accounts_to_edit, new_accounts, present_ids)
 
   if (health_check() is False):

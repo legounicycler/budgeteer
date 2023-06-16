@@ -7,7 +7,7 @@
       <form id="account-editor-form" action="{{ url_for('edit_accounts_page') }}" method="post">
 
         <ul id="account-editor-bin" class="collection">
-          <li class="row collection-item left-align grey lighten-3">
+          <li class="row collection-item left-align grey lighten-3 unsortable">
             <div class="col s7 m6 header offset-m1 left-align">Name</div>
             <div class="col s5 m3 header account-balance">Balance</div>
             <div class="col m2 hide-on-small-only header delete-account">Delete</div>
@@ -16,8 +16,12 @@
           {% for id, account in accounts_data.items() %}
             {% if account.deleted == false%}
               <li class="row account-row collection-item flex">
-                <div class="col m1 hide-on-small-only valign-wrapper account-icon"><i class="material-icons">account_balance</i></div>
-                <div class="col s7 m6 account-name left-align input-field">
+                <div class="col s1 m1 valign-wrapper sort-icon">
+                  <i class="material-icons sort-icon">unfold_more</i>
+                  <input name="account-id" type="hidden" value="{{account.id}}" required>
+                  <input name="account-order" type="hidden" value="{{account.display_order}}" required>
+                </div>
+                <div class="col s6 m6 account-name left-align input-field">
                   <input class="validate" type="text" value="{{account.name}}" name="edit-account-name" required>
                   <input name="original-account-name" type="hidden" value="{{account.name}}" required>
                   <span class="helper-text" data-error="Account name required"></span>
@@ -25,7 +29,6 @@
                 <div class="col s4 m3 account-balance input-field">
                   <input class="validate" type="number" step=".01" autocomplete="off" value="{% if account.balance[0] == '$' %}{{ account.balance[1:] }}{% else %}-{{ account.balance[2:] }}{% endif %}" name="edit-account-balance" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
                   <input name="original-account-balance" type="hidden" value="{% if account.balance[0] == '$' %}{{ account.balance[1:] }}{% else %}-{{ account.balance[2:] }}{% endif %}" required>
-                  <input name="account-id" type="hidden" value="{{account.id}}" required>
                   <span class="helper-text" data-error="Must be numeric"></span>
                 </div>
                 <div class="col s1 m2 valign-wrapper delete-account">
