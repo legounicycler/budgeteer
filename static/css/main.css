@@ -406,10 +406,16 @@ h5 {
 
 .pending {
   color: gray;
+  background-color: #F8F8F8 !important;
 }
 
 .pending .balance {
   background-color: gray;
+}
+
+/* Selector for the last pending transaction row  */
+.pending:not(:has(~ .pending)) {
+  border-bottom: 2px solid #d7d7d7 !important;
 }
 
 @media only screen and (max-width: 992px) {

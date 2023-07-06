@@ -208,11 +208,15 @@
     //------------- FUNCTIONAL JS -------------//
 
     function refresh_reconcile() {
+      console.log("REFRESH RECONCILE!");
       var reconcile_balance = text_to_num($("#page-total").text())
       var i = 0;
       $("#transactions-bin .balance").each(function() {
         var amt = text_to_num($(this).text());
         var $reconcile_span = $(this).parent().parent().find(".reconcile-span");
+        if ($(this).hasClass("pending")) {
+          console.log($(this));
+        }
         if ($(this).hasClass("neutral")) {
           $reconcile_span.text(balance_format(reconcile_balance))
         } else {
