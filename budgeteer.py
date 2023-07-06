@@ -146,14 +146,14 @@ def new_expense(edited=False):
     amounts[i] = int(round(float(amounts[i]) * 100))
     envelope_ids[i] = int(envelope_ids[i])
   for name in names:
-    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID)
+    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID, DISPLAY_ORDER)
     # Only insert a NEW scheduled transaction if it's not an edited transaction
     if scheduled and edited:
       t.schedule = schedule
     if scheduled and not edited:
       # Create placeholder scheduled transaction
       nextdate = schedule_date_calc(date,schedule)
-      scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID)
+      scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID, DISPLAY_ORDER)
 
     # If it is a single transaction
     if len(envelope_ids) == 1:
@@ -274,7 +274,7 @@ def new_income(edited=False):
   schedule = request.form['schedule']
   sched_t_submitted = False
   for name in names:
-    t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID)
+    t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, DISPLAY_ORDER)
 
     # Only insert NEW scheduled transaction if it's not edited
     if scheduled and edited:
@@ -286,7 +286,7 @@ def new_income(edited=False):
       insert_transaction(t)
       # Insert scheduled transaction
       nextdate = schedule_date_calc(date,schedule)
-      scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID)
+      scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID, DISPLAY_ORDER)
       insert_transaction(scheduled_t)
       sched_t_submitted = True
     else:
@@ -331,7 +331,7 @@ def fill_envelopes(edited=False):
     for index in reversed(deletes):
       amounts.pop(index)
       envelope_ids.pop(index)
-    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID)
+    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, DISPLAY_ORDER)
     # Only insert NEW scheduled transaction if it's not edited
     if scheduled and edited:
       t.schedule = schedule
@@ -342,7 +342,7 @@ def fill_envelopes(edited=False):
       envelope_fill(t)
       # Insert scheduled transaction
       nextdate = schedule_date_calc(date,schedule)
-      scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID)
+      scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID, DISPLAY_ORDER)
       envelope_fill(scheduled_t)
       sched_t_submitted = True
     else:
@@ -375,10 +375,10 @@ def edit_delete_envelope():
       e = get_envelope(envelope_id)
       grouping = gen_grouping_num()
       # 1. Empty the deleted envelope
-      t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, note, None, 0, USER_ID)
+      t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, note, None, 0, USER_ID, DISPLAY_ORDER)
       insert_transaction(t_envelope)
       # 2. Fill the unallocated envelope
-      t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, None, grouping, note, None, 0, USER_ID)
+      t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, None, grouping, note, None, 0, USER_ID, DISPLAY_ORDER)
       insert_transaction(t_unallocated)
       # 3. Mark the envelope as deleted
       c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
@@ -397,7 +397,7 @@ def edit_delete_account():
     a = get_account(account_id)
     
     # 1. Empty the deleted account
-    insert_transaction(Transaction(ACCOUNT_DELETE, name, a.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a.id, gen_grouping_num(), note, None, 0, USER_ID))
+    insert_transaction(Transaction(ACCOUNT_DELETE, name, a.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a.id, gen_grouping_num(), note, None, 0, USER_ID, DISPLAY_ORDER))
 
     # 2. Mark the account as deleted
     c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
@@ -409,7 +409,7 @@ def edit_account_adjust():
   note = request.form['note']
   balance_diff = int(round(float(request.form['amount'])*100))
   account_id = int(request.form['account_id'])
-  insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID))
+  insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, DISPLAY_ORDER))
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():

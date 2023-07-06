@@ -359,6 +359,40 @@
         },
         stop: function(event, ui) {
           $(ui.item).removeClass("active-drag");
+          // JQuery UI will place a fixed "width" style on the columns of the reordered element, which means that resizing
+          // the page means columns don't dynamically resize, so this is the fix.
+          $(ui.item).removeAttr("style");
+          $(ui.item).children().removeAttr("style");
+        },
+        items: "li:not(.unsortable)"
+      });
+
+      // Makes the envelopes in the editor sortable
+      $('#transactions-scroller').sortable({
+        handle: ".checkbox-special",
+        containment: "parent",
+        dropOnEmpty: true,
+        start: function(e, ui) {
+          $(ui.item).addClass("active-drag");
+          // Fix to enable sorting drag for first and last positions
+          // https://stackoverflow.com/questions/57733176/first-and-last-sortable-items-dont-consistently-move-out-of-the-way-in-jquery-u
+          var sort = $(this).sortable('instance');
+          ui.placeholder.height(ui.helper.height());
+          sort.containment[3] += ui.helper.height() * 1.5 - sort.offset.click.top;
+          sort.containment[1] -= sort.offset.click.top;
+        },
+        helper: function(e, row) {
+            row.children().each(function() {
+              $(this).width($(this).width());
+            });
+            return row;
+        },
+        stop: function(event, ui) {
+          $(ui.item).removeClass("active-drag");
+          // JQuery UI will place a fixed "width" style on the columns of the reordered element, which means that resizing
+          // the page means columns don't dynamically resize, so this is the fix.
+          $(ui.item).removeAttr("style");
+          $(ui.item).children().removeAttr("style");
         },
         items: "li:not(.unsortable)"
       });
@@ -385,6 +419,10 @@
         },
         stop: function(event, ui) {
           $(ui.item).removeClass("active-drag");
+          // JQuery UI will place a fixed "width" style on the columns of the reordered element, which means that resizing
+          // the page means columns don't dynamically resize, so this is the fix.
+          $(ui.item).removeAttr("style");
+          $(ui.item).children().removeAttr("style");
         },
         items: "li:not(.unsortable)"
       });
@@ -592,7 +630,7 @@
     var longpress = 800;
     var start;
     var timer;
-    $('#bin').on( 'touchstart', '.transaction', function( e ) {
+    $('#bin').on( 'touchstart', '.transaction-row', function( e ) {
       $this = $(this);
       start = new Date().getTime();
       start_y = event.touches[0].clientY;
@@ -607,10 +645,10 @@
           clearTimeout(timer);
         }
       }, longpress)
-    }).on( 'mouseleave', '.transaction', function( e ) {
+    }).on( 'mouseleave', '.transaction-row', function( e ) {
       start = 0;
       clearTimeout(timer);
-    }).on( 'touchend', '.transaction', function( e ) {
+    }).on( 'touchend', '.transaction-row', function( e ) {
       if ( new Date().getTime() < ( start + longpress ) && Math.abs(start_y - y) < 30 ) {
         $this = $(this)
         clearTimeout(timer);
