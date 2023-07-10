@@ -552,7 +552,7 @@ def edit_accounts(accounts_to_edit, new_accounts, present_ids):
             delete_account(id)
             done_something = True
     if done_something:
-        return "Accounts successfully updated!"
+        return "Accounts updated!"
     else:
         return "No changes were made"
 
@@ -731,7 +731,7 @@ def edit_envelopes(envelopes_to_edit, new_envelopes, present_ids):
             delete_envelope(id)
             done_something = True
     if done_something:
-        return "Envelopes successfully updated!"
+        return "Envelopes updated!"
     else:
         return "No changes were made"
 

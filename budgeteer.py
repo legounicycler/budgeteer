@@ -179,19 +179,22 @@ def new_expense(edited=False):
         new_split_transaction(scheduled_t)
         sched_t_submitted = True
 
+  toasts = []
   if len(names) > 1:
-    message = f'Successfully added {len(names)} new expenses!'
-    sched_message = f'Successfully added {len(names)} new scheduled expenses!'
+    toasts.append(f'Added {len(names)} new expenses!')
+    if sched_t_submitted:
+      toasts.append(f'Added {len(names)} new scheduled expenses!')
   elif len(names) == 0:
-    message = 'No new expenses were added! (shouldn\'t be possible)'
+    toasts.append('No new expenses were added! (shouldn\'t be possible)')
   elif len(names) == 1:
-    message = 'Successfully added new expense!'
-    sched_message = 'Successfully added new scheduled expense!'
+    toasts.append('Added new expense!')
+    if sched_t_submitted:
+      toasts.append('Added new scheduled expense!')
   else:
-    message = 'There was an error!'
+    toasts.append('There was an error!')
   if (health_check() is False):
-    message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'sched_message': sched_message, 'sched_t_submitted': sched_t_submitted})
+    toasts.append("HEALTH ERROR!")
+  return jsonify({'toasts': toasts})
 
 @app.route('/new_transfer', methods=['POST'])
 def new_transfer(edited=False):
@@ -244,20 +247,22 @@ def new_transfer(edited=False):
     else:
       print('What the heck are you even trying to do you twit?')
 
-
+  toasts = []
   if len(names) > 1:
-    message = f'Successfully added {len(names)} new transfers!'
-    sched_message = f'Successfully added {len(names)} new scheduled transfers!'
+    toasts.append(f'Added {len(names)} new transfers!')
+    if sched_t_submitted:
+      toasts.append(f'Added {len(names)} new scheduled transfers!')
   elif len(names) == 0:
-    message = 'No new transfers were added! (shouldn\'t be possible)'
+    toasts.append('No new transfers were added! (shouldn\'t be possible)')
   elif len(names) == 1:
-    message = 'Successfully added new transfer!'
-    sched_message = 'Successfully added new scheduled transfer!'
+    toasts.append('Added new transfer!')
+    if sched_t_submitted:
+      toasts.append('Added new scheduled transfer!')
   else:
-    message = 'There was an error!'
+    toasts.append('There was an error!')
   if (health_check() is False):
-    message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'sched_message': sched_message, 'sched_t_submitted': sched_t_submitted})
+    toasts.append("HEALTH ERROR!")
+  return jsonify({'toasts': toasts})
 
 @app.route('/new_income', methods=['POST'])
 def new_income(edited=False):
@@ -293,19 +298,22 @@ def new_income(edited=False):
       # If there's no schedule, add in the normal non-scheduled transaction
       insert_transaction(t)
 
+  toasts = []
   if len(names) > 1:
-    message = f'Successfully added {len(names)} new income!'
-    sched_message = f'Successfully added {len(names)} new scheduled incomes!'
+    toasts.append(f'Added {len(names)} new income!')
+    if sched_t_submitted:
+      toasts.append(f'Added {len(names)} new scheduled incomes!')
   elif len(names) == 0:
-    message = 'No new incomes were added! (shouldn\'t be possible)'
+    toasts.append('No new incomes were added! (shouldn\'t be possible)')
   elif len(names) == 1:
-    message = 'Successfully added new income!'
-    sched_message = 'Successfully added new scheduled income!'
+    toasts.append('Added new income!')
+    if sched_t_submitted:
+      toasts.append('Added new scheduled income!')
   else:
-    message = 'There was an error!'
+    toasts.append('There was an error!')
   if (health_check() is False):
-    message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'sched_message': sched_message, 'sched_t_submitted': sched_t_submitted})
+    toasts.append("HEALTH ERROR!")
+  return jsonify({'toasts': toasts})
 
 @app.route('/fill_envelopes', methods=['POST'])
 def fill_envelopes(edited=False):
@@ -349,19 +357,22 @@ def fill_envelopes(edited=False):
       # If there's no schedule, add in the normal non-scheduled transaction
       envelope_fill(t)
 
+  toasts = []
   if len(names) > 1:
-    message = f'Successfully added {len(names)} envelope fills!'
-    sched_message = f'Successfully added {len(names)} new scheduled envelope fills!'
+    toasts.append(f'Added {len(names)} envelope fills!')
+    if sched_t_submitted:
+      toasts.append(f'Added {len(names)} new scheduled envelope fills!')
   elif len(names) == 0:
-    message = 'No envelope fill was added! (shouldn\'t be possible)'
+    toasts.append('No envelope fill was added! (shouldn\'t be possible)')
   elif len(names) == 1:
-    message = 'Envelopes successfully filled!'
-    sched_message = 'Successfully added new scheduled envelope fill!'
+    toasts.append('Envelopes filled!')
+    if sched_t_submitted:
+      toasts.append('Added new scheduled envelope fill!')
   else:
-    message = 'There was an error!'
+   toasts.append('There was an error!')
   if (health_check() is False):
-    message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'sched_message': sched_message, 'sched_t_submitted': sched_t_submitted})
+    toasts.append("HEALTH ERROR!")
+  return jsonify({'toasts': toasts})
 
 @app.route('/edit_delete_envelope', methods=['POST'])
 def edit_delete_envelope():
@@ -435,17 +446,18 @@ def edit_transaction():
   elif (type == ACCOUNT_ADJUST):
     edit_account_adjust()
 
-  message = 'Transaction successfully edited!'
+  toasts = []
+  toasts.append('Transaction edited!')
   if (health_check() is False):
-    message = message + " HEALTH ERROR!!!"
-  return jsonify({'message': message, 'sched_t_submitted': sched_t_submitted})
+    toasts.append("HEALTH ERROR!")
+  return jsonify({'toasts': toasts})
 
 @app.route('/delete_transaction_page', methods=['POST'])
 # TODO: Change this to use an <id> in the URL instead of using the hidden form thing (SEE gget_json)
 def delete_transaction_page():
   id = int(request.form['delete-id'])
   delete_transaction(id)
-  return 'Transaction successfully deleted!'
+  return 'Transaction deleted!'
 
 @app.route('/api/transaction/<id>/group', methods=['GET'])
 def get_json(id):
@@ -475,11 +487,12 @@ def edit_accounts_page():
   for i in range(len(new_names)):
     new_accounts.append(Account(new_names[i], int(round(float(new_balances[i])*100)), False, USER_ID, new_a_order[i]))
 
-  message = edit_accounts(accounts_to_edit, new_accounts, present_ids)
+  toasts = []
+  toasts.append(edit_accounts(accounts_to_edit, new_accounts, present_ids))
 
   if (health_check() is False):
-    message = message + " HEALTH ERROR!!!"
-  return message
+    toasts.append(" HEALTH ERROR!!!")
+  return jsonify({'toasts': toasts})
 
 @app.route('/api/edit-envelopes', methods=['POST'])
 def edit_envelopes_page():
@@ -506,11 +519,12 @@ def edit_envelopes_page():
   for i in range(len(new_names)):
     new_envelopes.append(Envelope(new_names[i], 0, int(round(float(new_budgets[i])*100)), False, USER_ID, new_e_order[i]))
 
-  message = edit_envelopes(envelopes_to_edit, new_envelopes, present_ids)
+  toasts = []
+  toasts.append(edit_envelopes(envelopes_to_edit, new_envelopes, present_ids))
 
   if (health_check() is False):
-    message = message + " HEALTH ERROR!!!"
-  return message
+    toasts.append("HEALTH ERROR!")
+  return jsonify({'toasts': toasts})
 
 @app.route('/api/data-reload', methods=['POST'])
 def transactions_function():
@@ -572,10 +586,14 @@ def multi_delete():
   for id in delete_ids:
     delete_transaction(id)
 
-  message = 'Transactions successfully deleted!'
+  toasts = []
+  if len(delete_ids) == 1:
+    toasts.append("Transaction deleted!")
+  else:
+    toasts.append(f'{len(delete_ids)} transactions deleted!')
   if (health_check() is False):
-    message = message + " HEALTH ERROR!!!"
-  return message
+   toasts.append("HEALTH ERROR!")
+  return jsonify({'toasts': toasts})
 
 @app.route('/api/load-static-html', methods=["POST"])
 def load_static_html():

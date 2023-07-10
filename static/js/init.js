@@ -47,8 +47,8 @@
         new SimpleBar(el);
       });
 
-      // Prevent tabs flashing content for a second on document reload
-      $('#envelopes, #accounts').removeClass('hide');
+      // Prevent content from flashing content for a second on document load
+      $('#envelopes, #accounts, #bin').removeClass('hide');
       
       $('.modal').modal();
 
@@ -111,9 +111,9 @@
       $('.scheduler').click(function() {
         if (!$(this).siblings().is(':disabled')) {
           if($(this).siblings().is(':checked')) {
-            $(this).parent().parent().parent().parent().siblings('.schedule-content').hide()
+            $(this).closest("form").find('.schedule-content').hide();
           } else {
-            $(this).parent().parent().parent().parent().siblings('.schedule-content').show()
+            $(this).closest("form").find('.schedule-content').show();
           }
         }
       });
@@ -464,7 +464,7 @@
           data: $(this).serialize(),
         }).done(function( o ) {
           data_reload(current_page);
-          M.toast({html: o});
+          o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
         });
       });
 
@@ -664,24 +664,22 @@
     $(document).on('change', '.schedule-select', function() {
       schedule_toggle($(this))
     }).on('change', '.datepicker', function() {
-      //CLEAN THIS UP
-      $schedule_select = $(this).parent().parent().parent().find('.schedule-select');
-      schedule_toggle($schedule_select)
+      schedule_toggle($(this).closest('form').find('.schedule-select'));
     });
 
     // Sets the example schedule text based on selected date
-    function schedule_toggle(e) {
+    function schedule_toggle(schedule_select) {
       const months = ["Jan", "Feb", "Mar","Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const weekday = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      // const weekday = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
       var nextdate;
       var nextmonth;
       var nextyear;
       var getDaysInMonth = function(month,year) {
         return new Date(year, month+1, 0).getDate();
       };
-      var option = e.val()
-      $message = e.parent().parent().siblings().children();
-      var date_string = e.parent().parent().parent().siblings().find('.datepicker').val();
+      var option = schedule_select.val();
+      $message = schedule_select.closest(".schedule-content").find(".schedule-message");
+      var date_string = schedule_select.closest("form").find('.datepicker').val();
       var date = new Date(date_string);
       for (i = 0; i < 2; i++) {
         if (option == 'daily') {
@@ -855,10 +853,7 @@
         $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
         $(id)[0].reset(); //Clears the data from the form fields
         data_reload(current_page);
-        M.toast({html: o['message']})
-        if (o['sched_t_submitted'] == true) { // If the returned schedule message exists, toast it
-          M.toast({html: o['sched_message']})
-        }
+        o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
       });
     });
 
@@ -870,7 +865,7 @@
       var id = '#' + $(this).attr('id');
       var remain_open = $(this).data('remain-open');
       var selected_date = $(this).find('input[name="date"]').val();
-      // var scheduled = $(this).find('input[name="scheduled"]').val();
+      var scheduled = $(this).find('input[name="scheduled"]').val();
       var $form = $(this);
       var $envelope_selectors = $(this).find('.envelope-selector');
       var $account_selectors = $(this).find('.account-selector');
@@ -924,11 +919,7 @@
 
           });
         }
-        //Standard toast
-        M.toast({html: o['message']})
-        if (o['sched_t_submitted'] == true) { // If the returned schedule message exists, toast it
-          M.toast({html: o['sched_message']})
-        }
+        o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
       });
     });
 
@@ -949,7 +940,7 @@
         //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
         $(parent_modal_id + ' .new-envelope-row').remove();
         data_reload(current_page);
-        M.toast({html: o})
+        o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
       });
     });
 
@@ -981,7 +972,7 @@
       var from_envelope = null;
       var schedule = e.data('schedule');
       var status = e.data('status');
-      var checkbox_id;
+      var $checkbox_input;
 
       //if it's a grouped transaction, use ajax to get data from all grouped transaction
       if (grouping != null) {
@@ -1035,7 +1026,7 @@
         });
       }
 
-      // Check which editor to show, detatch the others, update the special fields, and define checkbox_id
+      // Check which editor to show, detatch the others, update the special fields, and define $checkbox_input
       if (type == BASIC_TRANSACTION ) {
         expense_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
@@ -1044,7 +1035,7 @@
         $("#edit-account-delete").detach();
         $("#edit-envelope-delete").detach();
         $("#edit-account-adjust").detach()
-        checkbox_id = '#edit-expense-schedule';
+        $checkbox_input = $('#edit-expense-schedule');
         $("#edit-amount").val(amt.toFixed(2));
         $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
@@ -1074,7 +1065,7 @@
           $('#edit-to_account').val(to_account).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
           $('#edit-from_account').val(from_account).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         }
-        checkbox_id = '#edit-transfer-schedule'
+        $checkbox_input = $('#edit-transfer-schedule');
       } else if (type == INCOME) {
         income_editor.appendTo('#editor-row');
         $("#edit-expense").detach();
@@ -1086,7 +1077,7 @@
         $('#edit-envelope_id').val(envelope_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         $('#edit-account_id').val(account_id).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         $("#edit-amount").val((-1*amt).toFixed(2));
-        checkbox_id = '#edit-income-schedule'
+        $checkbox_input = $('#edit-income-schedule');
       } else if (type == SPLIT_TRANSACTION) {
         expense_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
@@ -1104,7 +1095,7 @@
           $(".new-envelope-row").last().find("input[name='amount']").attr("value", amounts[i].toFixed(2));
           $(".addedEnvelope").last().prepend($envelope_selector).find("select").last().val(envelope_ids[i]).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         }
-        checkbox_id = '#edit-expense-schedule'
+        $checkbox_input = $('#edit-expense-schedule');
       } else if (type == ENVELOPE_FILL) {
         envelope_fill_editor.appendTo('#editor-row');
         $("#edit-transfer").detach();
@@ -1134,7 +1125,7 @@
         }
         $('#edit-fill-total').text(balance_format(envelope_fill_balances_array.reduce(getSum))).negative_check(parseFloat(envelope_fill_balances_array.reduce(getSum)));
         $('#edit-unallocated-balance-envelope-filler').text(balance_format(parseFloat(unallocated_balance))).negative_check(unallocated_balance)
-        checkbox_id = '#edit-envelope-fill-schedule'
+        $checkbox_input = $('#edit-envelope-fill-schedule');
       } else if (type == ENVELOPE_DELETE) {
         envelope_restore.appendTo('#editor-row');
         $("#edit-account-delete").detach();
@@ -1156,7 +1147,6 @@
         $("#edit-account-adjust").detach()
         $("#edit-amount").text(balance_format(-1*amt)).negative_check(-1*amt);
         $("#edit-account-delete-id").val(account_id)
-        // checkbox_id = '#edit-expense-schedule';
       } else if (type == ACCOUNT_ADJUST) {
         account_adjust.appendTo('#editor-row');
         $("#edit-expense").detach();
@@ -1183,25 +1173,22 @@
       $('#type').attr('value', type); //Possibly change this to a less confusing ID
 
       //Logic for whether or not schedule checkbox/info shows or is disabled
-      if (type != ENVELOPE_DELETE && type!= ACCOUNT_DELETE){
-        if (schedule == 'None') {
-          // set to default (disabled)
-          if ($(checkbox_id).is(':checked')) {
-            // Uncheck box if it is checked
-            $(checkbox_id).siblings().click()
+      if (type != ENVELOPE_DELETE && type!= ACCOUNT_DELETE && type != ACCOUNT_ADJUST) {
+        var $checkbox_span = $checkbox_input.siblings();
+        if (schedule == 'None') { // Disable the checkbox
+          if ($checkbox_input.is(':checked')) {
+            $checkbox_span.click(); // Uncheck box if it is checked
           }
-          $(checkbox_id).attr('disabled', 'disabled')
-          $(checkbox_id).siblings().addClass('checkbox-disabled')
-        } else {
-          // Make sure checkbox is not disabled
-          $(checkbox_id).removeAttr('disabled')
-          $(checkbox_id).siblings().removeClass('checkbox-disabled')
+          $checkbox_input.attr('disabled', 'disabled');
+          $checkbox_span.addClass('checkbox-disabled');
+        } else { // Ensure checkbox is NOT disabled
+          $checkbox_input.removeAttr('disabled');
+          $checkbox_span.removeClass('checkbox-disabled');
           // update scheduled values and show the section
           $('#edit-schedule').val(schedule).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
           schedule_toggle($('#edit-schedule'));
-          $checkbox = ($('#' + $('#edit-schedule').data('checkbox-id')));
-          if (!($checkbox.is(':checked'))) {
-            $checkbox.siblings().click()
+          if (!($checkbox_input.is(':checked'))) {
+            $checkbox_span.click();
           }
         }
       }
