@@ -54,10 +54,6 @@ input.valid[type=text]:not(.browser-default) {
   width: 100%
 }
 
-nav {
-  box-shadow: none;
-}
-
 .collection .collection-item{
   padding: 0;
 }

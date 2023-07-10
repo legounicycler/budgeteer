@@ -8,7 +8,7 @@
         <div class="col s8 header offset-s1 left-align">Name</div>
         <div class="col s3 header account-balance">Balance</div>
       </li>
-      <div class="scroller">
+      <div id="accounts-scroller" class="scroller">
         {% for id, account in accounts_data.items() %}
           {% if account.deleted == false%}
             <a class="waves-effect collection-item account-link" data-url="{{ url_for('get_account_page') }}" data-account-id={{account.id}}>

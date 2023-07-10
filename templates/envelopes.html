@@ -3,8 +3,7 @@
     <img class="empty-img" src="{{url_for('static', filename='img/Budgeteer_White_And_Red.png')}}">
     <h5 class="empty-text white-text">You don't have any envelopes yet!</h5>
   {% else %}
-    <ul class="collection">
-      <div class="scroller">
+    <ul id="envelopes-scroller" class="collection scroller">
         {% for id, envelope in envelopes_data.items() %}
           {% if envelope.deleted == false and envelope.id != 1 %}
             <a class="waves-effect collection-item envelope-link" data-url="{{ url_for('get_envelope_page') }}" data-envelope-id={{envelope.id}} data-envelope-balance={{envelope.balance}} data-envelope-budget="{{envelope.budget}}">
@@ -26,7 +25,6 @@
             </a>
           {% endif %}
         {% endfor %}
-      </div>
     </ul>
   {% endif %}
 </div>

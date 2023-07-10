@@ -1,13 +1,16 @@
-<ul class="collection" id="transactions-bin">
-  <li class="row valign-wrapper collection-item left-align grey lighten-3">
-    <div class="col s2 header transaction-date">Date</div>
-    <div class="col m1 hide-on-small-only header transaction-type">Type</div>
-    <div class="col s7 header transaction-name">Name</div>
-    <div class="col s3 m2 header transaction-amount">Amount</div>
-    <!-- <div class="col s1 header transaction-status">Status</div> -->
-  </li>
+<div id="transactions-bin">
+  <ul class="collection table-header">
+    <li class="row valign-wrapper collection-item left-align grey lighten-3">
+      <div class="col s2 header transaction-date">Date</div>
+      <div class="col m1 hide-on-small-only header transaction-type">Type</div>
+      <div class="col s7 header transaction-name">Name</div>
+      <div class="col s3 m2 header transaction-amount">Amount</div>
+      <!-- <div class="col s1 header transaction-status">Status</div> -->
+    </li>
+  </ul>
+  
   {% if transactions_data|length %}
-    <div id="transactions-scroller" class="scroller">
+    <ul id="transactions-scroller" class="collection scroller">
       {% for transaction in transactions_data %}
         <li class="row transaction-row collection-item {% if transaction.date > transaction.date.now() %}pending{% endif %}">
           <div class="col s2 valign-wrapper transaction-date">
@@ -116,8 +119,8 @@
       {% if limit == False %}
         <a id="load-more" href="#!" data-offset="{{offset}}"><span >Load more transactions</span></a>
       {% endif %}
-    </div>
-  {% else %}
-    <h5 style="margin: .5em 0">Whoops! There aren't any transactions here yet!</h5>
+    {% else %}
+      <h5 style="margin: .5em 0">Whoops! There aren't any transactions here yet!</h5>
+    </ul>
   {% endif %}
-</ul>
+</div>

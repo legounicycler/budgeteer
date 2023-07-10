@@ -8,12 +8,77 @@
   overflow: hidden;
 }
 
-.select-dropdown {
-  pointer-events: auto;
+#bin {
+  padding: 5px;
+  height: calc(100% - 90px);
+}
+
+.scroller {
+  overflow-y: scroll;
+  overflow-x: hidden;
+  display: flex;
+}
+
+/* Hide default scroller for Chrome, Safari and Opera*/
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide default scrollbar for IE, Edge and Firefox */
+.scroller {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.table-header {
+  margin: 0;
+  /* Box shadow here? */
+}
+
+#transaction-title {
+  margin-left: 10px;
+  margin-bottom: 0px;
+  padding-bottom: .2em; /* so the header doesn't clip in the y-direction */
+}
+
+#transactions-column {
+  padding: 0 !important;
+  height: calc(100% - 64px);
+}
+
+#transactions-list {
+  margin: 10px;
+}
+
+#left-header, #transaction-header {
+  height: 90px;
+  overflow: hidden;
+}
+
+#transactions-bin {
+  height: 100%;
+}
+
+#transactions-scroller {
+  margin: 0;
+  max-height: calc(100% - 22.5px);
+}
+
+#envelopes-scroller, #account-scroller {
+  margin: 0;
+  max-height: 100%
 }
 
 .transaction-row:hover {
-  background-color: #f0f0f0 !important;
+  background-color: #eeece9 !important;
+}
+
+#multi-delete-form {
+  height: 100%;
+}
+
+.select-dropdown {
+  pointer-events: auto;
 }
 
 /* fixes transaction button to bottom-right of page*/
@@ -187,17 +252,12 @@ input[type="text"] {
   color: gray;
 }
 
-#bin {
-  position: sticky;
-  height: calc(100% - 100px);
-  top: 154px;
-}
-
 #total h4, #unallocated h4 {
   margin: .25em 0;
 }
 
 #envelopes-bin, #accounts-bin {
+  margin-top: 5px;
   height: calc(100% - 56px);
 }
 
@@ -212,51 +272,17 @@ input[type="text"] {
   display: none;
 }
 
-/* keeps the scroller working properly for transactions*/
-#multi-delete-form {
-  display: inline;
-}
-
-/* keeps the scroller working properly for transactions*/
 .transaction-name .row {
   text-align: left;
 }
 
-/* keeps the scroller working properly for transactions*/
 .transaction-details {
   max-height: 18px;
 }
 
-/* keeps the scroller working properly for transactions*/
 i.no-margin.tiny {
   line-height: 18px;
   padding-bottom: .1em;
-}
-
-#envelopes-bin .collection, #accounts-bin .collection, #transactions-bin {
-  max-height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.scroller {
-  overflow-y: scroll;
-  overflow: overlay;
-  max-height: calc(100% - 22px);
-}
-
-#left-header, #transaction-header {
-  height: 90px;
-  overflow: hidden;
-}
-
-#transaction-header {
-  position: sticky;
-  top: 64px;
-}
-
-#transactions-bin {
-  margin: 5px 10px;
 }
 
 /*special logo height*/
@@ -380,21 +406,6 @@ h5 {
   margin-top: 5px;
 }
 
-#transaction-title {
-  margin-left: 10px;
-  margin-bottom: 0px;
-  padding-bottom: .2em; /* so the header doesn't clip in the y-direction */
-}
-
-#transactions-column {
-  padding: 0 !important;
-  height: calc(100% - 64px);
-}
-
-#transactions-list {
-  margin: 10px;
-}
-
 .strikethrough {
   text-decoration: line-through;
 }
@@ -429,10 +440,6 @@ h5 {
 
   .content {
     position: relative;
-  }
-
-  #transactions-bin {
-    top: 5px;
   }
 
   #delete-modal {
@@ -596,9 +603,8 @@ h5 {
 
 @media only screen and (max-width: 450px) {
     /* Extends transactions to edge of screen*/
-    #transactions-bin {
-      margin: 0px;
-      top: 0px;
+    #bin {
+      padding: 0px
     }
 
     .long-date {
@@ -613,10 +619,6 @@ h5 {
     /* Keeps transaction title from wrapping*/
     #transaction-title {
       font-size: 1.5em;
-    }
-
-    #bin {
-      height: calc(100% - 90px);
     }
 
     .transaction-name {

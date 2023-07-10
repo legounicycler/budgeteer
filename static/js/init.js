@@ -36,9 +36,16 @@
     // Variables for envelope filler
     var envelope_fill_balances_array = [];
     var envelope_balances = [];
+    var unallocated_balance;
 
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
+
+
+      //Set up the simplebar scroll bars
+      $('.scroller').each(function(index,el) {
+        new SimpleBar(el);
+      });
 
       // Prevent tabs flashing content for a second on document reload
       $('#envelopes, #accounts').removeClass('hide');
@@ -194,9 +201,9 @@
         console.log("Static HTML loaded")
       });
 
-      // Establish arrays of envelope blances etc. for envelope filler
-      var unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
-      $('#envelopes-bin .scroller').children().each( function() {
+      // Establish arrays of envelope balances etc. for envelope filler
+      unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
+      $('.envelope-link').each( function() {
         envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
       });
 
@@ -746,6 +753,11 @@
         $('#transactions-bin').replaceWith(o['transactions_html']);
         $('#accounts-bin').replaceWith(o['accounts_html']);
         $('#envelopes-bin').replaceWith(o['envelopes_html']);
+        
+        //Re-enable the simplebar scrollers
+        $('.scroller').each(function(index,el) {
+          new SimpleBar(el);
+        });
 
         //Update selects in transaction editor
         // TODO: These three select updates may be able to be combined with some clever CSS ID's and classes
@@ -797,7 +809,7 @@
 
         unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
         envelope_balances = []
-        $('#envelopes-bin .scroller').children().each( function() {
+        $('.envelope-link').each( function() {
           envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
         });
         envelope_fill_balances_array = [];
