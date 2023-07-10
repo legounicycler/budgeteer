@@ -660,15 +660,15 @@
       $('#editor-modal').modal('open');
     }); //END OF MULTIDELETE CODE
 
-    // Sends date from datepicker and frequency from select to schedule_toggle()
+    // Sends date from datepicker and frequency from select to update_schedule_msg()
     $(document).on('change', '.schedule-select', function() {
-      schedule_toggle($(this))
+      // update_schedule_msg($(this));
     }).on('change', '.datepicker', function() {
-      schedule_toggle($(this).closest('form').find('.schedule-select'));
+      update_schedule_msg($(this).closest('form').find('.schedule-select'));
     });
 
-    // Sets the example schedule text based on selected date
-    function schedule_toggle(schedule_select) {
+    // Sets the example schedule text based on selected date and frequency
+    function update_schedule_msg(schedule_select) {
       const months = ["Jan", "Feb", "Mar","Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       // const weekday = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
       var nextdate;
@@ -815,10 +815,6 @@
         budget_bars();
         none_checked = true;
 
-        // Hides scheduled tabs in modals and resets the message value
-        $('.schedule-content').hide();
-        $('.schedule-select').each(function() { schedule_toggle($(this)) });
-
         M.updateTextFields();
 
         //Update all the selects
@@ -862,10 +858,8 @@
       e.preventDefault()
       var url = $(this).attr('action');
       var method = $(this).attr('method');
-      var id = '#' + $(this).attr('id');
       var remain_open = $(this).data('remain-open');
       var selected_date = $(this).find('input[name="date"]').val();
-      var scheduled = $(this).find('input[name="scheduled"]').val();
       var $form = $(this);
       var $envelope_selectors = $(this).find('.envelope-selector');
       var $account_selectors = $(this).find('.account-selector');
@@ -886,11 +880,12 @@
         if (remain_open == 0) {
           // If the form was submitted with the standard submit button or enter
           $('#transaction-modal').modal("close")
-          //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
-          //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
-          $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
-          $(id)[0].reset(); //Clears the data from the form fields
-          data_reload(current_page);
+          $form.find(".new-envelope-row").remove() //Only used on #new-expense-form
+          $form[0].reset(); //Clear the data from the form fields
+          data_reload(current_page).then( function () {
+            $form.find(".schedule-content").hide();
+            update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
+          });
         } else {
           // If the form was submitted with the submit and new button
           $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
@@ -902,9 +897,6 @@
             //Fill the date field
             $form.find('input[name="date"]').val(selected_date)
             $form.find('.datepicker').datepicker('setDate', new Date(selected_date));
-
-            //Ensure that the scheduling tab is the same as it was before
-            // console.log(scheduled)
 
             //Select the previously selected envelopes and their respective dropdowns
             $envelope_selectors.each(function(index) {
@@ -1186,7 +1178,7 @@
           $checkbox_span.removeClass('checkbox-disabled');
           // update scheduled values and show the section
           $('#edit-schedule').val(schedule).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
-          schedule_toggle($('#edit-schedule'));
+          update_schedule_msg($('#edit-schedule'));
           if (!($checkbox_input.is(':checked'))) {
             $checkbox_span.click();
           }
