@@ -116,7 +116,7 @@ def get_envelope_page():
 def get_account_page():
   account_id = request.get_json()['account_id']
   current_page = f'account/{account_id}'
-  (transactions_data, offset, limit) = get_account_transactions(account_id,0,20)
+  (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
   page_total = stringify(get_account(account_id).balance)

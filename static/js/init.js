@@ -165,6 +165,7 @@
           contentType: 'application/json'
         }).done(function( o ) {
           $('#transactions-bin').replaceWith(o['transactions_html']);
+          new SimpleBar($("#transactions-scroller")[0]); //Re-initialize the transactions-scroller
           $('#page-total').text(o['page_total']);
           $('#current-view').text(o['envelope_name']);
           refresh_reconcile()
@@ -183,6 +184,7 @@
           contentType: 'application/json'
         }).done(function( o ) {
           $('#transactions-bin').replaceWith(o['transactions_html']);
+          new SimpleBar($("#transactions-scroller")[0]); //Re-initialize the transactions-scroller
           $('#page-total').text(o['page_total']);
           $('#current-view').text(o['account_name']);
           refresh_reconcile()
