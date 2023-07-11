@@ -8,9 +8,13 @@ from flask import Flask, render_template, request, jsonify
 from database import *
 from datetime import datetime
 from datetime import timedelta
+import dateutil.parser
 import calendar
 import re
 import platform
+import pytz
+
+utc = pytz.UTC
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'da3e7b955be0f7eb264a9093989e0b46'
@@ -137,23 +141,31 @@ def new_expense(edited=False):
   envelope_ids = request.form.getlist('envelope_id')
   account_id = request.form['account_id']
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
+  timestamp = dateutil.parser.isoparse(request.form['timestamp'])
   note = request.form['note']
   scheduled = request.form.getlist('scheduled')
   scheduled = len(scheduled) != 0
   schedule = request.form['schedule']
   sched_t_submitted = False
+  if utc.localize(date) > timestamp:
+    pending = True
+  else:
+    pending = False
+  
   for i in range(len(amounts)):
     amounts[i] = int(round(float(amounts[i]) * 100))
     envelope_ids[i] = int(envelope_ids[i])
   for name in names:
-    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID)
+    # TODO: Determine if the transactino should have a "pending status"
+    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID, pending)
     # Only insert a NEW scheduled transaction if it's not an edited transaction
     if scheduled and edited:
       t.schedule = schedule
     if scheduled and not edited:
       # Create placeholder scheduled transaction
+      # TODO: Determine if the transaction should have a "Pending" status
       nextdate = schedule_date_calc(date,schedule)
-      scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID)
+      scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID, pending)
 
     # If it is a single transaction
     if len(envelope_ids) == 1:
@@ -206,11 +218,17 @@ def new_transfer(edited=False):
   names = [n.lstrip() for n in names if n.lstrip()]
   amount = int(round(float(request.form['amount'])*100))
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
+  timestamp = dateutil.parser.isoparse(request.form['timestamp'])
   note = request.form['note']
   scheduled = request.form.getlist('scheduled')
   scheduled = len(scheduled) != 0
   schedule = request.form['schedule']
   sched_t_submitted = False
+  if utc.localize(date) > timestamp:
+    pending = True
+  else:
+    pending = False
+  
   for name in names:
     if (transfer_type == 2):
       to_account = request.form['to_account']
@@ -272,14 +290,20 @@ def new_income(edited=False):
   names = [n.lstrip() for n in names if n.lstrip()]
   amount = int(round(float(request.form['amount'])*100))
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
+  timestamp = dateutil.parser.isoparse(request.form['timestamp'])
   account_id = request.form['account_id']
   note = request.form['note']
   scheduled = request.form.getlist('scheduled')
   scheduled = len(scheduled) != 0
   schedule = request.form['schedule']
   sched_t_submitted = False
+  if utc.localize(date) > timestamp:
+    pending = True
+  else:
+    pending = False
+  
   for name in names:
-    t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID)
+    t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, pending)
 
     # Only insert NEW scheduled transaction if it's not edited
     if scheduled and edited:
@@ -291,7 +315,8 @@ def new_income(edited=False):
       insert_transaction(t)
       # Insert scheduled transaction
       nextdate = schedule_date_calc(date,schedule)
-      scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID)
+      # TODO: Determine if the transaction should have a "pending" status
+      scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID, pending)
       insert_transaction(scheduled_t)
       sched_t_submitted = True
     else:
@@ -324,11 +349,17 @@ def fill_envelopes(edited=False):
   amounts = request.form.getlist('fill-amount')
   envelope_ids = request.form.getlist('envelope_id')
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
+  timestamp = dateutil.parser.isoparse(request.form['timestamp'])
   note = request.form['note']
   scheduled = request.form.getlist('scheduled')
   scheduled = len(scheduled) != 0
   schedule = request.form['schedule']
   sched_t_submitted = False
+  if utc.localize(date) > timestamp:
+    pending = True
+  else:
+    pending = False
+  
   for name in names:
     deletes =[]
     for i in range(len(amounts)):
@@ -339,7 +370,7 @@ def fill_envelopes(edited=False):
     for index in reversed(deletes):
       amounts.pop(index)
       envelope_ids.pop(index)
-    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID)
+    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, pending)
     # Only insert NEW scheduled transaction if it's not edited
     if scheduled and edited:
       t.schedule = schedule
@@ -350,7 +381,8 @@ def fill_envelopes(edited=False):
       envelope_fill(t)
       # Insert scheduled transaction
       nextdate = schedule_date_calc(date,schedule)
-      scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID)
+      # TODO: Determine if the transaction should have a "pending" status
+      scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID, pending)
       envelope_fill(scheduled_t)
       sched_t_submitted = True
     else:
@@ -378,7 +410,10 @@ def fill_envelopes(edited=False):
 def edit_delete_envelope():
   name = request.form['name']
   note = request.form['note']
+  date = datetime.strptime(request.form['date'], "%m/%d/%Y")
   envelope_id = request.form['envelope_id']
+  # timestamp = dateutil.parser.isoparse(request.form['timestamp']) #Don't need to check timestamp in this function
+
   # A copy of the delete_envelope() function from database.py but with the info from the form pasted in
   # TODO: This may be better as direct calls to editing the table instead of going through the API like this
   with conn:
@@ -386,10 +421,10 @@ def edit_delete_envelope():
       e = get_envelope(envelope_id)
       grouping = gen_grouping_num()
       # 1. Empty the deleted envelope
-      t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, note, None, 0, USER_ID)
+      t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, date, envelope_id, None, grouping, note, None, 0, USER_ID, False)
       insert_transaction(t_envelope)
       # 2. Fill the unallocated envelope
-      t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, None, grouping, note, None, 0, USER_ID)
+      t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, date, UNALLOCATED, None, grouping, note, None, 0, USER_ID, False)
       insert_transaction(t_unallocated)
       # 3. Mark the envelope as deleted
       c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
@@ -401,14 +436,18 @@ def edit_delete_envelope():
 def edit_delete_account():
   name = request.form['name']
   note = request.form['note']
+  date = datetime.strptime(request.form['date'], "%m/%d/%Y")
   account_id = request.form['account_id']
+  # timestamp = dateutil.parser.isoparse(request.form['timestamp']) #Don't need to check timestamp in this function
+  
   # A copy of the delete_account() function from database.py but with the info from the form pasted in
   # TODO: This may be better as direct calls to editing the table instead of going through the API like this
   with conn:
     a = get_account(account_id)
     
     # 1. Empty the deleted account
-    insert_transaction(Transaction(ACCOUNT_DELETE, name, a.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a.id, gen_grouping_num(), note, None, 0, USER_ID))
+    # TODO: Determine if the date here should ACTUALLY be the date.today. What happens if you're editing a DELETE_ACCOUNT transaction from a previous date? This would incorrectly update the date, right?
+    insert_transaction(Transaction(ACCOUNT_DELETE, name, a.balance, date, UNALLOCATED, a.id, gen_grouping_num(), note, None, 0, USER_ID, False))
 
     # 2. Mark the account as deleted
     c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
@@ -420,7 +459,10 @@ def edit_account_adjust():
   note = request.form['note']
   balance_diff = int(round(float(request.form['amount'])*100))
   account_id = int(request.form['account_id'])
-  insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID))
+  # timestamp = dateutil.parser.isoparse(request.form['timestamp']) #Don't need to check timestamp in this function
+
+  # TODO: Determine if the date here should ACTUALLY be the date.today. What happens if you're editing a DELETE_ACCOUNT transaction from a previous date? This would incorrectly update the date, right?
+  insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, False))
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
@@ -453,11 +495,12 @@ def edit_transaction():
   return jsonify({'toasts': toasts})
 
 @app.route('/delete_transaction_page', methods=['POST'])
-# TODO: Change this to use an <id> in the URL instead of using the hidden form thing (SEE gget_json)
+# TODO: Change this to use an <id> in the URL instead of using the hidden form thing (SEE get_json)
 def delete_transaction_page():
   id = int(request.form['delete-id'])
+  # timestamp = dateutil.parser.isoparse(request.form['timestamp']) #Don't need to check timestamp in this function
   delete_transaction(id)
-  return 'Transaction deleted!'
+  return jsonify({'toasts': ['Transaction deleted!']})
 
 @app.route('/api/transaction/<id>/group', methods=['GET'])
 def get_json(id):
@@ -469,6 +512,7 @@ def edit_accounts_page():
   original_balances = request.form.getlist('original-account-balance')
   edit_names = request.form.getlist('edit-account-name')
   original_names = request.form.getlist('original-account-name')
+  timestamp = dateutil.parser.isoparse(request.form['timestamp'])
   present_ids = list(map(int, request.form.getlist('account-id'))) # Turn the list of strings into a list of ints
   edit_a_order = list(map(int, request.form.getlist('account-order'))) # Turn the list of strings into a list of ints
 
@@ -501,6 +545,7 @@ def edit_envelopes_page():
   envelope_balances = request.form.getlist('envelope-balance')
   edit_names = request.form.getlist('edit-envelope-name')
   original_names = request.form.getlist('original-envelope-name')
+  timestamp = dateutil.parser.isoparse(request.form['timestamp'])
   present_ids = list(map(int, request.form.getlist('envelope-id'))) # Turn the list of strings into a list of ints
   edit_e_order = list(map(int, request.form.getlist('envelope-order'))) # Turn the list of strings into a list of ints
 
@@ -583,6 +628,7 @@ def load_more():
 @app.route('/api/multi-delete', methods=['POST'])
 def multi_delete():
   delete_ids = request.form.getlist('delete')
+  # timestamp = dateutil.parser.isoparse(request.form['timestamp']) #Don't need to check timestamp in this function
   for id in delete_ids:
     delete_transaction(id)
 

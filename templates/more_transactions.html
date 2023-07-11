@@ -1,5 +1,5 @@
 {% for transaction in transactions_data %}
-  <li class="row transaction-row collection-item {% if transaction.date > transaction.date.now() %}pending{% endif %}">
+  <li class="row transaction-row collection-item {% if transaction.pending == true %}pending{% endif %}">
     <div class="col s2 valign-wrapper transaction-date">
       <div class="date-bucket">
         <span class="long-date">{{transaction.date|datetimeformat}}</span><span class="short-date hide">{{transaction.date|datetimeformatshort}}</span>
@@ -25,6 +25,7 @@
         data-note="{{transaction.note}}"
         data-schedule="{{transaction.schedule}}"
         data-status="{{transaction.status}}"
+        data-pending="{{transaction.pending}}"
         data-user_id="{{transaction.user_id}}">
 
       <div class="col m1 hide-on-small-only valign-wrapper transaction-type"><i class="material-icons" title="{{t_type_dict[transaction.type]}}">{{t_type_icon_dict[transaction.type]}}</i></div>

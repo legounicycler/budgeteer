@@ -26,7 +26,8 @@ c.execute("""
         status BOOLEAN NOT NULL DEFAULT 0,
         user_id NOT NULL,
         a_reconcile_bal INTEGER NOT NULL DEFAULT 0,
-        e_reconcile_bal INTEGER NOT NULL DEFAULT 0
+        e_reconcile_bal INTEGER NOT NULL DEFAULT 0,
+        pending BOOLEAN NOT NULL DEFAULT 0
         )
     """)
 

@@ -463,7 +463,7 @@
         $.ajax({
           type: method,
           url: url,
-          data: $(this).serialize(),
+          data: $(this).serialize() + "&timestamp=" + new Date().toJSON() //Append a timestamp to the serialized form data
         }).done(function( o ) {
           data_reload(current_page);
           o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
@@ -843,7 +843,7 @@
       $.ajax({
         type: method,
         url: url,
-        data: $(this).serialize(),
+        data: $(this).serialize() + "&timestamp=" + new Date().toJSON() //Append a timestamp to the serialized form data
       }).done(function( o ) {
         $(parent_modal_id).modal("close")
         //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
@@ -877,7 +877,7 @@
       $.ajax({
         type: method,
         url: url,
-        data: $(this).serialize(),
+        data: $(this).serialize() + "&timestamp=" + new Date().toJSON() //Append a timestamp to the serialized form data
       }).done(function( o ) {
         if (remain_open == 0) {
           // If the form was submitted with the standard submit button or enter
@@ -927,7 +927,7 @@
       $.ajax({
         type: method,
         url: url,
-        data: $(this).serialize(),
+        data: $(this).serialize() + "&timestamp=" + new Date().toJSON() //Append a timestamp to the serialized form data
       }).done(function( o ) {
         $(parent_modal_id).modal("close");
         //Removes the new-envelope-row(s) from split transactions in the specific modal so that the next time you open
@@ -1130,7 +1130,7 @@
         $("#edit-account-adjust").detach()
         $("#edit-amount").text(balance_format(-1*amt)).negative_check(-1*amt);
         $("#edit-envelope-delete-id").val(envelope_id)
-
+        $("#noneditable-date").val(date);
       } else if (type == ACCOUNT_DELETE) {
         account_restore.appendTo('#editor-row');
         $("#edit-expense").detach();
@@ -1141,6 +1141,7 @@
         $("#edit-account-adjust").detach()
         $("#edit-amount").text(balance_format(-1*amt)).negative_check(-1*amt);
         $("#edit-account-delete-id").val(account_id)
+        $("#noneditable-date").val(date);
       } else if (type == ACCOUNT_ADJUST) {
         account_adjust.appendTo('#editor-row');
         $("#edit-expense").detach();

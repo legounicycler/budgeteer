@@ -43,7 +43,7 @@ USER_ID = 1
 # ------ CLASSES/DATABASE DEFINITIONS ------ #
 
 class Transaction:
-    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id):
+    def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id, pending):
         self.id = None
         self.type = type
         self.name = name
@@ -56,10 +56,11 @@ class Transaction:
         self.schedule = schedule
         self.status = status
         self.user_id = user_id
+        self.pending = pending
     def __repr__(self):
-        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id)
+        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, PENDING:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.pending)
     def __str__(self):
-        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id)
+        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, PENDING:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.pending)
 
 
 class Account:
@@ -105,8 +106,8 @@ def insert_transaction(t):
     """
     with conn:
         # ---1. INSERT THE TRANSACTION INTO THE TABLE---
-        c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)",
-        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id,  t.grouping, t.note, t.schedule, t.status, t.user_id))
+        c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)",
+        (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id, t.grouping, t.note, t.schedule, t.status, t.user_id, t.pending))
         
         # ---2. UPDATE THE ACCOUNT/ENVELOPE BALANCES---
         if (t.date < datetime.now()): #Only update balances if transaction is not scheduled for later
@@ -125,7 +126,7 @@ def get_transaction(id):
     """
     c.execute("SELECT * FROM transactions WHERE id=?", (id,))
     tdata = c.fetchone()
-    t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11])
+    t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11],tdata[14]) #Last is 14 because e_reconcile and a_reconcile columns exist in table
     t.date = date_parse(t.date) # Convert string to datetime object
     t.id = tdata[0]
     return t
@@ -402,10 +403,10 @@ def new_split_transaction(t):
 
     # 3. Insert the transaction
     if len(compressed_e_ids) == 1: #If every part of the split transaction went to the same envelope, it's basically a normal transaction
-        insert_transaction(Transaction(BASIC_TRANSACTION, t.name, compressed_amts[0], t.date, compressed_e_ids[0], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id))
+        insert_transaction(Transaction(BASIC_TRANSACTION, t.name, compressed_amts[0], t.date, compressed_e_ids[0], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.pending))
     else:
         for i in range(len(compressed_e_ids)):
-            insert_transaction(Transaction(SPLIT_TRANSACTION, t.name, compressed_amts[i], t.date, compressed_e_ids[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id))
+            insert_transaction(Transaction(SPLIT_TRANSACTION, t.name, compressed_amts[i], t.date, compressed_e_ids[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.pending))
 
 # ---------------ACCOUNT FUNCTIONS--------------- #
 
@@ -418,7 +419,7 @@ def insert_account(a):
     account_id = c.lastrowid
     income_name = 'Initial Account Balance: ' + a.name
     log_write('A INSERT: ' + str(get_account(account_id)))
-    insert_transaction(Transaction(INCOME, income_name, -1 * a.balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, a.user_id))
+    insert_transaction(Transaction(INCOME, income_name, -1 * a.balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, a.user_id, False))
 
 def get_account(id):
     """
@@ -472,7 +473,7 @@ def delete_account(account_id):
         a = get_account(account_id)
 
         # 1. Empty the deleted account
-        insert_transaction(Transaction(ACCOUNT_DELETE, f"Deleted account: {a.name}", a.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a.id, gen_grouping_num(), "", None, 0, USER_ID))
+        insert_transaction(Transaction(ACCOUNT_DELETE, f"Deleted account: {a.name}", a.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a.id, gen_grouping_num(), "", None, 0, USER_ID, False))
 
         # 2. Mark the account as deleted
         c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
@@ -556,15 +557,18 @@ def edit_accounts(accounts_to_edit, new_accounts, present_ids):
     else:
         return "No changes were made"
 
-def account_transfer(name, amount, date, to_account, from_account, note, schedule, user_id):
+# TODO: Update all instances of this function to include "pending"
+def account_transfer(name, amount, date, to_account, from_account, note, schedule, user_id, pending):
     """
     Creates one transaction draining an account, and one transaction filling another
     """
     grouping = gen_grouping_num()
-    insert_transaction(Transaction(ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id)) #Fill
-    insert_transaction(Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id))  #Empty
+    insert_transaction(Transaction(ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id, pending)) #Fill
+    insert_transaction(Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id, pending))  #Empty
 
-def adjust_account_balance(id, balance_diff, name):
+
+# TODO: Determine whether this needs a "pending" argument or if it can live without one
+def adjust_account_balance(a_id, balance_diff, name):
     """
     Creates ACCOUNT_ADJUST transactions for when the user manually sets the account balance in the account editor
     This transfers the difference into the unallocated envelope.
@@ -578,7 +582,7 @@ def adjust_account_balance(id, balance_diff, name):
     else:
         note = f"{stringify(-1*balance_diff)} was added to this account AND the Unallocated envelope."
     # 2. Add a transaction with an amount that will make the account balance equal to the specied balance
-    insert_transaction(Transaction(ACCOUNT_ADJUST, f"{name}: Balance Adjustment", balance_diff, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, id, gen_grouping_num(), note, None, False, USER_ID))
+    insert_transaction(Transaction(ACCOUNT_ADJUST, f"{name}: Balance Adjustment", balance_diff, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a_id, gen_grouping_num(), note, None, False, USER_ID, False))
 
 
 # ---------------ENVELOPE FUNCTIONS--------------- #
@@ -650,10 +654,10 @@ def delete_envelope(envelope_id):
             grouping = gen_grouping_num()
 
             # 1. Empty the deleted envelope
-            insert_transaction(Transaction(ENVELOPE_DELETE,f"Deleted envelope: {e.name}", e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, "", None, 0, USER_ID))
+            insert_transaction(Transaction(ENVELOPE_DELETE,f"Deleted envelope: {e.name}", e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, "", None, 0, USER_ID, False))
 
             # 2. Fill the unallocated envelope
-            insert_transaction(Transaction(ENVELOPE_DELETE,f"Deleted envelope: {e.name}", -1*e.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, None, grouping, "", None, 0, USER_ID))
+            insert_transaction(Transaction(ENVELOPE_DELETE,f"Deleted envelope: {e.name}", -1*e.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, None, grouping, "", None, 0, USER_ID, False))
 
             # 3. Mark the envelope as deleted
             c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
@@ -735,14 +739,16 @@ def edit_envelopes(envelopes_to_edit, new_envelopes, present_ids):
     else:
         return "No changes were made"
 
-def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedule, user_id):
+# TODO: Determiine if this needs the "pending" argument
+def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedule, user_id, pending):
     """
     Creates a transaction to fill one envelope and another to empty the other
     """
     grouping = gen_grouping_num()
-    insert_transaction(Transaction(ENVELOPE_TRANSFER, name, -1*amt, date, to_envelope, None, grouping, note, schedule, False, user_id)) #Fill
-    insert_transaction(Transaction(ENVELOPE_TRANSFER, name, amt, date, from_envelope, None, grouping, note, schedule, False, user_id))  #Empty
+    insert_transaction(Transaction(ENVELOPE_TRANSFER, name, -1*amt, date, to_envelope, None, grouping, note, schedule, False, user_id, pending)) #Fill
+    insert_transaction(Transaction(ENVELOPE_TRANSFER, name, amt, date, from_envelope, None, grouping, note, schedule, False, user_id, pending))  #Empty
 
+# TODO: Ensure all uses of this function include the "pending" argument in the transaction that's passed in
 def envelope_fill(t):
     """
     Takes an ENVELOPE_FILL transaction with an array of envelope ids and amounts and creates sub-transactions to fill the envelopes
@@ -753,9 +759,9 @@ def envelope_fill(t):
         envelopes = t.envelope_id
         for i in range(len(amts)):
             # Empty the unallocated envelope
-            insert_transaction(Transaction(ENVELOPE_FILL, t.name, amts[i], t.date, UNALLOCATED, None, grouping, t.note, t.schedule, False, t.user_id))
+            insert_transaction(Transaction(ENVELOPE_FILL, t.name, amts[i], t.date, UNALLOCATED, None, grouping, t.note, t.schedule, False, t.user_id, t.pending))
             # Fill the other envelopes
-            insert_transaction(Transaction(ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id))
+            insert_transaction(Transaction(ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id, t.pending))
     else:
         print("You can't pass a transaction into this function that's not an ENVELOPE_FILL you absolute numbskull!")
 
