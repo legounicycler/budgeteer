@@ -216,6 +216,13 @@
 
     //------------- FUNCTIONAL JS -------------//
 
+    function pad2(n) {return n < 10 ? '0' + n : n}
+
+    function gen_timestamp() {
+      date = new Date();
+      return date.getFullYear()+'-'+pad2(date.getMonth()+1)+'-'+pad2(date.getDate())+' '+pad2(date.getHours())+':'+pad2(date.getMinutes())+':'+pad2(date.getSeconds());
+    }
+
     function refresh_reconcile() {
       var page_total = text_to_num($("#page-total").text())
       var reconcile_balance = page_total;
@@ -463,7 +470,7 @@
         $.ajax({
           type: method,
           url: url,
-          data: $(this).serialize() + "&timestamp=" + new Date().toJSON() //Append a timestamp to the serialized form data
+          data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
         }).done(function( o ) {
           data_reload(current_page);
           o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
@@ -843,7 +850,7 @@
       $.ajax({
         type: method,
         url: url,
-        data: $(this).serialize() + "&timestamp=" + new Date().toJSON() //Append a timestamp to the serialized form data
+        data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
         $(parent_modal_id).modal("close")
         //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
@@ -877,7 +884,7 @@
       $.ajax({
         type: method,
         url: url,
-        data: $(this).serialize() + "&timestamp=" + new Date().toJSON() //Append a timestamp to the serialized form data
+        data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
         if (remain_open == 0) {
           // If the form was submitted with the standard submit button or enter
@@ -927,7 +934,7 @@
       $.ajax({
         type: method,
         url: url,
-        data: $(this).serialize() + "&timestamp=" + new Date().toJSON() //Append a timestamp to the serialized form data
+        data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
         $(parent_modal_id).modal("close");
         //Removes the new-envelope-row(s) from split transactions in the specific modal so that the next time you open

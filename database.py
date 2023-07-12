@@ -110,7 +110,7 @@ def insert_transaction(t):
         (t.id, t.type, t.name, t.amt, t.date, t.envelope_id, t.account_id, t.grouping, t.note, t.schedule, t.status, t.user_id, t.pending))
         
         # ---2. UPDATE THE ACCOUNT/ENVELOPE BALANCES---
-        if (t.date < datetime.now()): #Only update balances if transaction is not scheduled for later
+        if not t.pending: #Only update balances if transaction is not pending
             if t.account_id is not None:
                 newaccountbalance = get_account_balance(t.account_id) - t.amt
                 update_account_balance(t.account_id, newaccountbalance)
@@ -517,18 +517,18 @@ def update_account_balance(id, balance):
     with conn:
         c.execute("UPDATE accounts SET balance=? WHERE id=?",(balance, id))
 
-def edit_account(id, new_name, new_balance, new_order):
+def edit_account(id, new_name, new_balance, new_order, timestamp):
     """
     Updates account balalnce and name, then subtracts the change in balance from the unallocated envelope
     """
     with conn:
         balance_diff = get_account_balance(id) - new_balance
         if balance_diff != 0:
-            adjust_account_balance(id, balance_diff, new_name)
+            adjust_account_balance(id, balance_diff, new_name, timestamp)
         c.execute("UPDATE accounts SET name=?, display_order=? WHERE id=?", (new_name, new_order, id))
         log_write('A EDIT: ' + str(get_account(id)))
 
-def edit_accounts(accounts_to_edit, new_accounts, present_ids):
+def edit_accounts(accounts_to_edit, new_accounts, present_ids, timestamp):
     """
     Compares an old and new list of accounts, then:
     1.  Updates accounts in DB if their fields are different from those in old_accounts
@@ -541,7 +541,7 @@ def edit_accounts(accounts_to_edit, new_accounts, present_ids):
 
     # 1. Updates info for accounts that exist in both lists
     for a in accounts_to_edit:
-        edit_account(int(a.id), a.name, a.balance, a.display_order)
+        edit_account(int(a.id), a.name, a.balance, a.display_order, timestamp)
         done_something = True
     # 2. Adds new accounts not present in old list
     for a in new_accounts:
@@ -557,7 +557,6 @@ def edit_accounts(accounts_to_edit, new_accounts, present_ids):
     else:
         return "No changes were made"
 
-# TODO: Update all instances of this function to include "pending"
 def account_transfer(name, amount, date, to_account, from_account, note, schedule, user_id, pending):
     """
     Creates one transaction draining an account, and one transaction filling another
@@ -567,8 +566,7 @@ def account_transfer(name, amount, date, to_account, from_account, note, schedul
     insert_transaction(Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id, pending))  #Empty
 
 
-# TODO: Determine whether this needs a "pending" argument or if it can live without one
-def adjust_account_balance(a_id, balance_diff, name):
+def adjust_account_balance(a_id, balance_diff, name, date):
     """
     Creates ACCOUNT_ADJUST transactions for when the user manually sets the account balance in the account editor
     This transfers the difference into the unallocated envelope.
@@ -582,7 +580,7 @@ def adjust_account_balance(a_id, balance_diff, name):
     else:
         note = f"{stringify(-1*balance_diff)} was added to this account AND the Unallocated envelope."
     # 2. Add a transaction with an amount that will make the account balance equal to the specied balance
-    insert_transaction(Transaction(ACCOUNT_ADJUST, f"{name}: Balance Adjustment", balance_diff, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a_id, gen_grouping_num(), note, None, False, USER_ID, False))
+    insert_transaction(Transaction(ACCOUNT_ADJUST, f"{name}: Balance Adjustment", balance_diff, date, UNALLOCATED, a_id, gen_grouping_num(), note, None, False, USER_ID, False))
 
 
 # ---------------ENVELOPE FUNCTIONS--------------- #
@@ -739,7 +737,6 @@ def edit_envelopes(envelopes_to_edit, new_envelopes, present_ids):
     else:
         return "No changes were made"
 
-# TODO: Determiine if this needs the "pending" argument
 def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedule, user_id, pending):
     """
     Creates a transaction to fill one envelope and another to empty the other
@@ -748,7 +745,6 @@ def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedul
     insert_transaction(Transaction(ENVELOPE_TRANSFER, name, -1*amt, date, to_envelope, None, grouping, note, schedule, False, user_id, pending)) #Fill
     insert_transaction(Transaction(ENVELOPE_TRANSFER, name, amt, date, from_envelope, None, grouping, note, schedule, False, user_id, pending))  #Empty
 
-# TODO: Ensure all uses of this function include the "pending" argument in the transaction that's passed in
 def envelope_fill(t):
     """
     Takes an ENVELOPE_FILL transaction with an array of envelope ids and amounts and creates sub-transactions to fill the envelopes
@@ -783,7 +779,6 @@ def gen_grouping_num():
     """
     Returns a new and unique grouping number
     """
-    # TODO: POSSIBLY CAN DO +1 in SQLITE QUERRY RATHER THAN THIS LOGIC (TEST IN THIS PROGRAM)
     c.execute("SELECT MAX(grouping) FROM transactions")
     prevnum = c.fetchone()[0]
     if prevnum is not None:
