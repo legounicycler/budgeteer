@@ -322,8 +322,8 @@ def delete_transaction(t_id):
                 if (get_account(t.account_id).deleted is not False): # Don't try to restore an account that is not deleted
                     restore_account(t.account_id)
 
-            # 4. If it is not a transaction in the future, update envelope/account balances
-            if (t.date < datetime.now()): #TODO: This will probably need to change when timezones are implemented
+            # 4. If the transaction is not pending, update envelope/account balances
+            if not t.pending:
                 if t.envelope_id is not None:
                     if bool(get_envelope(t.envelope_id).deleted) is not True:
                         update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
