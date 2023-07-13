@@ -41,6 +41,15 @@
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
 
+      //Initialize Loading spinners
+      var $loading = $('#loading-div-div').hide();
+      $(document)
+        .ajaxStart(function () {
+          $loading.show();
+        })
+        .ajaxStop(function () {
+          $loading.hide();
+        });
 
       //Set up the simplebar scroll bars
       $('.scroller').each(function(index,el) {
@@ -143,16 +152,6 @@
         $('#multi-delete-form').submit();
       });
 
-      // Loading spinners
-      var $loading = $('#loading-div-div').hide();
-      $(document)
-        .ajaxStart(function () {
-          $loading.show();
-        })
-        .ajaxStop(function () {
-          $loading.hide();
-        });
-
       // AJAX request to load envelope transactions
       $(document).on('click', '.envelope-link', function() {
         var url = $(this).data('url');
@@ -199,17 +198,34 @@
         new_edit_envelope_row_html = o['edit_envelope_row'];
         new_edit_account_row_html = o['edit_account_row'];
         t_editor_new_env_row_html = o['t_editor_new_env_row'];
-
         console.log("Static HTML loaded")
       });
 
       // Establish arrays of envelope balances etc. for envelope filler
       unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
       $('.envelope-link').each( function() {
-        envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
+        envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")).toFixed(2));
       });
 
       refresh_reconcile();
+
+      //Check status of pending transactions, and update if necessary
+      // TODO: Revisit this when login is implemented. The login page can accept a timestamp from the user when they submit a login request on the form
+      //       This page will then redirect to the /home page in budgeteer.py, and the first thing that the /home page does can be running check_pending_transactions()
+      //       before it renders any templates. This means that you won't need an /api/check_pending_transactions, since checking for pending transactions will happen automatically
+      //       on every /data_reload and /home pages in budgeteer.py. Not sure how this will work if you can navigate directly to the /home page with a "keep me logged in" functionality
+      $.ajax({
+        type: 'POST',
+        url: '/api/check_pending_transactions',
+        data: JSON.stringify({"timestamp": gen_timestamp()}),
+        // data: JSON.stringify({"timestamp": "2023-07-12 00:00:00"}),
+        contentType: 'application/json'
+      }).done( function(o) {
+        should_reload = o['should_reload'];
+        if (should_reload) {
+          data_reload(current_page,false);
+        }
+      });
 
     }); // end of document ready
 
@@ -749,11 +765,12 @@
 
 
     // Retrieves updated data from database and updates the necessary html
-    function data_reload(current_page) {
+    // TODO: Remove the check_pending flag when the login system is implemented and this function will always check pending transactions
+    function data_reload(current_page, check_pending=true) {
       return $.ajax({
         type: "POST",
         url: "/api/data-reload",
-        data: JSON.stringify({"current_page": current_page}),
+        data: JSON.stringify({"current_page": current_page, "timestamp": gen_timestamp(), "check_pending": check_pending}),
         contentType: 'application/json'
       }).done(function( o ) {
         $('#load-more').remove();

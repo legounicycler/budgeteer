@@ -259,7 +259,7 @@ def new_transfer(edited=False):
         # If there's no schedule, add in the normal non-scheduled transaction
         envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID, is_pending(date, timestamp))
     else:
-      print('What the heck are you even trying to do you twit?')
+      log_write(f"ERROR: '{transfer_type}' isn't a valid transfer type, you twit!")
 
   toasts = []
   if len(names) > 1:
@@ -414,7 +414,7 @@ def edit_delete_envelope():
       c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
       log_write('E DELETE: ' + str(get_envelope(envelope_id)))
     else:
-      print("You can't delete the 'Unallocated' envelope you moron")
+      log_write("ERROR: You can't delete the 'Unallocated' envelope you moron")
 
 @app.route('/edit_delete_account', methods=['POST'])
 def edit_delete_account():
@@ -486,6 +486,12 @@ def delete_transaction_page():
   delete_transaction(id)
   return jsonify({'toasts': ['Transaction deleted!']})
 
+# TODO: Once the login system is implemented, this whole page will no longer be needed, since all check_pending_request() calls will be in /home or /data-reload
+@app.route('/api/check_pending_transactions', methods=['POST'])
+def check_pending_request():
+  timestamp = request.get_json()['timestamp']
+  return jsonify({'should_reload': check_pending_transactions(timestamp)})
+
 @app.route('/api/transaction/<id>/group', methods=['GET'])
 def get_json(id):
   return jsonify(get_grouped_json(id))
@@ -556,8 +562,13 @@ def edit_envelopes_page():
   return jsonify({'toasts': toasts})
 
 @app.route('/api/data-reload', methods=['POST'])
-def transactions_function():
-  current_page = request.get_json()['current_page']
+def data_reload():
+  js_data = request.get_json()
+  current_page = js_data['current_page']
+  timestamp = js_data['timestamp']
+  check_pending = js_data['check_pending']
+  if check_pending:
+    check_pending_transactions(timestamp) #Apply any pending transactions that need to before rendering the template
   if 'account/' in current_page:
     regex = re.compile('account/(\d+)')
     account_id = int(regex.findall(current_page)[0])

@@ -40,7 +40,7 @@ INSERT = True
 # Temporary testing user_id
 USER_ID = 1
 
-# ------ CLASSES/DATABASE DEFINITIONS ------ #
+# region ---------------CLASS DEFINITIONS---------------
 
 class Transaction:
     def __init__(self, type, name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id, pending):
@@ -62,7 +62,6 @@ class Transaction:
     def __str__(self):
         return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, PENDING:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.pending)
 
-
 class Account:
     def __init__(self, name, balance, deleted, user_id, display_order):
         self.id = None
@@ -75,7 +74,6 @@ class Account:
         return "ID:{}, NAME:{}, BAL:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.deleted,self.user_id,self.display_order)
     def __str__(self):
         return "ID:{}, NAME:{}, BAL:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.deleted,self.user_id,self.display_order)
-
 
 class Envelope:
     def __init__(self, name, balance, budget, deleted, user_id, display_order):
@@ -91,18 +89,52 @@ class Envelope:
     def __str__(self):
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id,self.display_order)
 
-# ----- Helper functions ----- #
+# endregion CLASS DEFINITIONS
+
+# region ---------------HELPER FUNCTIONS---------------
 def unpack(list_of_tuples):
     unpacked_array = []
     for item in list_of_tuples:
         unpacked_array.append(item[0])
     return unpacked_array
 
-# ---------------TRANSACTION FUNCTIONS--------------- #
+def stringify(number):
+    """
+    Formats amount numbers into a string with a "$" and "-" if necessary for display
+    """
+    if number is None:
+        string = "NAN"
+    else:
+        negative = number < 0
+        string = '$%.2f' % abs(number / 100)
+        if negative:
+            string = '-' + string
+    return string
+
+def date_parse(date_str):
+    """
+    Converts string to datetime object
+    """
+    if len(date_str) == 10:
+        date = datetime.strptime(date_str, "%Y-%m-%d")
+    elif len(date_str)==19:
+        date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+    elif len(date_str)==26:
+        date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S.%f")
+    else:
+        # TODO: Change to actually throw an error instead of just crashing things by
+        # returning the wrong data type
+        date = None
+        print("DATE PARSE ERROR: ", date_str)
+    return date
+
+# endregion HELPER FUNCTIONS
+
+# region ---------------TRANSACTION FUNCTIONS--------------- 
 
 def insert_transaction(t):
     """
-    Inserts transaction into database, then updates account/envelope balances
+    Inserts transaction into database, then applies it to the envelope/account totals if it is not pending
     """
     with conn:
         # ---1. INSERT THE TRANSACTION INTO THE TABLE---
@@ -111,14 +143,31 @@ def insert_transaction(t):
         
         # ---2. UPDATE THE ACCOUNT/ENVELOPE BALANCES---
         if not t.pending: #Only update balances if transaction is not pending
-            if t.account_id is not None:
-                newaccountbalance = get_account_balance(t.account_id) - t.amt
-                update_account_balance(t.account_id, newaccountbalance)
-            if t.envelope_id is not None:
-                newenvelopebalance = get_envelope_balance(t.envelope_id) - t.amt
-                update_envelope_balance(t.envelope_id, newenvelopebalance)
+            apply_transaction(t.account_id, t.envelope_id, t.amt)
 
     log_write('T INSERT: ' + str(t))
+
+def apply_transaction(a_id, e_id, amt):
+    """
+    Subtract the amount of the transaction from the envelope and account it is associated with
+    """
+    if a_id is not None:
+        newaccountbalance = get_account_balance(a_id) - amt
+        update_account_balance(a_id, newaccountbalance)
+    if e_id is not None:
+        newenvelopebalance = get_envelope_balance(e_id) - amt
+        update_envelope_balance(e_id, newenvelopebalance)
+
+def unapply_transaction(a_id, e_id, amt):
+    """
+    Add the amount of the transaction from the envelope and account it is associated with
+    """
+    if a_id is not None:
+        newaccountbalance = get_account_balance(a_id) + amt
+        update_account_balance(a_id, newaccountbalance)
+    if e_id is not None:
+        newenvelopebalance = get_envelope_balance(e_id) + amt
+        update_envelope_balance(e_id, newenvelopebalance)
 
 def get_transaction(id):
     """
@@ -408,7 +457,38 @@ def new_split_transaction(t):
         for i in range(len(compressed_e_ids)):
             insert_transaction(Transaction(SPLIT_TRANSACTION, t.name, compressed_amts[i], t.date, compressed_e_ids[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.pending))
 
-# ---------------ACCOUNT FUNCTIONS--------------- #
+def check_pending_transactions(timestamp):
+    """
+    Given a timestamp passed in from the user's browser, apply or unapply the pending transactions in the database and set the pending flag accordingly
+    Returns: "needs_reload" which indicates whether the page needs to reload the data on the $(document).ready() function in jQuery
+    TODO: When the login system is implemented, this will NOT need to return anything, since there will be no reloading happening on document ready
+          Instead, this function will only be called from the /home page and the /date-reload page before their templates render.
+    """
+    needs_reload = False
+    with conn:
+
+        # 1. Apply pending transactions that are before the timestamp
+        c.execute("SELECT id,account_id,envelope_id,amount FROM transactions WHERE pending=1 AND date(day) <= date(?)",(timestamp[0:10],)) 
+        t_data_list = c.fetchall()
+        if len(t_data_list) != 0:
+            for (id, a_id, e_id, amt) in t_data_list:
+                apply_transaction(a_id, e_id, amt)
+                c.execute("UPDATE transactions SET pending=0 WHERE id=?",(id,))
+            needs_reload = True
+        
+        # 2. Unapply pending transactions that are after the timestamp
+        c.execute("SELECT id,account_id,envelope_id,amount FROM transactions WHERE pending=0 AND date(day) > date(?)",(timestamp[0:10],))
+        t_data_list = c.fetchall()
+        if len(t_data_list) != 0:
+            for (id, a_id, e_id, amt) in t_data_list:
+                unapply_transaction(a_id, e_id, amt)
+                c.execute("UPDATE transactions SET pending=1 WHERE id=?",(id,))
+            needs_reload = True
+        return needs_reload
+
+# endregion TRANSACTION FUNCTIONS
+
+# region ---------------ACCOUNT FUNCTIONS---------------
 
 def insert_account(a):
     """
@@ -507,7 +587,7 @@ def get_account_balance(id):
         return balance[0]
     else:
         #TODO: Figure out where to log this and how to throw errors
-        print("That account doesn't exist you twit.")
+        log_write(f"ERROR: Account id {id} doesn't exist, you twit!")
         
 def update_account_balance(id, balance):
     """
@@ -565,7 +645,6 @@ def account_transfer(name, amount, date, to_account, from_account, note, schedul
     insert_transaction(Transaction(ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id, pending)) #Fill
     insert_transaction(Transaction(ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id, pending))  #Empty
 
-
 def adjust_account_balance(a_id, balance_diff, name, date):
     """
     Creates ACCOUNT_ADJUST transactions for when the user manually sets the account balance in the account editor
@@ -582,8 +661,9 @@ def adjust_account_balance(a_id, balance_diff, name, date):
     # 2. Add a transaction with an amount that will make the account balance equal to the specied balance
     insert_transaction(Transaction(ACCOUNT_ADJUST, f"{name}: Balance Adjustment", balance_diff, date, UNALLOCATED, a_id, gen_grouping_num(), note, None, False, USER_ID, False))
 
+# endregion ACCOUNT FUNCTIONS
 
-# ---------------ENVELOPE FUNCTIONS--------------- #
+# region ---------------ENVELOPE FUNCTIONS---------------
 
 def insert_envelope(e):
     """
@@ -664,7 +744,7 @@ def delete_envelope(envelope_id):
             # 4. Set display_order of deleted envelope to NULL
             c.execute("UPDATE envelopes SET display_order=NULL WHERE id=?", (envelope_id,))
         else:
-            print("You can't delete the 'Unallocated' envelope you moron")
+            log_write("ERROR: You can't delete the 'Unallocated' envelope you moron")
 
 def restore_envelope(envelope_id):
     """
@@ -690,7 +770,7 @@ def get_envelope_balance(id):
     if balance is not None:
         return balance[0]
     else:
-        print("That envelope doesn't exist you imbicil")
+        log_write(f"ERROR Envelope {id} doesn't exist, you imbicil!")
 
 def update_envelope_balance(id, balance):
     """
@@ -759,10 +839,11 @@ def envelope_fill(t):
             # Fill the other envelopes
             insert_transaction(Transaction(ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id, t.pending))
     else:
-        print("You can't pass a transaction into this function that's not an ENVELOPE_FILL you absolute numbskull!")
+        log_write("ERROR: You can't pass a transaction into envelope_fill() that's not an ENVELOPE_FILL, you absolute numbskull!")
 
+# endregion ENVELOPE FUNCTIONS
 
-# ------ OTHER FUNCTIONS ------ #
+# region ---------------OTHER FUNCTIONS---------------
 
 def get_total(user_id):
     """
@@ -794,7 +875,7 @@ def get_grouping_from_id(t_id):
     c.execute("SELECT grouping FROM transactions WHERE id=?", (t_id,))
     grouping_touple = c.fetchone()
     if (grouping_touple is None):
-        print("There is no transaction with this id: ", t_id)
+        log_write(f"ERROR: There is no transaction with this id {t_id}")
     else:
         return grouping_touple[0]
 
@@ -812,10 +893,10 @@ def get_grouped_ids_from_id(t_id):
     c.execute("SELECT id from transactions WHERE grouping = (SELECT grouping FROM transactions WHERE id=?)", (t_id,))
     return unpack(c.fetchall())
 
-
 def get_grouped_json(t_id):
     """
-    Given an id, return a json with the transaction data for each grouped transaction
+    Given a transaction id, return a json with the transaction data necessary to fill the transaction editor
+    This function is called for displaying ENVELOPE_TRANSFER's, ACCOUNT_TRANSFER's, SPLIT_TRANSACTION's, and ENVELOPE_FILL's
     """
     ids = get_grouped_ids_from_id(t_id)
     data = {}
@@ -824,99 +905,18 @@ def get_grouped_json(t_id):
         t = get_transaction(id)
         data['transactions'].append({
             'id': t.id,
-            'name': t.name,
             'amt': t.amt / 100,
-            'date': t.date,
             'envelope_id': t.envelope_id,
-            'account_id': t.account_id,
-            'grouping': t.grouping,
-            'note': t.note
+            'account_id': t.account_id
         })
     return data
-
-def stringify(number):
-    """
-    Formats amount numbers into a string with a "$" and "-" if necessary for display
-    """
-    if number is None:
-        string = "NAN"
-    else:
-        negative = number < 0
-        string = '$%.2f' % abs(number / 100)
-        if negative:
-            string = '-' + string
-    return string
-
-def date_parse(date_str):
-    """
-    Converts string to datetime object
-    """
-    if len(date_str) == 10:
-        date = datetime.strptime(date_str, "%Y-%m-%d")
-    elif len(date_str)==19:
-        date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-    elif len(date_str)==26:
-        date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S.%f")
-    else:
-        # TODO: Change to actually throw an error instead of just crashing things by
-        # returning the wrong data type
-        date = None
-        print("DATE PARSE ERROR: ", date_str)
-    return date
-
-def print_database(print_all=0,reverse=1):
-    """
-    Prints the contents of the database to the console.
-    If the parameter print_all is 1, it will print all the transactions.
-    If no parameter is provided, it will only print the envelopes and accounts
-    """
-    print()
-    if print_all == 1:
-        print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
-        print("TRANSACTIONS:")
-        c.execute("PRAGMA table_info(transactions)")
-        colnames = ''
-        for row in c:
-            colnames = colnames + row[1] + ', '
-        print("(" + colnames[:-2] + ")\n")
-        if reverse == 1:
-            c.execute("SELECT * FROM transactions ORDER BY day ASC, id ASC")
-        else:
-            c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
-        for row in c:
-            print(row)
-        print()
-    
-    print('ACCOUNTS:')
-    c.execute("PRAGMA table_info(accounts)")
-    colnames = ''
-    for row in c:
-        colnames = colnames + row[1] + ', '
-    print("(" + colnames[:-2] + ")\n")
-    c.execute("SELECT * FROM accounts ORDER BY display_order ASC, id ASC")
-    for row in c:
-        print(row)
-    print()
-
-    print('ENVELOPES:')
-    c.execute("PRAGMA table_info(envelopes)")
-    colnames = ''
-    for row in c:
-        colnames = colnames + row[1] + ', '
-    print("(" + colnames[:-2] + ")\n")
-    c.execute("SELECT * FROM envelopes ORDER BY display_order ASC, id ASC")
-    for row in c:
-        print(row)
-    print()
-    print("TOTAL FUNDS: ", get_total(USER_ID))
-    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
 
 def health_check(interactive=False):
     """
     1. Compares the sum of all account balances to the sum of all envelope balances
     2. Ensures that all deleted envelopes and accounts have a balance of zero
-    3. Checks if stored/displayed account balances equal the sum of their transactions
-    4. Checks if stored/displayed envelope balances equal the sum of their transactions
+    3. Checks if stored/displayed account balances equal the sum of their non-pending transactions
+    4. Checks if stored/displayed envelope balances equal the sum of their non-pending transactions
     """
     def hidden_print(str):
         if interactive is True:
@@ -1008,7 +1008,7 @@ def health_check(interactive=False):
             a_balance_db = -1*row[1]
 
             # b. Get account balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE account_id=? AND date(day) <= date('now', 'localtime')", (a_id,))
+            c.execute("SELECT SUM(amount) from transactions WHERE account_id=? AND pending=0", (a_id,))
             a_balance_summed = c.fetchone()[0]
             if a_balance_summed is None: #If there's no transactions in the account yet, placeholder of zero
                 a_balance_summed = 0
@@ -1040,7 +1040,7 @@ def health_check(interactive=False):
             e_balance_db = -1*row[1]
 
             # b. Get envelope balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND date(day) <= date('now', 'localtime')", (e_id,))
+            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND pending=0", (e_id,))
             e_balance_summed = c.fetchone()[0]
             if e_balance_summed is None: #If there are no transactions in the envelope yet, placeholder of zero
                 e_balance_summed = 0
@@ -1098,12 +1098,64 @@ def health_check(interactive=False):
             hidden_print("(No further action required.)\n\n")
             return healthy
 
+# endregion OTHER FUNCTIONS
+
+# region ---------------DEBUGGING FUNCTIONS---------------
 def log_write(text):
     """
     Writes a message to an EventLog.txt file
     """
     with open("EventLog.txt",'a') as f:
         f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " " + text+"\n")
+
+def print_database(print_all=0,reverse=1):
+    """
+    Prints the contents of the database to the console.
+    If the parameter print_all is 1, it will print all the transactions.
+    If no parameter is provided, it will only print the envelopes and accounts
+    """
+    print()
+    if print_all == 1:
+        print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
+        print("TRANSACTIONS:")
+        c.execute("PRAGMA table_info(transactions)")
+        colnames = ''
+        for row in c:
+            colnames = colnames + row[1] + ', '
+        print("(" + colnames[:-2] + ")\n")
+        if reverse == 1:
+            c.execute("SELECT * FROM transactions ORDER BY day ASC, id ASC")
+        else:
+            c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
+        for row in c:
+            print(row)
+        print()
+    
+    print('ACCOUNTS:')
+    c.execute("PRAGMA table_info(accounts)")
+    colnames = ''
+    for row in c:
+        colnames = colnames + row[1] + ', '
+    print("(" + colnames[:-2] + ")\n")
+    c.execute("SELECT * FROM accounts ORDER BY display_order ASC, id ASC")
+    for row in c:
+        print(row)
+    print()
+
+    print('ENVELOPES:')
+    c.execute("PRAGMA table_info(envelopes)")
+    colnames = ''
+    for row in c:
+        colnames = colnames + row[1] + ', '
+    print("(" + colnames[:-2] + ")\n")
+    c.execute("SELECT * FROM envelopes ORDER BY display_order ASC, id ASC")
+    for row in c:
+        print(row)
+    print()
+    print("TOTAL FUNDS: ", get_total(USER_ID))
+    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
+
+# endregion DEBUGGING FUNCTIONS
 
 def main():
     print_database()
