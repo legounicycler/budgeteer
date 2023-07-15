@@ -979,9 +979,7 @@
       var name = e.data('name');
       var type = e.data('type');
       var date = e.data('date');
-      var envelope_name = e.data('envelope_name');
       var envelope_id = e.data('envelope_id');
-      var account_name = e.data('account_name');
       var account_id = e.data('account_id');
       var grouping = e.data('grouping');
       var note = e.data('note');
@@ -989,7 +987,10 @@
       var to_envelope = null;
       var from_envelope = null;
       var schedule = e.data('schedule');
-      var status = e.data('status');
+      var pending = e.data('pending');
+      // var envelope_name = e.data('envelope_name');
+      // var account_name = e.data('account_name');
+      // var status = e.data('status');
       var $checkbox_input;
 
       //if it's a grouped transaction, use ajax to get data from all grouped transaction
@@ -1192,22 +1193,29 @@
       $('#type').attr('value', type); //Possibly change this to a less confusing ID
 
       //Logic for whether or not schedule checkbox/info shows or is disabled
-      if (type != ENVELOPE_DELETE && type!= ACCOUNT_DELETE && type != ACCOUNT_ADJUST) {
+      if (type != ENVELOPE_DELETE && type != ACCOUNT_DELETE && type != ACCOUNT_ADJUST) {
         var $checkbox_span = $checkbox_input.siblings();
-        if (schedule == 'None') { // Disable the checkbox
+        if (pending == '0') { // Disable the checkbox, hide schedule content
           if ($checkbox_input.is(':checked')) {
             $checkbox_span.click(); // Uncheck box if it is checked
           }
           $checkbox_input.attr('disabled', 'disabled');
           $checkbox_span.addClass('checkbox-disabled');
+          $('#editor-modal .schedule-content').hide();
         } else { // Ensure checkbox is NOT disabled
           $checkbox_input.removeAttr('disabled');
           $checkbox_span.removeClass('checkbox-disabled');
-          // update scheduled values and show the section
-          $('#edit-schedule').val(schedule).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
-          update_schedule_msg($('#edit-schedule'));
-          if (!($checkbox_input.is(':checked'))) {
-            $checkbox_span.click();
+          if (schedule == 'None') {
+            if ($checkbox_input.is(':checked')) {
+              $checkbox_span.click(); // Uncheck box if it is checked
+            }
+            $('#editor-modal .schedule-content').hide();
+          } else {
+            $('#edit-schedule').val(schedule).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+            update_schedule_msg($('#edit-schedule'));
+            if (!($checkbox_input.is(':checked'))) {
+              $checkbox_span.click(); //Check the box if it's not already checked
+            }
           }
         }
       }

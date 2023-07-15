@@ -121,10 +121,6 @@
   cursor: pointer;
 }
 
-.checked-background {
-  background-color: #ffe7bb !important;
-}
-
 /*Makes balance and reconcile balance look proper in their box*/
 .reconcile-row {
   margin-top: -5px !important;
@@ -424,9 +420,13 @@ h5 {
   background-color: gray;
 }
 
-/* Selector for the last pending transaction row  */
+/* Selector for the last pending transaction row */
 .pending:not(:has(~ .pending)) {
   border-bottom: 2px solid #d7d7d7 !important;
+}
+
+.checked-background {
+  background-color: #ffe7bb !important;
 }
 
 @media only screen and (max-width: 992px) {

@@ -62,30 +62,41 @@ def add_months(sourcedate, months):
   day = min(sourcedate.day, calendar.monthrange(year,month)[1])
   return date(year, month, day)
 
-def schedule_date_calc(tdate, schedule):
+def schedule_date_calc(tdate, schedule, timestamp):
   """
-  Calculates the upcoming transaction date for a scheduled transaction based on its frequency.
+  Calculates the upcoming transaction date for a scheduled transaction based on its frequency and the user's timestamp.
   Returns the date of the next transaction.
   """
-  if (schedule=="daily"):
-    nextdate = tdate + timedelta(days=1)
-  elif (schedule=="weekly"):
-    nextdate = tdate + timedelta(days=7)
-  elif (schedule=="biweekly"):
-    nextdate = tdate + timedelta(days=14)
-  elif (schedule=="monthly"):
-    nextdate = add_months(tdate,1)
-  elif (schedule=="endofmonth"):
-    lastmonthday = calendar.monthrange(tdate.year, tdate.month)[1]
-    if (tdate.day == lastmonthday):
+  date_is_pending = False
+  while not date_is_pending:
+    if (schedule=="daily"):
+      nextdate = tdate + timedelta(days=1)
+    elif (schedule=="weekly"):
+      nextdate = tdate + timedelta(days=7)
+    elif (schedule=="biweekly"):
+      nextdate = tdate + timedelta(days=14)
+    elif (schedule=="monthly"):
       nextdate = add_months(tdate,1)
+    elif (schedule=="endofmonth"):
+      lastmonthday = calendar.monthrange(tdate.year, tdate.month)[1]
+      if (tdate.day == lastmonthday):
+        nextdate = add_months(tdate,1)
+      else:
+        nextdate = date(tdate.year, tdate.month, lastmonthday)
+    elif (schedule=="semianually"):
+      nextdate = add_months(tdate,6)
+    elif (schedule=="anually"):
+      nextdate = add_months(tdate,12)
     else:
-      nextdate = date(tdate.year, tdate.month, lastmonthday)
-  elif (schedule=="semianually"):
-    nextdate = add_months(tdate,6)
-  elif (schedule=="anually"):
-    nextdate = add_months(tdate,12)
-  nextdate = datetime.combine(nextdate, datetime.min.time())
+      log_write("ERROR: Invalid schedule option!")
+      return False #TODO: Throw error here instead
+    
+    nextdate = datetime.combine(nextdate, datetime.min.time())
+    if nextdate > timestamp:
+      date_is_pending = True
+    else:
+      tdate = nextdate
+
   return nextdate
 
 def is_pending(date, timestamp):
@@ -137,56 +148,46 @@ def get_account_page():
   return jsonify(data)
 
 @app.route('/new_expense', methods=['POST'])
-def new_expense(edited=False):
-  # edited=True if this is called from edit_transaction
-  name = request.form['name']
-  #Parse the name field to separate names by commas
-  names = name.split(',')
-  names = [n.lstrip() for n in names if n.lstrip()]
+def new_expense():
+  names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
   amounts = request.form.getlist('amount')
   envelope_ids = request.form.getlist('envelope_id')
   account_id = request.form['account_id']
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
   timestamp = date_parse(request.form['timestamp'])
   note = request.form['note']
-  scheduled = request.form.getlist('scheduled')
-  scheduled = len(scheduled) != 0
+  scheduled = len(request.form.getlist('scheduled')) != 0
   schedule = request.form['schedule']
   sched_t_submitted = False
+  pending = is_pending(date, timestamp)
 
   for i in range(len(amounts)):
     amounts[i] = int(round(float(amounts[i]) * 100))
     envelope_ids[i] = int(envelope_ids[i])
   for name in names:
-    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID, is_pending(date, timestamp))
-    # Only insert a NEW scheduled transaction if it's not an edited transaction
-    if scheduled and edited:
-      t.schedule = schedule
-    if scheduled and not edited:
-      # Create placeholder scheduled transaction
-      nextdate = schedule_date_calc(date,schedule)
+    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID, pending)
+    if scheduled and not pending:
+      # Create pending scheduled transaction
+      nextdate = schedule_date_calc(date, schedule, timestamp)
       scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
+    elif scheduled and pending:
+      t.schedule = schedule
 
-    # If it is a single transaction
-    if len(envelope_ids) == 1:
+    if len(envelope_ids) == 1: # If it is a BASIC_TRANSACTION
       t.grouping = gen_grouping_num()
       t.envelope_id = envelope_ids[0]
       t.amt = amounts[0]
-      # insert new transaction without schedule
       insert_transaction(t)
-      if scheduled and not edited:
-        # update placeholder scheduled transaction
+      if scheduled and not pending:
         scheduled_t.grouping = gen_grouping_num()
         scheduled_t.envelope_id = envelope_ids[0]
         scheduled_t.amt = amounts[0]
-        # insert new transaction with schedule
         insert_transaction(scheduled_t)
         sched_t_submitted = True
-    else:
+    else: # If it is a SPLIT_TRANSACTION
       t.type = SPLIT_TRANSACTION
       new_split_transaction(t)
-      if scheduled and not edited:
-        # insert new split transaction with schedule
+      if scheduled and not pending:
         scheduled_t.type = SPLIT_TRANSACTION
         new_split_transaction(scheduled_t)
         sched_t_submitted = True
@@ -195,69 +196,62 @@ def new_expense(edited=False):
   if len(names) > 1:
     toasts.append(f'Added {len(names)} new expenses!')
     if sched_t_submitted:
-      toasts.append(f'Added {len(names)} new scheduled expenses!')
-  elif len(names) == 0:
-    toasts.append('No new expenses were added! (shouldn\'t be possible)')
+      toasts.append(f'Added {len(names)} new expenses scheduled for {datetimeformat(nextdate)}!')
   elif len(names) == 1:
     toasts.append('Added new expense!')
     if sched_t_submitted:
-      toasts.append('Added new scheduled expense!')
+      toasts.append(f'Added new expense scheduled for {datetimeformat(nextdate)}!')
   else:
     toasts.append('There was an error!')
+
   if (health_check() is False):
     toasts.append("HEALTH ERROR!")
   return jsonify({'toasts': toasts})
 
 @app.route('/new_transfer', methods=['POST'])
-def new_transfer(edited=False):
-  # edited=True if this is called from edit_transaction
+def new_transfer():
   transfer_type = int(request.form['transfer_type'])
-  name = request.form['name']
-  #Parse the name field to separate names by commas
-  names = name.split(',')
-  names = [n.lstrip() for n in names if n.lstrip()]
+  names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
   amount = int(round(float(request.form['amount'])*100))
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
   timestamp = date_parse(request.form['timestamp'])
   note = request.form['note']
-  scheduled = request.form.getlist('scheduled')
-  scheduled = len(scheduled) != 0
+  scheduled = len(request.form.getlist('scheduled')) != 0
   schedule = request.form['schedule']
   sched_t_submitted = False
+  pending = is_pending(date, timestamp)
 
   for name in names:
     if (transfer_type == 2):
       to_account = request.form['to_account']
       from_account = request.form['from_account']
-      # Only insert a new scheduled transaction if it's not edited
-      if scheduled and edited:
-        # Update schedule of edited transaction, but don't make new scheduled transaction
-        account_transfer(name, amount, date, to_account, from_account, note, schedule, USER_ID, is_pending(date, timestamp))
-      elif scheduled and not edited:
-        # Add in the new transaction, then add in the scheduled transaction
-        account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID, is_pending(date, timestamp))
-        nextdate = schedule_date_calc(date,schedule)
+      if scheduled and pending:
+        # Create transfer WITH a schedule
+        account_transfer(name, amount, date, to_account, from_account, note, schedule, USER_ID, pending)
+      elif scheduled and not pending:
+        # Create transfer WITHOUT schedule, then pending transfer WITH schedule
+        account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID, pending)
+        nextdate = schedule_date_calc(date, schedule, timestamp)
         account_transfer(name, amount, nextdate, to_account, from_account, note, schedule, USER_ID, is_pending(nextdate, timestamp))
         sched_t_submitted = True
       else:
-        # Add in a normal non-scheduled transaction
-        account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID, is_pending(date, timestamp))
+        # Create transfer WITHOUT schedule
+        account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID, pending)
     elif (transfer_type == 1):
       to_envelope = request.form['to_envelope']
       from_envelope = request.form['from_envelope']
-      # Only insert a new scheduled transaction if it's not edited
-      if scheduled and edited:
-        # Update schedule of edited transaction, but don't make new scheduled transaction
-        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, schedule, USER_ID, is_pending(date, timestamp))
-      elif scheduled and not edited:
-        # Add in the new transaction, then add in the scheduled transaction
-        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID, is_pending(date, timestamp))
-        nextdate = schedule_date_calc(date,schedule)
+      if scheduled and pending:
+        # Create a transfer WITH a schedule
+        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, schedule, USER_ID, pending)
+      elif scheduled and not pending:
+        # Create transfer WITHOUT schedule, then pending transfer WITH schedule
+        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID, pending)
+        nextdate = schedule_date_calc(date, schedule, timestamp)
         envelope_transfer(name, amount, nextdate, to_envelope, from_envelope, note, schedule, USER_ID, is_pending(nextdate, timestamp))
         sched_t_submitted = True
       else:
-        # If there's no schedule, add in the normal non-scheduled transaction
-        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID, is_pending(date, timestamp))
+        # Create transfer WITHOUT schedule
+        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID, pending)
     else:
       log_write(f"ERROR: '{transfer_type}' isn't a valid transfer type, you twit!")
 
@@ -265,86 +259,73 @@ def new_transfer(edited=False):
   if len(names) > 1:
     toasts.append(f'Added {len(names)} new transfers!')
     if sched_t_submitted:
-      toasts.append(f'Added {len(names)} new scheduled transfers!')
-  elif len(names) == 0:
-    toasts.append('No new transfers were added! (shouldn\'t be possible)')
+      toasts.append(f'Added {len(names)} new transfers scheduled for {datetimeformat(nextdate)}!')
   elif len(names) == 1:
     toasts.append('Added new transfer!')
     if sched_t_submitted:
-      toasts.append('Added new scheduled transfer!')
+      toasts.append(f'Added new transfer scheduled for {datetimeformat(nextdate)}!')
   else:
     toasts.append('There was an error!')
+
   if (health_check() is False):
     toasts.append("HEALTH ERROR!")
   return jsonify({'toasts': toasts})
 
 @app.route('/new_income', methods=['POST'])
-def new_income(edited=False):
-  name = request.form['name']
-  #Parse the name field to separate names by commas
-  names = name.split(',')
-  names = [n.lstrip() for n in names if n.lstrip()]
+def new_income():
+  names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
   amount = int(round(float(request.form['amount'])*100))
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
   timestamp = date_parse(request.form['timestamp'])
   account_id = request.form['account_id']
   note = request.form['note']
-  scheduled = request.form.getlist('scheduled')
-  scheduled = len(scheduled) != 0
+  scheduled = len(request.form.getlist('scheduled')) != 0
   schedule = request.form['schedule']
   sched_t_submitted = False
+  pending = is_pending(date, timestamp)
   
   for name in names:
-    t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, is_pending(date, timestamp))
-    # Only insert NEW scheduled transaction if it's not edited
-    if scheduled and edited:
-      t.schedule = schedule
-      # Insert transaction with edited schedule
+    t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, pending)
+    if scheduled and not pending:
       insert_transaction(t)
-    elif scheduled and not edited:
-      # Insert transaction with no schedule
-      insert_transaction(t)
-      # Insert scheduled transaction
-      nextdate = schedule_date_calc(date,schedule)
+      nextdate = schedule_date_calc(date, schedule, timestamp)
       scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
       insert_transaction(scheduled_t)
       sched_t_submitted = True
+    elif scheduled and pending:
+      t.schedule = schedule
+      insert_transaction(t)
     else:
-      # If there's no schedule, add in the normal non-scheduled transaction
       insert_transaction(t)
 
   toasts = []
   if len(names) > 1:
     toasts.append(f'Added {len(names)} new income!')
     if sched_t_submitted:
-      toasts.append(f'Added {len(names)} new scheduled incomes!')
-  elif len(names) == 0:
-    toasts.append('No new incomes were added! (shouldn\'t be possible)')
+      toasts.append(f'Added {len(names)} new incomes scheduled for {datetimeformat(nextdate)}!')
   elif len(names) == 1:
     toasts.append('Added new income!')
     if sched_t_submitted:
-      toasts.append('Added new scheduled income!')
+      toasts.append(f'Added new income scheduled for {datetimeformat(nextdate)}!')
   else:
     toasts.append('There was an error!')
+
   if (health_check() is False):
     toasts.append("HEALTH ERROR!")
   return jsonify({'toasts': toasts})
 
 @app.route('/fill_envelopes', methods=['POST'])
-def fill_envelopes(edited=False):
-  name = request.form['name']
-  #Parse the name field to separate names by commas
-  names = name.split(',')
-  names = [n.lstrip() for n in names if n.lstrip()]
+def fill_envelopes():
+  names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
   amounts = request.form.getlist('fill-amount')
   envelope_ids = request.form.getlist('envelope_id')
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
   timestamp = date_parse(request.form['timestamp'])
   note = request.form['note']
-  scheduled = request.form.getlist('scheduled')
-  scheduled = len(scheduled) != 0
+  scheduled = len(request.form.getlist('scheduled')) != 0
   schedule = request.form['schedule']
   sched_t_submitted = False
+  pending = is_pending(date, timestamp)
   
   for name in names:
     deletes =[]
@@ -356,37 +337,31 @@ def fill_envelopes(edited=False):
     for index in reversed(deletes):
       amounts.pop(index)
       envelope_ids.pop(index)
-    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, is_pending(date, timestamp))
-    # Only insert NEW scheduled transaction if it's not edited
-    if scheduled and edited:
-      t.schedule = schedule
-      # Insert transaction with edited schedule
+    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, pending)
+    if scheduled and not pending:
       envelope_fill(t)
-    elif scheduled and not edited:
-      # Insert transaction with no schedule
-      envelope_fill(t)
-      # Insert scheduled transaction
-      nextdate = schedule_date_calc(date,schedule)
+      nextdate = schedule_date_calc(date, schedule, timestamp)
       scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
       envelope_fill(scheduled_t)
       sched_t_submitted = True
+    elif scheduled and pending:
+      t.schedule = schedule
+      envelope_fill(t)
     else:
-      # If there's no schedule, add in the normal non-scheduled transaction
       envelope_fill(t)
 
   toasts = []
   if len(names) > 1:
     toasts.append(f'Added {len(names)} envelope fills!')
     if sched_t_submitted:
-      toasts.append(f'Added {len(names)} new scheduled envelope fills!')
-  elif len(names) == 0:
-    toasts.append('No envelope fill was added! (shouldn\'t be possible)')
+      toasts.append(f'Added {len(names)} new envelope fills scheduled for {datetimeformat(nextdate)}!')
   elif len(names) == 1:
     toasts.append('Envelopes filled!')
     if sched_t_submitted:
-      toasts.append('Added new scheduled envelope fill!')
+      toasts.append(f'Added new envelope fill scheduled for {datetimeformat(nextdate)}!')
   else:
    toasts.append('There was an error!')
+
   if (health_check() is False):
     toasts.append("HEALTH ERROR!")
   return jsonify({'toasts': toasts})
@@ -429,7 +404,6 @@ def edit_delete_account():
     a = get_account(account_id)
     
     # 1. Empty the deleted account
-    # TODO: Determine if the date here should ACTUALLY be the date.today. What happens if you're editing a DELETE_ACCOUNT transaction from a previous date? This would incorrectly update the date, right?
     insert_transaction(Transaction(ACCOUNT_DELETE, name, a.balance, date, UNALLOCATED, a.id, gen_grouping_num(), note, None, 0, USER_ID, False))
 
     # 2. Mark the account as deleted
@@ -445,26 +419,24 @@ def edit_account_adjust():
   account_id = int(request.form['account_id'])
   timestamp = date_parse(request.form['timestamp'])
 
-  # TODO: Determine if the date here should ACTUALLY be the date.today. What happens if you're editing a DELETE_ACCOUNT transaction from a previous date? This would incorrectly update the date, right?
   insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, is_pending(date, timestamp)))
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
-  sched_t_submitted = False #This has to be here or else the javascript side breaks
   id = int(request.form['edit-id'])
   type = int(request.form['type'])
   delete_transaction(id)
     
   if (type == BASIC_TRANSACTION):
-    new_expense(True)
+    new_expense()
   elif (type == ENVELOPE_TRANSFER or type == ACCOUNT_TRANSFER):
-    new_transfer(True)
+    new_transfer()
   elif (type == INCOME):
-    new_income(True)
+    new_income()
   elif (type == SPLIT_TRANSACTION):
-    new_expense(True)
+    new_expense()
   elif (type == ENVELOPE_FILL):
-    fill_envelopes(True)
+    fill_envelopes()
   elif (type == ENVELOPE_DELETE):
     edit_delete_envelope()
   elif (type == ACCOUNT_DELETE):
