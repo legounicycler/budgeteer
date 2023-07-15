@@ -204,7 +204,7 @@
       // Establish arrays of envelope balances etc. for envelope filler
       unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
       $('.envelope-link').each( function() {
-        envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")).toFixed(2));
+        envelope_balances.push(parseFloat($(this).data('envelope-balance').replace("$","")));
       });
 
       refresh_reconcile();
