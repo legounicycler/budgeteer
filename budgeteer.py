@@ -8,13 +8,9 @@ from flask import Flask, render_template, request, jsonify
 from database import *
 from datetime import datetime
 from datetime import timedelta
-import dateutil.parser
 import calendar
 import re
 import platform
-import pytz
-
-utc = pytz.UTC
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'da3e7b955be0f7eb264a9093989e0b46'
