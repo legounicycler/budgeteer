@@ -42,7 +42,7 @@
     $(document).ready(function(){
 
       //Initialize Loading spinners
-      var $loading = $('#loading-div-div').hide();
+      var $loading = $('#loading-div').hide();
       $(document)
         .ajaxStart(function () {
           $loading.show();
