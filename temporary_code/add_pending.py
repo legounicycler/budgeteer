@@ -5,7 +5,7 @@ platform = platform.system()
 if platform == 'Windows':
     database = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
 else:
-    database = '/home/alimiero/database.sqlite'
+    database = '/home/opc/database.sqlite'
 
 conn = sqlite3.connect(database, check_same_thread=False)
 c = conn.cursor()
