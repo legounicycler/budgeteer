@@ -903,22 +903,16 @@
         url: url,
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
-        if (remain_open == 0) {
-          // If the form was submitted with the standard submit button or enter
-          $('#transaction-modal').modal("close")
-          $form.find(".new-envelope-row").remove() //Only used on #new-expense-form
-          $form[0].reset(); //Clear the data from the form fields
-          data_reload(current_page).then( function () {
-            $form.find(".schedule-content").hide();
-            update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
-          });
-        } else {
+        if (remain_open == 1) {
           // If the form was submitted with the submit and new button
           $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
           data_reload(current_page).then( function () {
 
             //Clear the transaction name field
-            $form.find('input[name="name"]').val("");
+            $form.find('input[name="name"]').val("").select().removeClass('valid');
+
+            //Remove the valid class from the amount
+            $form.find('input[name="amount"]').removeClass('valid');
 
             //Fill the date field
             $form.find('input[name="date"]').val(selected_date)
@@ -935,6 +929,26 @@
               $(this).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
             });
 
+          });
+        }
+        else if (remain_open == 2) {
+          $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
+          $form.find(".new-envelope-row").remove() //Only used on #new-expense-form
+          $form[0].reset(); //Clear the data from the form fields
+          data_reload(current_page).then( function () {
+            $form.find(".schedule-content").hide();
+            update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
+            $form.find('input[name="name"]').select();
+          });
+        }
+        else {
+          // If the form was submitted with the standard submit button or enter
+          $('#transaction-modal').modal("close")
+          $form.find(".new-envelope-row").remove() //Only used on #new-expense-form
+          $form[0].reset(); //Clear the data from the form fields
+          data_reload(current_page).then( function () {
+            $form.find(".schedule-content").hide();
+            update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
           });
         }
         o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
@@ -963,8 +977,12 @@
     });
 
     //Check the form validity, change the remain-open attribute to '1', then submit the form
-    $('.submit-and-new').click(function() {
+    $('.submit-and-new').click(function(event) {
+      if (event.ctrlKey) {
+        $(this).closest("form").data("remain-open",2)
+      } else {
         $(this).closest("form").data("remain-open",1)
+      }
     });
 
     //Check the form validity, change the remain-open attribute to '1', then submit the form
