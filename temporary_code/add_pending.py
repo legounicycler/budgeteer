@@ -1,5 +1,5 @@
-from database import *
 import platform
+import sqlite3
 
 platform = platform.system()
 if platform == 'Windows':
