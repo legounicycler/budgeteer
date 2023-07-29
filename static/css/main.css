@@ -195,11 +195,6 @@ input[type="text"] {
   padding: 0 !important;
 }
 
-.checkbox-special {
-  padding-left: 20px !important;
-  height: 20px !important;
-}
-
 .schedule-label {
   color: gray;
 }
@@ -233,13 +228,9 @@ input[type="text"] {
   display: none;
 }
 
-.checkbox-special {
+.checkbox-span {
   padding-left: 20px !important;
   height: 20px !important;
-}
-
-.checkbox-disabled {
-  cursor: default !important;
 }
 
 .schedule-label {

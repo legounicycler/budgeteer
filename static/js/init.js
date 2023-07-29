@@ -245,6 +245,9 @@
       // Initialize materialize tooltips
       $('.tooltipped').tooltip();
 
+      // T-delete-checkbox bind
+      t_del_checkbox_bind();
+
       // Editor modal setup
       editor_binds();
       editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the relevant editor
@@ -720,53 +723,80 @@
       });
     });
 
+    // Open the transaction editor modal
+    $("#bin").on('click', '.transaction', function() {
+      t_editor_modal_open($(this));
+    });
+
     // MULTIDELETE CODE
+    function t_del_checkbox_bind() {
+      var $chkboxes = $('.t-delete-checkbox');
+      var lastChecked = null;
+      $chkboxes.click(function(e) {
+        var $chkboxes_toupdate = null;
+        // 1. Determine the last checkbox which was checked
+        if (!lastChecked) {
+            lastChecked = this;
+        }
+
+        // 2. Determine which checkboxes to update
+        if (e.shiftKey) {
+          var start = $chkboxes.index(this);
+          var end = $chkboxes.index(lastChecked);
+          $chkboxes_toupdate = $chkboxes.slice(Math.min(start,end), Math.max(start,end)+1);
+        } else {
+          $chkboxes_toupdate = $(this);
+          lastChecked = this;
+        }
+
+        // 3. Update the checkboxes
+        $chkboxes_toupdate.prop('checked', lastChecked.checked);
+        if (lastChecked.checked) {
+          $chkboxes_toupdate.closest('.collection-item').addClass('checked-background');
+        } else {
+          $chkboxes_toupdate.closest('.collection-item').removeClass('checked-background');
+        }
+
+        // 3. Determine if none of the checkboxes are checked
+        none_checked = true;
+        $chkboxes.each(function() {
+          if (this.checked) {
+            none_checked = false;
+          }
+        });
+
+        // 4. Show or hide the checkboxes/delete button
+        if (none_checked) {
+          $('.checkbox-bucket, #multi-delete-submit').hide();
+          $('.date-bucket').show();
+        } else {
+          $('.checkbox-bucket, #multi-delete-submit').show();
+          $('.date-bucket').hide();
+        }
+      });
+    }
+
+    var longpress = 800;
+    var start;
+    var timer;
     $('#bin').on('mouseenter', '.transaction-date', function() {
       if (none_checked) {
         $(this).find('.date-bucket').hide();
         $(this).find('.checkbox-bucket').show();
       }
-    });
-
-    $('#bin').on('mouseleave', '.transaction-date', function() {
+    }).on('mouseleave', '.transaction-date', function() {
       if (none_checked) {
         $(".date-bucket").show();
         $(this).find('.checkbox-bucket').hide();
       }
-    });
-
-    $('#bin').on('click', '.delete-boxes', function() {
-      none_checked = true;
-      $('.delete-boxes').each(function() {
-        if (this.checked) {
-          none_checked = false;
-        }
-      });
-      if (this.checked) {
-        $(this).closest('.collection-item').addClass('checked-background');
-      } else {
-        $(this).closest('.collection-item').removeClass('checked-background');
-      }
-      if (none_checked) {
-        $('.checkbox-bucket, #multi-delete-submit').hide();
-        $('.date-bucket').show();
-      } else {
-        $('.checkbox-bucket, #multi-delete-submit').show();
-        $('.date-bucket').hide();
-      }
-    });
-
-    var longpress = 800;
-    var start;
-    var timer;
-    $('#bin').on( 'touchstart', '.transaction', function( e ) {
+    }).on('touchstart', '.transaction', function( e ) {
       $this = $(this);
       start = new Date().getTime();
       start_y = event.touches[0].clientY;
       y = start_y;
       timer = setTimeout(function(){
         if (Math.abs(start_y - y) < 30) {
-          $this.parent().find('.delete-boxes').click();
+          $this.parent().find('.t-delete-checkbox').click();
           $(this).bind("contextmenu", function(e) {
             e.preventDefault();
           });
@@ -774,27 +804,23 @@
           clearTimeout(timer);
         }
       }, longpress)
-    }).on( 'mouseleave', '.transaction', function( e ) {
+    }).on('mouseleave', '.transaction', function( e ) {
       start = 0;
       clearTimeout(timer);
-    }).on( 'touchend', '.transaction', function( e ) {
+    }).on('touchend', '.transaction', function( e ) {
       if ( new Date().getTime() < ( start + longpress ) && Math.abs(start_y - y) < 30 ) {
         $this = $(this)
         clearTimeout(timer);
         if (!none_checked) {
           e.preventDefault();
-          $this.siblings().find('.delete-boxes').click()
+          $this.siblings().find('.t-delete-checkbox').click()
         }
       } else {
         start = 0;
         clearTimeout(timer);
       }
-    }).on( 'touchmove', '.transaction', function() {
+    }).on('touchmove', '.transaction', function() {
       y = event.touches[0].clientY;
-    }).on( 'click', '.transaction', function() {
-      $this = $(this)
-      t_editor_modal_open($this);
-      $('#editor-modal').modal('open');
     }); //END OF MULTIDELETE CODE
 
     // Sends date from datepicker and frequency from select to update_schedule_msg()
@@ -942,6 +968,7 @@
 
         editor_binds();
         editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the relevant editor
+        t_del_checkbox_bind();
 
         unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
         envelope_balances = []
@@ -1343,11 +1370,9 @@
             $checkbox_span.click(); // Uncheck box if it is checked
           }
           $checkbox_input.attr('disabled', 'disabled');
-          $checkbox_span.addClass('checkbox-disabled');
           $('#editor-modal .schedule-content').hide();
         } else { // Ensure checkbox is NOT disabled
           $checkbox_input.removeAttr('disabled');
-          $checkbox_span.removeClass('checkbox-disabled');
           if (schedule == 'None') {
             if ($checkbox_input.is(':checked')) {
               $checkbox_span.click(); // Uncheck box if it is checked
@@ -1364,6 +1389,7 @@
       }
       
       M.updateTextFields();
+      $('#editor-modal').modal('open');
     }; // End of t_editor_modal_open
 
   });

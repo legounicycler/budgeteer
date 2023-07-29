@@ -97,6 +97,7 @@ nav .brand-logo {
 [type="checkbox"].filled-in:disabled:not(:checked) + span:not(.lever):after {
   border-color: #949494;
   background-color: transparent;
+  cursor: default;
 }
 
 /* Makes the icons in the transaction description align better with their text */
