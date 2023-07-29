@@ -1090,7 +1090,9 @@ M.keys = {
   TAB: 9,
   ENTER: 13,
   ESC: 27,
+  ARROW_LEFT: 37,
   ARROW_UP: 38,
+  ARROW_RIGHT: 39,
   ARROW_DOWN: 40
 };
 
@@ -2419,14 +2421,15 @@ $jscomp.polyfill = function (e, r, p, m) {
         var _this10 = this;
 
         var $target = $(e.target);
+        var shouldAutofocus = !$target.is('input')
         if (this.options.closeOnClick && $target.closest('.dropdown-content').length && !this.isTouchMoving) {
           // isTouchMoving to check if scrolling on mobile.
           setTimeout(function () {
-            _this10.close();
+            _this10.close(shouldAutofocus);
           }, 0);
         } else if ($target.closest('.dropdown-trigger').length || !$target.closest('.dropdown-content').length) {
           setTimeout(function () {
-            _this10.close();
+            _this10.close(shouldAutofocus);
           }, 0);
         }
         this.isTouchMoving = false;
@@ -2478,12 +2481,10 @@ $jscomp.polyfill = function (e, r, p, m) {
     }, {
       key: "_handleDropdownKeydown",
       value: function _handleDropdownKeydown(e) {
-        if (e.which === M.keys.TAB) {
-          e.preventDefault();
-          this.close();
+        console.log("KEYDOWN HANDLER")
 
           // Navigate down dropdown list
-        } else if ((e.which === M.keys.ARROW_DOWN || e.which === M.keys.ARROW_UP) && this.isOpen) {
+         if ((e.which === M.keys.ARROW_DOWN || e.which === M.keys.ARROW_UP) && this.isOpen) {
           e.preventDefault();
           var direction = e.which === M.keys.ARROW_DOWN ? 1 : -1;
           var newFocusedIndex = this.focusedIndex;
@@ -2502,8 +2503,8 @@ $jscomp.polyfill = function (e, r, p, m) {
             this._focusFocusedItem();
           }
 
-          // ENTER selects choice on focused item
-        } else if (e.which === M.keys.ENTER && this.isOpen) {
+          // ENTER, TAB, or arrow left and right selects choice on focused item
+        } else if ((e.which === M.keys.ENTER || e.which === M.keys.TAB || e.which === M.keys.ARROW_RIGHT || e.which === M.keys.ARROW_LEFT) && this.isOpen) {
           // Search for <a> and <button>
           var focusedElement = this.dropdownEl.children[this.focusedIndex];
           var $activatableElement = $(focusedElement).find('a, button').first();
@@ -2523,7 +2524,7 @@ $jscomp.polyfill = function (e, r, p, m) {
 
         // CASE WHEN USER TYPE LETTERS
         var letter = String.fromCharCode(e.which).toLowerCase(),
-            nonLetters = [9, 13, 27, 38, 40];
+            nonLetters = [9, 13, 27, 37, 38, 39, 40];
         if (letter && nonLetters.indexOf(e.which) === -1) {
           this.filterQuery.push(letter);
 
@@ -2781,7 +2782,7 @@ $jscomp.polyfill = function (e, r, p, m) {
 
     }, {
       key: "close",
-      value: function close() {
+      value: function close(shouldAutofocus=true) {
         if (!this.isOpen) {
           return;
         }
@@ -2796,7 +2797,7 @@ $jscomp.polyfill = function (e, r, p, m) {
         this._animateOut();
         this._removeTemporaryEventHandlers();
 
-        if (this.options.autoFocus) {
+        if (this.options.autoFocus && shouldAutofocus) {
           this.el.focus();
         }
       }
@@ -3043,10 +3044,17 @@ $jscomp.polyfill = function (e, r, p, m) {
     }, {
       key: "_handleFocus",
       value: function _handleFocus(e) {
-        // Only trap focus if this modal is the last model opened (prevents loops in nested modals).
-        if (!this.el.contains(e.target) && this._nthModalOpened === Modal._modalsOpen) {
-          this.el.focus();
-        }
+        // THIS IS COMMENTED OUT FOR THE FOLLOWING REASON:
+        // When a materialize select is in a modal, but the container for the dropdown for the select is outside the modal
+        // The focus target (the dropdown) is NOT contained in the modal, so this function tries to refocus to the modal,
+        // meaning the focus doesn't remain on the dropdown as it should, breaking tabbing functionality. THIS WILL BREAK
+        // IF THERE ARE EVER ANY NESTED MODALS. I'm not sure exactly how, but I think it will close both modals instead of just the 
+        // top level or something. This should't be a problem on Budgeteer
+
+        // // Only trap focus if this modal is the last model opened (prevents loops in nested modals).
+        // if (!this.el.contains(e.target) && this._nthModalOpened === Modal._modalsOpen) {
+        //   this.el.focus();
+        // }
       }
 
       /**
@@ -8920,6 +8928,14 @@ $jscomp.polyfill = function (e, r, p, m) {
         this.modal = M.Modal.init(this.modalEl, {
           onCloseEnd: function () {
             _this54.isOpen = false;
+          },
+          onOpenEnd: function() {
+            // Set the focus to the selected date button
+            var dateStr = _this54.toString()
+            var day = parseInt(dateStr.slice(3,5)).toString();
+            // var month = (parseInt(dateStr.slice(0,2))-1).toString();
+            // var year = dateStr.slice(6,10);
+            _this54.$modalEl.find('button[data-day="' + day + '"]')[0].focus();
           }
         });
       }
