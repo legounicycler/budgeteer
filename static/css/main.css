@@ -81,6 +81,10 @@
   pointer-events: auto;
 }
 
+.btn:focus {
+  background-color: #ff5700 !important;
+}
+
 /* fixes transaction button to bottom-right of page*/
 .fixed-action-btn {
   position: fixed;

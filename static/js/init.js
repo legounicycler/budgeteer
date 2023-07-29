@@ -96,8 +96,25 @@
         format: 'mm/dd/yyyy',
         defaultDate: new Date(),
         setDefaultDate: true,
-        container: 'body'
+        container: 'body',
+        onClose: function() {
+          this.el.focus();
+        }
       });
+
+      // Adds left/right arrowkey functionality to datepicker
+      $(".datepicker-modal").keydown(function(e) {
+        if (e.which == 37) $.tabPrev();
+        else if (e.which == 39) $.tabNext();
+      });
+
+      // When schedule checkbox is focused, open it on ENTER
+      $('input[name="scheduled"]').keydown(function(e) {
+        if (e.which == 13) {
+          e.preventDefault();
+          $(this).next().click();
+        }
+      })
 
       // Initialize the editor modal
       $('#editor-modal').modal({
@@ -226,7 +243,7 @@
           data_reload(current_page,false);
         }
       });
-
+    
     }); // end of document ready
 
 
@@ -566,7 +583,7 @@
     });
 
     // Adds envelope row for transaction creator and initializes Material Select
-    $("#add-envelope").click(function() {
+    $("#add-envelope").click(function() { 
       //Make a clone of the envelope select
       var $envelope_selector = $('#envelope-selector-row').find('select[name="envelope_id"]').clone();
       //Ensure that only the first option for "choose an envelope" has the select attribute
@@ -1198,11 +1215,7 @@
       }
 
       // Update the rest of the common fields
-      $("#edit-date").val(date).datepicker({
-        autoClose: true,
-        format: 'mm/dd/yyyy',
-        container: 'body'
-      });
+      $("#edit-date").val(date);
       $('#edit-date').datepicker('setDate', new Date(date));
       $("#edit-name").val(name);
       $("#edit-note").val(note);
