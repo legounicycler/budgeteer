@@ -627,6 +627,111 @@
 
     }; //End of editor bind
 
+    // MULTIDELETE CODE
+    // This is called upon initialization and re-called on each data_reload
+    function t_del_checkbox_bind() {
+      var $chkboxes = $('.t-delete-checkbox');
+      var lastChecked = null;
+      $chkboxes.click(function(e) {
+        var $chkboxes_toupdate = null;
+        // 1. Determine the last checkbox which was checked
+        if (!lastChecked) {
+            lastChecked = this;
+        }
+
+        // 2. Determine which checkboxes to update
+        if (e.shiftKey) {
+          var start = $chkboxes.index(this);
+          var end = $chkboxes.index(lastChecked);
+          $chkboxes_toupdate = $chkboxes.slice(Math.min(start,end), Math.max(start,end)+1);
+        } else {
+          $chkboxes_toupdate = $(this);
+          lastChecked = this;
+        }
+
+        // 3. Update the checkboxes
+        $chkboxes_toupdate.prop('checked', lastChecked.checked);
+        if (lastChecked.checked) {
+          $chkboxes_toupdate.closest('.collection-item').addClass('checked-background');
+        } else {
+          $chkboxes_toupdate.closest('.collection-item').removeClass('checked-background');
+        }
+
+        // 3. Determine if none of the checkboxes are checked
+        none_checked = true;
+        $chkboxes.each(function() {
+          if (this.checked) {
+            none_checked = false;
+          }
+        });
+
+        // 4. Show or hide the checkboxes/delete button
+        if (none_checked) {
+          $('.checkbox-bucket, #multi-delete-submit').hide();
+          $('.date-bucket').show();
+        } else {
+          $('.checkbox-bucket, #multi-delete-submit').show();
+          $('.date-bucket').hide();
+        }
+      });
+    }
+
+    var longpress = 800;
+    var start;
+    var timer;
+    $('#bin').on('mouseenter', '.transaction-date', function() {
+      if (none_checked) {
+        $(this).find('.date-bucket').hide();
+        $(this).find('.checkbox-bucket').show();
+      }
+    }).on('mouseleave', '.transaction-date', function() {
+      if (none_checked) {
+        $(".date-bucket").show();
+        $(this).find('.checkbox-bucket').hide();
+      }
+    }).on('mouseleave', '.transaction-row', function() {
+      start = 0;
+      clearTimeout(timer);
+    }).on('touchstart', '.transaction-row', function(e) {
+      console.log("TOUCHSTART")
+      console.log(e)
+      $transactionRow = $(this);
+      $transactionRow.addClass('disable-select');
+      start = new Date().getTime();
+      start_y = e.touches[0].clientY;
+      start_x = e.touches[0].clientX;
+      y = start_y;
+      timer = setTimeout(function(){
+        if (Math.abs(start_y - y) < 30) {
+          $transactionRow.find('.t-delete-checkbox').click();
+          $(this).bind("contextmenu", function(e) {
+            e.preventDefault();
+          });
+        } else {
+          clearTimeout(timer);
+        }
+      }, longpress)
+    }).on('touchend', '.transaction-row', function(e) {
+      if ( new Date().getTime() < ( start + longpress ) && Math.abs(start_y - y) < 30 ) {
+        console.log("TOUCHEND")
+        console.log(e)
+        $transactionRow = $(this)
+        $transactionRow.removeClass('disable-select');
+        clearTimeout(timer);
+        if (!none_checked) {
+          e.preventDefault();
+          $transactionRow.find('.t-delete-checkbox').click();
+        }
+      } else {
+        start = 0;
+        clearTimeout(timer);
+      }
+    }).on('touchmove', '.transaction-row', function(e) {
+      console.log("TOUCHMOVE")
+      y = e.touches[0].clientY;
+      console.log(document.elementFromPoint(start_x,y))
+    }); //END OF MULTIDELETE CODE
+
     // Toggler code for transfer tab of transaction creator/editor
     $(document).on('change', '.div-toggle', function() {
       var target = $(this).data('target');
@@ -735,101 +840,6 @@
     $("#bin").on('click', '.transaction', function() {
       t_editor_modal_open($(this));
     });
-
-    // MULTIDELETE CODE
-    function t_del_checkbox_bind() {
-      var $chkboxes = $('.t-delete-checkbox');
-      var lastChecked = null;
-      $chkboxes.click(function(e) {
-        var $chkboxes_toupdate = null;
-        // 1. Determine the last checkbox which was checked
-        if (!lastChecked) {
-            lastChecked = this;
-        }
-
-        // 2. Determine which checkboxes to update
-        if (e.shiftKey) {
-          var start = $chkboxes.index(this);
-          var end = $chkboxes.index(lastChecked);
-          $chkboxes_toupdate = $chkboxes.slice(Math.min(start,end), Math.max(start,end)+1);
-        } else {
-          $chkboxes_toupdate = $(this);
-          lastChecked = this;
-        }
-
-        // 3. Update the checkboxes
-        $chkboxes_toupdate.prop('checked', lastChecked.checked);
-        if (lastChecked.checked) {
-          $chkboxes_toupdate.closest('.collection-item').addClass('checked-background');
-        } else {
-          $chkboxes_toupdate.closest('.collection-item').removeClass('checked-background');
-        }
-
-        // 3. Determine if none of the checkboxes are checked
-        none_checked = true;
-        $chkboxes.each(function() {
-          if (this.checked) {
-            none_checked = false;
-          }
-        });
-
-        // 4. Show or hide the checkboxes/delete button
-        if (none_checked) {
-          $('.checkbox-bucket, #multi-delete-submit').hide();
-          $('.date-bucket').show();
-        } else {
-          $('.checkbox-bucket, #multi-delete-submit').show();
-          $('.date-bucket').hide();
-        }
-      });
-    }
-
-    var longpress = 800;
-    var start;
-    var timer;
-    $('#bin').on('mouseenter', '.transaction-date', function() {
-      if (none_checked) {
-        $(this).find('.date-bucket').hide();
-        $(this).find('.checkbox-bucket').show();
-      }
-    }).on('mouseleave', '.transaction-date', function() {
-      if (none_checked) {
-        $(".date-bucket").show();
-        $(this).find('.checkbox-bucket').hide();
-      }
-    }).on('touchstart', '.transaction', function( e ) {
-      $this = $(this);
-      start = new Date().getTime();
-      start_y = event.touches[0].clientY;
-      y = start_y;
-      timer = setTimeout(function(){
-        if (Math.abs(start_y - y) < 30) {
-          $this.parent().find('.t-delete-checkbox').click();
-          $(this).bind("contextmenu", function(e) {
-            e.preventDefault();
-          });
-        } else {
-          clearTimeout(timer);
-        }
-      }, longpress)
-    }).on('mouseleave', '.transaction', function( e ) {
-      start = 0;
-      clearTimeout(timer);
-    }).on('touchend', '.transaction', function( e ) {
-      if ( new Date().getTime() < ( start + longpress ) && Math.abs(start_y - y) < 30 ) {
-        $this = $(this)
-        clearTimeout(timer);
-        if (!none_checked) {
-          e.preventDefault();
-          $this.siblings().find('.t-delete-checkbox').click()
-        }
-      } else {
-        start = 0;
-        clearTimeout(timer);
-      }
-    }).on('touchmove', '.transaction', function() {
-      y = event.touches[0].clientY;
-    }); //END OF MULTIDELETE CODE
 
     // Sends date from datepicker and frequency from select to update_schedule_msg()
     $(document).on('change', '.schedule-select', function() {
