@@ -90,6 +90,14 @@
         if (e.keyCode == ESCAPE) e.stopPropagation();
       });
 
+      $('body').keydown(function(e){
+        if(e.which == 27 && M.Modal._modalsOpen == 0){
+          // Clear all transaction checkboxes on ESCAPE KEY (if you're not hitting escape to close a modal)
+          $('.t-delete-checkbox:checked').click();
+          none_checked = true;
+        }
+    });
+
       // Initialize sidenav
       $('.sidenav').sidenav({
         onOpenStart: function() {$('.fixed-action-btn').hide()},
