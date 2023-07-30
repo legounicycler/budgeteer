@@ -630,10 +630,10 @@
     // MULTIDELETE CODE
     // This is called upon initialization and re-called on each data_reload
     function t_del_checkbox_bind() {
-      var $chkboxes = $('.t-delete-checkbox');
+      var $checkboxes = $('.t-delete-checkbox');
       var lastChecked = null;
-      $chkboxes.click(function(e) {
-        var $chkboxes_toupdate = null;
+      $checkboxes.click(function(e) {
+        var $checkboxes_toupdate = null;
         // 1. Determine the last checkbox which was checked
         if (!lastChecked) {
             lastChecked = this;
@@ -641,25 +641,25 @@
 
         // 2. Determine which checkboxes to update
         if (e.shiftKey) {
-          var start = $chkboxes.index(this);
-          var end = $chkboxes.index(lastChecked);
-          $chkboxes_toupdate = $chkboxes.slice(Math.min(start,end), Math.max(start,end)+1);
+          var start = $checkboxes.index(this);
+          var end = $checkboxes.index(lastChecked);
+          $checkboxes_toupdate = $checkboxes.slice(Math.min(start,end), Math.max(start,end)+1);
         } else {
-          $chkboxes_toupdate = $(this);
+          $checkboxes_toupdate = $(this);
           lastChecked = this;
         }
 
         // 3. Update the checkboxes
-        $chkboxes_toupdate.prop('checked', lastChecked.checked);
+        $checkboxes_toupdate.prop('checked', lastChecked.checked);
         if (lastChecked.checked) {
-          $chkboxes_toupdate.closest('.collection-item').addClass('checked-background');
+          $checkboxes_toupdate.closest('.collection-item').addClass('checked-background');
         } else {
-          $chkboxes_toupdate.closest('.collection-item').removeClass('checked-background');
+          $checkboxes_toupdate.closest('.collection-item').removeClass('checked-background');
         }
 
         // 3. Determine if none of the checkboxes are checked
         none_checked = true;
-        $chkboxes.each(function() {
+        $checkboxes.each(function() {
           if (this.checked) {
             none_checked = false;
           }
@@ -676,9 +676,12 @@
       });
     }
 
-    var longpress = 800;
     var start;
-    var timer;
+    var longPressTimer;
+    var isDragging = false;
+    var longpressAmt = 400;
+    var targetIsChecked = null;
+
     $('#bin').on('mouseenter', '.transaction-date', function() {
       if (none_checked) {
         $(this).find('.date-bucket').hide();
@@ -691,45 +694,53 @@
       }
     }).on('mouseleave', '.transaction-row', function() {
       start = 0;
-      clearTimeout(timer);
+      clearTimeout(longPressTimer);
     }).on('touchstart', '.transaction-row', function(e) {
-      console.log("TOUCHSTART")
-      console.log(e)
-      $transactionRow = $(this);
-      $transactionRow.addClass('disable-select');
+      $tRow = $(this);
+      $tRow.addClass('disable-select');
       start = new Date().getTime();
       start_y = e.touches[0].clientY;
       start_x = e.touches[0].clientX;
       y = start_y;
-      timer = setTimeout(function(){
+      longPressTimer = setTimeout(function(){
         if (Math.abs(start_y - y) < 30) {
-          $transactionRow.find('.t-delete-checkbox').click();
-          $(this).bind("contextmenu", function(e) {
-            e.preventDefault();
-          });
+          isDragging = true;
+          $tRow.find('.t-delete-checkbox').click();
+          targetIsChecked = $tRow.find(".t-delete-checkbox")[0].checked;
+          $(this).bind("contextmenu", function(e) {e.preventDefault()} ); //Prevent the context menu from opening
         } else {
-          clearTimeout(timer);
+          clearTimeout(longPressTimer);
+          isDragging = false;
         }
-      }, longpress)
+      }, longpressAmt)
+    }).on('touchmove', '.transaction-row', function(e) {
+      y = e.touches[0].clientY; // Update the y position of your touch (used in touchstart)
+      if (isDragging) {
+        e.preventDefault();
+        var $tRow = $(document.elementFromPoint(start_x,y)).closest(".transaction-row");
+        if ($tRow.length != 0) {
+          var $checkbox = $tRow.children(".transaction-date").children(".checkbox-bucket").children("label").children(".t-delete-checkbox")[0];
+          console.log($checkbox)
+          if (targetIsChecked != $checkbox.checked) {
+            $checkbox.click();
+          }
+        }
+      }
     }).on('touchend', '.transaction-row', function(e) {
-      if ( new Date().getTime() < ( start + longpress ) && Math.abs(start_y - y) < 30 ) {
-        console.log("TOUCHEND")
-        console.log(e)
-        $transactionRow = $(this)
-        $transactionRow.removeClass('disable-select');
-        clearTimeout(timer);
+      isDragging = false;
+      if ( new Date().getTime() < ( start + longpressAmt ) && Math.abs(start_y - y) < 30 ) {
+        // If your touch did NOT count as a longpress
+        $(this).removeClass('disable-select');
+        clearTimeout(longPressTimer);
         if (!none_checked) {
           e.preventDefault();
-          $transactionRow.find('.t-delete-checkbox').click();
+          $(this).find('.t-delete-checkbox').click();
         }
       } else {
+        // If your touch WAS a longpress
         start = 0;
-        clearTimeout(timer);
+        clearTimeout(longPressTimer);
       }
-    }).on('touchmove', '.transaction-row', function(e) {
-      console.log("TOUCHMOVE")
-      y = e.touches[0].clientY;
-      console.log(document.elementFromPoint(start_x,y))
     }); //END OF MULTIDELETE CODE
 
     // Toggler code for transfer tab of transaction creator/editor

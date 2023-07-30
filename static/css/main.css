@@ -69,8 +69,11 @@
   max-height: 100%
 }
 
-.transaction-row:hover {
-  background-color: #eeece9 !important;
+/* This wrapper ensures that this hover state doesn't apply on longpress for mobile */
+@media (hover: hover) {
+  .transaction-row:hover {
+    background-color: #eeece9 !important;
+  }
 }
 
 #multi-delete-form {
