@@ -111,13 +111,16 @@
         <form id="multi-delete-form" action="{{ url_for('multi_delete') }}" method="post">
           <div id="transaction-header" class="orange lighten-1 white-text">
             <div class="row" id="title-row">
-              <div class="col s12 left-align">
-                <h4 id="transaction-title" class="truncate"><span id="current-view">All Transactions</span> | <i id="page-total">{{current_total}}</i></h4>
+              <div id = "page-title-col" class="col s11 left-align">
+                <h4 id="page-title" class="truncate"><span id="current-view">All Transactions</span> | <i id="page-total">{{current_total}}</i></h4>
               </div>
-            </div>
-            <div class="row" id="title-options-row">
-              <div class="col s2 push-s10">
-                <a id="multi-delete-submit">Delete</a>
+              <div id="multi-select-col" class="col s1">
+                <div class="row">
+                  <a id="multi-select-clear"><i class="material-icons white-text">clear</i></a>
+                </div>
+                <div class="row">
+                  <a id="multi-delete-submit"><i class="material-icons white-text">delete</i></a>
+                </div>
               </div>
             </div>
           </div>

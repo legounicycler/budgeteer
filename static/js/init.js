@@ -92,11 +92,17 @@
 
       $('body').keydown(function(e){
         if(e.which == 27 && M.Modal._modalsOpen == 0){
-          // Clear all transaction checkboxes on ESCAPE KEY (if you're not hitting escape to close a modal)
+          // Clear all transaction selection checkboxes on ESCAPE KEY (if you're not hitting escape to close a modal)
           $('.t-delete-checkbox:checked').click();
           none_checked = true;
         }
-    });
+      });
+
+      $("#multi-select-clear").click(function() {
+        // Clear all transaction selection checkboxes
+        $('.t-delete-checkbox:checked').click();
+        none_checked = true;
+      });
 
       // Initialize sidenav
       $('.sidenav').sidenav({
@@ -667,10 +673,10 @@
 
         // 4. Show or hide the checkboxes/delete button
         if (none_checked) {
-          $('.checkbox-bucket, #multi-delete-submit').hide();
+          $('.checkbox-bucket, #multi-delete-submit, #multi-select-clear').hide();
           $('.date-bucket').show();
         } else {
-          $('.checkbox-bucket, #multi-delete-submit').show();
+          $('.checkbox-bucket, #multi-delete-submit, #multi-select-clear').show();
           $('.date-bucket').hide();
         }
       });
@@ -1017,7 +1023,7 @@
         //Set the page total
         $('#page-total').text(o['page_total']);
 
-        $("#multi-delete-submit").hide();
+        $("#multi-delete-submit, #multi-select-clear").hide();
 
         refresh_reconcile();
 
