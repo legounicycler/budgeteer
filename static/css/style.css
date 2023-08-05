@@ -14,6 +14,11 @@ select:required {
   position: absolute;
 }
 
+/* Override the lower style for the select dropdowns in the datepicker */
+.datepicker-container .select-wrapper input.select-dropdown {
+  padding: 0;
+}
+
 /* Fixes issue of text behind carrat in long select messages */
 .select-wrapper input.select-dropdown {
     padding-right: 25px;

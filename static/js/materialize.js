@@ -2481,8 +2481,6 @@ $jscomp.polyfill = function (e, r, p, m) {
     }, {
       key: "_handleDropdownKeydown",
       value: function _handleDropdownKeydown(e) {
-        console.log("KEYDOWN HANDLER")
-
           // Navigate down dropdown list
          if ((e.which === M.keys.ARROW_DOWN || e.which === M.keys.ARROW_UP) && this.isOpen) {
           e.preventDefault();

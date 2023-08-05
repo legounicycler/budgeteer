@@ -8,6 +8,11 @@
     var new_edit_account_row_html;
     var t_editor_new_env_row_html;
 
+    const LEFT_ARROW = 37;
+    const UP_ARROW = 38;
+    const RIGHT_ARROW = 39;
+    const DOWN_ARROW = 40;
+
     //Transaction types
     const BASIC_TRANSACTION = 0;
     const ENVELOPE_TRANSFER = 1;
@@ -102,10 +107,87 @@
         }
       });
 
-      // Adds left/right arrowkey functionality to datepicker
+      // Adds arrowkey functionality to datepicker
       $(".datepicker-modal").keydown(function(e) {
-        if (e.which == 37) $.tabPrev();
-        else if (e.which == 39) $.tabNext();
+        if (e.shiftKey && (e.which == LEFT_ARROW)) {
+          $(this).find(".month-prev").click();
+          $(this).find("table button").last("button").focus();
+        }
+        else if (e.shiftKey && (e.which == RIGHT_ARROW)) {
+          $(this).find(".month-next").click();
+          $(this).find("table button").first("button").focus();
+        }
+        else if (e.which == LEFT_ARROW) {
+          if (!$(document.activeElement).hasClass("month-prev")) $.tabPrev();
+        }
+        else if (e.which == RIGHT_ARROW) {
+          if (!$(document.activeElement).hasClass("datepicker-done")) $.tabNext();
+        }
+        else if (e.which == DOWN_ARROW) {
+          var focused = document.activeElement;
+          //If the focused element is one of the date buttons
+          if ($(focused).hasClass("datepicker-day-button")) {
+            //If an element in the last row is focused, focus the "month-next" button
+            if ($(this).find(".datepicker-row").last().find(focused).length == 1) {
+              $(this).find(".datepicker-cancel").focus();
+            }
+            // If the element is not in the first row of the table, move to the appropriate element in the previous row
+            else {
+              var day = parseInt($(focused).data("day"));
+              var newDay = day + 7;
+              var maxDay = parseInt($(this).find(".datepicker-day-button").last().data("day"));
+              if (newDay > maxDay) {
+                $(this).find(".datepicker-day-button").last().focus();
+              } else {
+                $(this).find(".datepicker-day-button[data-day='" + newDay.toString() + "']").focus();
+              }
+            }
+          } else {
+            if ($(this).find(".datepicker-controls").find(focused).length == 1) {
+              //If a button in the datepicker title row is focused, focus the first day button
+              $(this).find(".datepicker-day-button").first().focus();
+            }
+            else if ($(focused).hasClass("datepicker-cancel")) {
+              //If the "cancel" button is focused, move focus to the last day button
+              $.tabNext();
+            } else if ($(focused).hasClass("datepicker-done")) {
+              //If the "OK" button is focused, do nothing
+              return;
+            }
+          }
+        }
+        else if (e.which == UP_ARROW) {
+          var focused = document.activeElement;
+          //If the focused element is one of the date buttons
+          if ($(focused).hasClass("datepicker-day-button")) {
+            //If an element in the first row is focused, focus the "month-next" button
+            if ($(this).find(".datepicker-row").first().find(focused).length == 1) {
+              $(this).find(".month-next").focus();
+            }
+            // If the element is not in the first row of the table, move to the appropriate element in the previous row
+            else {
+              var day = parseInt($(focused).data("day"));
+              var newDay = day - 7;
+              if (newDay < 1) {
+                $(this).find(".datepicker-day-button").first().focus();
+              } else {
+                $(this).find(".datepicker-day-button[data-day='" + newDay.toString() + "']").focus();
+              }
+            }
+          } else {
+            if ($(this).find(".datepicker-controls").find(focused).length == 1) {
+              //If a button in the datepicker title row is selected, do nothing
+              return;
+            }
+            else if ($(focused).hasClass("datepicker-cancel")) {
+              //If the "cancel" button is focused, move focus to the last day button
+              $(this).find("td button").last().focus();
+            } else if ($(focused).hasClass("datepicker-done")) {
+              //If the "OK" button is focused, move focus to the "cancel" button
+              $.tabPrev();
+            }
+          }
+        }
       });
 
       // When schedule checkbox is focused, open it on ENTER
