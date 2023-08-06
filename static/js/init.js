@@ -12,6 +12,7 @@
     const UP_ARROW = 38;
     const RIGHT_ARROW = 39;
     const DOWN_ARROW = 40;
+    const ENTER = 13;
 
     //Transaction types
     const BASIC_TRANSACTION = 0;
@@ -956,7 +957,7 @@
       });
     };
 
-    // // Submits transaction EDITOR form data, closes the modal, clears the form, and reloads the data
+    // Submits transaction EDITOR form data, closes the modal, clears the form, and reloads the data
     $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form, #edit-envelope-delete-form, #edit-account-delete-form, #edit-account-adjust-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
@@ -978,7 +979,24 @@
       });
     });
 
-    // // Submits transaction CREATOR form data, closes the modal, clears the form, and reloads the data
+    // Ctrl+Enter submits and clears some, Ctrl+Shift+Enter submits and clears all
+    $('#transaction-modal form').keydown(function(e) {
+      if ((e.ctrlKey) && e.keyCode === ENTER) {
+        if ($(this)[0].checkValidity()) {
+          if (!e.shiftKey) {
+              e.preventDefault();
+              $(this).data('remain-open', 1)
+              $(this).trigger('submit');
+          } else {
+              e.preventDefault();
+              $(this).data('remain-open', 2)
+              $(this).trigger('submit');
+          }
+        }
+      }
+    });
+
+    // Submits transaction CREATOR form data, closes the modal, clears the form, and reloads the data
     $('#transaction-modal form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
@@ -1078,15 +1096,15 @@
     //Check the form validity, change the remain-open attribute to '1', then submit the form
     $('.submit-and-new').click(function(event) {
       if (event.ctrlKey) {
-        $(this).closest("form").data("remain-open",2)
+        $(this).closest("form").data("remain-open",2);
       } else {
-        $(this).closest("form").data("remain-open",1)
+        $(this).closest("form").data("remain-open",1);
       }
     });
 
     //Check the form validity, change the remain-open attribute to '1', then submit the form
     $('.standard-submit').click(function() {
-        $(this).closest("form").data("remain-open",0)
+        $(this).closest("form").data("remain-open",0);
     });
 
     // Opens transaction editor modal
