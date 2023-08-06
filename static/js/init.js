@@ -13,6 +13,7 @@
     const RIGHT_ARROW = 39;
     const DOWN_ARROW = 40;
     const ENTER = 13;
+    const ESCAPE = 27;
 
     //Transaction types
     const BASIC_TRANSACTION = 0;
@@ -82,7 +83,12 @@
         onCloseStart: function() {
           $('#transaction-modal').find('.select-dropdown').dropdown('close')
         }
-      })
+      });
+
+      // Makes escape button ONLY close a select located in a modal (but all the select bodies are actually in the fullscreen wrapper)
+      $("#fullscreen-wrapper").on("keydown", ".dropdown-content li", function(e) {
+        if (e.keyCode == ESCAPE) e.stopPropagation();
+      });
 
       // Initialize sidenav
       $('.sidenav').sidenav({
@@ -188,6 +194,12 @@
               $.tabPrev();
             }
           }
+        }
+        else if (e.which == ESCAPE) {
+          e.stopPropagation(); // Don't close the parent modal
+          $(this).modal("close"); //Only close the datepicker modal
+          $(".modal.open").find(".datepicker").focus(); //Refocus the datepicker from the parent modal (this will break if there's ever two datepickers)
+          // Also not quite sure why you need to refocus if the datepickers have an onClose() function that should focus it. Might have to do with the stopPropagation
         }
       });
 
