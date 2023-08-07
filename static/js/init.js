@@ -273,11 +273,6 @@
       // Calculate budget bar color/area etc.
       budget_bars()
 
-      // Initialize the multidelete button
-      $('#multi-delete-submit').click(function() {
-        $('#multi-delete-form').submit();
-      });
-
       // AJAX request to load envelope transactions
       $(document).on('click', '.envelope-link', function() {
         var url = $(this).data('url');
@@ -572,16 +567,24 @@
 
       // Opens delete warning modal when the envelope delete button is clicked
       $("#envelope-editor-bin").on("click", ".delete-envelope-button", function() {
-        delete_target = $(this);
-        $('#delete-modal p').replaceWith('<p>The balance of this envelope will be added to your unallocated balance.</p>');
-        $('#delete-modal').modal('open');
+        var msg = "The balance of this envelope will be added to your unallocated balance."
+        $this = $(this);
+        deleteModal(msg, function() {
+          $this.closest('.collection-item').remove();
+          editor_row_check();
+          $("#yes").unbind("click"); // ALWAYS discard the click event applied by the deleteModal() function
+        });
       });
 
       // Opens delete warning modal when the account delete button is clicked
       $("#account-editor-bin").on("click", ".delete-account-button", function() {
-        delete_target = $(this);
-        $('#delete-modal p').replaceWith('<p>The balance of this account will be subtracted from your unallocated balance.</p>');
-        $('#delete-modal').modal('open');
+        var msg = "The balance of this account will be subtracted from your unallocated balance."
+        $this = $(this);
+        deleteModal(msg, function() {
+          $this.closest('.collection-item').remove();
+          editor_row_check();
+          $("#yes").unbind("click"); // ALWAYS discard the click event applied by the deleteModal() function
+        });
       });
 
       //Collects data from account/envelope editor modals and submits it to flask
@@ -630,7 +633,15 @@
 
     }; //End of editor bind
 
-    // MULTIDELETE CODE
+    // If the "yes" button is clicked in the delete modal, execute the confirmFunction
+    function deleteModal(msg, confirmFunction) {
+      console.log("DELETE MODAL OPEN")
+      $('#delete-modal p').replaceWith('<p>' + msg + '</p>');
+      $('#delete-modal').modal('open');
+      $('#yes').click(confirmFunction);
+    }
+
+    // Hide/show the transaction checkbox or date AND hide/show the multidelete buttons
     function multideleteToggleCheck() {
       none_checked = true;
       $('.t-delete-checkbox').each(function() {
@@ -645,6 +656,7 @@
       }
     }
 
+    // Check/uncheck a transaction checkbox and highlihght the .transaction-row background accordingly
     $.fn.setCheckbox = function(state) {
       if (state) {
         $(this).prop("checked", true);
@@ -654,6 +666,15 @@
         $(this).closest('.transaction-row').removeClass('checked-background');
       }
     }
+
+    // Initialize the multidelete button
+    $('#multi-delete-submit').click(function() {
+      var msg = "Once these transactions are deleted, they're gone forever!"
+      deleteModal(msg, function() {
+        $('#multi-delete-form').submit();
+        $("#yes").unbind("click"); // ALWAYS discard the click event applied by the deleteModal() function
+      })
+    });
 
     var start;
     var longPressTimer;
@@ -782,7 +803,6 @@
         t_editor_modal_open($(this).siblings());
       }
     });
-    //END OF MULTIDELETE CODE
 
     // Toggler code for transfer tab of transaction creator/editor
     $(document).on('change', '.div-toggle', function() {
@@ -837,12 +857,6 @@
       $('#edit-fill-total').text(balance_format(total_fill)).negative_check(total_fill);
       var new_unallocated_balance = unallocated_balance - (total_fill - original_fill)
       $('#edit-unallocated-balance-envelope-filler').text(balance_format(new_unallocated_balance)).negative_check(new_unallocated_balance);
-    });
-
-    // If the yes button is clicked in the delete modal, delete the appropriate row
-    $('#yes').click(function() {
-      delete_target.closest('.collection-item').remove();
-      editor_row_check();
     });
 
     // Adds envelope row for transaction creator and initializes Material Select
