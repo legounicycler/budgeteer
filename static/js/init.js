@@ -259,9 +259,6 @@
       // Initialize materialize tooltips
       $('.tooltipped').tooltip();
 
-      // T-delete-checkbox bind
-      t_del_checkbox_bind();
-
       // Editor modal setup
       editor_binds();
       editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the relevant editor
@@ -587,7 +584,7 @@
         $('#delete-modal').modal('open');
       });
 
-      //COLLECTS DATA from account/envelope editor modals and submits it to flask
+      //Collects data from account/envelope editor modals and submits it to flask
       $('#account-editor-form, #envelope-editor-form').submit(function(e) {
         e.preventDefault();
         var url = $(this).attr('action');
@@ -634,10 +631,19 @@
     }; //End of editor bind
 
     // MULTIDELETE CODE
-    // $("#bin").on('change', '.t-delete-checkbox', function() {
-    //   if ($(this).prop("checked") == true) $(this).closest('.transaction-row').addClass('checked-background');
-    //   else $(this).closest('.transaction-row').removeClass('checked-background');
-    // });
+    function multideleteToggleCheck() {
+      none_checked = true;
+      $('.t-delete-checkbox').each(function() {
+        if (this.checked) none_checked = false;
+      });
+      if (none_checked) {
+        $('.checkbox-bucket, #multi-delete-submit, #multi-select-clear').hide();
+        $('.date-bucket').show();
+      } else {
+        $('.checkbox-bucket, #multi-delete-submit, #multi-select-clear').show();
+        $('.date-bucket').hide();
+      }
+    }
 
     $.fn.setCheckbox = function(state) {
       if (state) {
@@ -647,48 +653,6 @@
         $(this).prop("checked", false);
         $(this).closest('.transaction-row').removeClass('checked-background');
       }
-    }
-
-    // This is called upon initialization and re-called on each data_reload
-    // TODO: Change this so it doesn't need to be its own function! Change so that it's a bind on the #bin
-    function t_del_checkbox_bind() {
-      var $checkboxes = $('.t-delete-checkbox');
-      var lastChecked = null;
-      $checkboxes.click(function(e) {
-        var $checkboxes_toupdate = null;
-        // 1. Determine the last checkbox which was checked
-        if (!lastChecked) {
-            lastChecked = this;
-        }
-
-        // 2. Determine which checkboxes to update
-        if (e.shiftKey) {
-          var start = $checkboxes.index(this);
-          var end = $checkboxes.index(lastChecked);
-          $checkboxes_toupdate = $checkboxes.slice(Math.min(start,end), Math.max(start,end)+1);
-        } else {
-          $checkboxes_toupdate = $(this);
-          lastChecked = this;
-        }
-
-        // 3. Update the checkboxes
-        $checkboxes_toupdate.setCheckbox(lastChecked.checked);
-
-        // 3. Determine if none of the checkboxes are checked
-        none_checked = true;
-        $checkboxes.each(function() {
-          if (this.checked) none_checked = false;
-        });
-
-        // 4. Show or hide the checkboxes/delete button
-        if (none_checked) {
-          $('.checkbox-bucket, #multi-delete-submit, #multi-select-clear').hide();
-          $('.date-bucket').show();
-        } else {
-          $('.checkbox-bucket, #multi-delete-submit, #multi-select-clear').show();
-          $('.date-bucket').hide();
-        }
-      });
     }
 
     var start;
@@ -701,6 +665,7 @@
     var $allTRows;
     var $allCheckboxes;
     var originalStates = null;
+    var lastChecked = null; // Used for shift selection
 
     $('#bin').on('mouseenter', '.transaction-date', function() {
       if (none_checked) {
@@ -720,7 +685,6 @@
       $allCheckboxes = $('.t-delete-checkbox');
       originalStates = [];
       $allCheckboxes.each(function() {originalStates.push(this.checked)});
-      console.log(originalStates)
       $tRow = $(this).addClass('disable-select');
       startingTargetIndex = $allTRows.index($tRow);
       start = new Date().getTime();
@@ -785,21 +749,40 @@
         start = 0;
         clearTimeout(longPressTimer);
         originalStates = null;
-
-        //BREAK THIS OUT INTO ITS OWN FUNCTION
-        none_checked = true;
-        $('.t-delete-checkbox').each(function() {
-          if (this.checked) none_checked = false;
-        });
-        if (none_checked) {
-          $('.checkbox-bucket, #multi-delete-submit, #multi-select-clear').hide();
-          $('.date-bucket').show();
-        } else {
-          $('.checkbox-bucket, #multi-delete-submit, #multi-select-clear').show();
-          $('.date-bucket').hide();
-        }
+        multideleteToggleCheck();
       }
-    }); //END OF MULTIDELETE CODE
+    }).on("click", ".t-delete-checkbox", function(e) {
+      var $checkboxes = $(".t-delete-checkbox");
+      var $checkboxes_toupdate = null;
+      // 1. Determine the last checkbox which was checked
+      if (!lastChecked) {
+          lastChecked = this;
+      }
+
+      // 2. Determine which checkboxes to update
+      if (e.shiftKey) {
+        var start = $checkboxes.index(this);
+        var end = $checkboxes.index(lastChecked);
+        $checkboxes_toupdate = $checkboxes.slice(Math.min(start,end), Math.max(start,end)+1);
+      } else {
+        $checkboxes_toupdate = $(this);
+        lastChecked = this;
+      }
+
+      // 3. Update the checkboxes
+      $checkboxes_toupdate.setCheckbox(lastChecked.checked);
+
+      // 4. Hide or show the multidelete buttons and checkboxes as needed
+      multideleteToggleCheck();
+    }).on('click', '.transaction', function() {
+      t_editor_modal_open($(this));
+    }).on('touchend', ".transaction-date", function() {
+      // On mobile, as long as you're not in a longpress selection, clicking anywhere on the transaction-row, even on the .transaction-date column should open the editor modal
+      if (!isDragging && none_checked) {
+        t_editor_modal_open($(this).siblings());
+      }
+    });
+    //END OF MULTIDELETE CODE
 
     // Toggler code for transfer tab of transaction creator/editor
     $(document).on('change', '.div-toggle', function() {
@@ -905,14 +888,9 @@
       });
     });
 
-    // Open the transaction editor modal
-    $("#bin").on('click', '.transaction', function() {
-      t_editor_modal_open($(this));
-    });
-
     // Sends date from datepicker and frequency from select to update_schedule_msg()
     $(document).on('change', '.schedule-select', function() {
-      // update_schedule_msg($(this));
+      update_schedule_msg($(this));
     }).on('change', '.datepicker', function() {
       update_schedule_msg($(this).closest('form').find('.schedule-select'));
     });
@@ -1055,7 +1033,6 @@
 
         editor_binds();
         editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the relevant editor
-        t_del_checkbox_bind();
 
         unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
         envelope_balances = []
@@ -1198,6 +1175,20 @@
       });
     });
 
+    //Check the form validity, change the remain-open attribute to '1', then submit the form
+    $('.submit-and-new').click(function(event) {
+      if (event.ctrlKey) {
+        $(this).closest("form").data("remain-open",2);
+      } else {
+        $(this).closest("form").data("remain-open",1);
+      }
+    });
+
+    //Check the form validity, change the remain-open attribute to '1', then submit the form
+    $('.standard-submit').click(function() {
+        $(this).closest("form").data("remain-open",0);
+    });
+
     // Sends delete ID(s) via form, then reloads data
     $('.deleter-form, #multi-delete-form').submit(function(e) {
       e.preventDefault()
@@ -1217,20 +1208,6 @@
         data_reload(current_page);
         o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
       });
-    });
-
-    //Check the form validity, change the remain-open attribute to '1', then submit the form
-    $('.submit-and-new').click(function(event) {
-      if (event.ctrlKey) {
-        $(this).closest("form").data("remain-open",2);
-      } else {
-        $(this).closest("form").data("remain-open",1);
-      }
-    });
-
-    //Check the form validity, change the remain-open attribute to '1', then submit the form
-    $('.standard-submit').click(function() {
-        $(this).closest("form").data("remain-open",0);
     });
 
     // Opens transaction editor modal
