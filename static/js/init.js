@@ -688,6 +688,14 @@
     var originalStates = null;
     var lastChecked = null; // Used for shift selection
 
+    // Used for programatic scrolling on long selects
+    var intTopHandler= null;
+    var intBottomHandler= null;
+    function clearInetervals() {
+      clearInterval(intTopHandler);
+      clearInterval(intBottomHandler);
+    }
+
     $('#bin').on('mouseenter', '.transaction-date', function() {
       if (none_checked) {
         $(this).find('.date-bucket').hide();
@@ -718,45 +726,71 @@
           $tRow.find('.t-delete-checkbox').click();
           lastChangedTargetIndex = startingTargetIndex;
           initialTargetIsChecked = $tRow.find(".t-delete-checkbox")[0].checked;
-          $(this).bind("contextmenu", function(e) {e.preventDefault()} ); //Prevent the context menu from opening
+          $(window).bind("contextmenu", function(e) {e.preventDefault();} ); //Disable the context menu
         } else {
           clearTimeout(longPressTimer);
           isDragging = false;
         }
       }, longpressAmt)
     }).on('touchmove', '.transaction-row', function(e) {
+      y = e.touches[0].clientY; // Update the y position of your touch (used in touchstart)
       if (isDragging) {
-        y = e.touches[0].clientY; // Update the y position of your touch (used in touchstart)
-        e.preventDefault();
-        var $tRow = $(document.elementFromPoint(start_x,y)).closest(".transaction-row"); //Determine which transaction you're touching
-        var currentTargetIndex = $allTRows.index($tRow);
-        if (currentTargetIndex > -1) { //If you are actually touching a transaction
-          if (currentTargetIndex > lastChangedTargetIndex) { // Downward drag
-            if (currentTargetIndex > startingTargetIndex) { // Downward drag from start
-              $allCheckboxes.slice(lastChangedTargetIndex, currentTargetIndex+1).setCheckbox(initialTargetIsChecked);
-            } else { // Downward drag after upward drag
-              $allCheckboxes.slice(lastChangedTargetIndex, currentTargetIndex).each(function(i,e) {
-                $(e).setCheckbox(originalStates[i+lastChangedTargetIndex]); // Reset the checkbox states to their original state at touchstart
-              });
+        function toggleTransaction() {
+          e.preventDefault(); //Prevents scrolling on longpress moves
+          var $tRow = $(document.elementFromPoint(start_x,y)).closest(".transaction-row"); //Determine which transaction you're touching
+          var currentTargetIndex = $allTRows.index($tRow);
+          if (currentTargetIndex > -1) { //If you are actually touching a transaction
+            if (currentTargetIndex > lastChangedTargetIndex) { // Downward drag
+              if (currentTargetIndex > startingTargetIndex) { // Downward drag from start
+                $allCheckboxes.slice(lastChangedTargetIndex, currentTargetIndex+1).setCheckbox(initialTargetIsChecked);
+              } else { // Downward drag after upward drag
+                $allCheckboxes.slice(lastChangedTargetIndex, currentTargetIndex).each(function(i,e) {
+                  $(e).setCheckbox(originalStates[i+lastChangedTargetIndex]); // Reset the checkbox states to their original state at touchstart
+                });
+              }
             }
-          }
-          else if (currentTargetIndex < lastChangedTargetIndex) { // Upward drag
-            if (currentTargetIndex < startingTargetIndex) { // Upward drag from start
-              $allCheckboxes.slice(currentTargetIndex, lastChangedTargetIndex).setCheckbox(initialTargetIsChecked);
-            } else { // Upward drag after downward drag
-              $allCheckboxes.slice(currentTargetIndex+1, lastChangedTargetIndex+1).each(function(i,e) {
-                $(e).setCheckbox(originalStates[i+lastChangedTargetIndex]); // Reset the checkbox states to their original state at touchstart
-              });
+            else if (currentTargetIndex < lastChangedTargetIndex) { // Upward drag
+              if (currentTargetIndex < startingTargetIndex) { // Upward drag from start
+                $allCheckboxes.slice(currentTargetIndex, lastChangedTargetIndex).setCheckbox(initialTargetIsChecked);
+              } else { // Upward drag after downward drag
+                $allCheckboxes.slice(currentTargetIndex+1, lastChangedTargetIndex+1).each(function(i,e) {
+                  $(e).setCheckbox(originalStates[i+lastChangedTargetIndex]); // Reset the checkbox states to their original state at touchstart
+                });
+              }
             }
+            lastChangedTargetIndex = currentTargetIndex;
           }
-          lastChangedTargetIndex = currentTargetIndex;
         }
+        toggleTransaction();
+        // Handle scrolling!
+        var $scroller = $('#transactions-scroller .simplebar-content-wrapper');
+        var isScrolling = false;
+        if (y/window.innerHeight * 100 > 97) { //Downward scrolling
+          isScrolling = true;
+          clearInetervals();
+          intBottomHandler= setInterval(function(){
+            var currentScrollTop = $scroller.scrollTop();
+            $scroller.scrollTop(currentScrollTop + 2);
+            toggleTransaction();
+        },5);
+        }
+        if ($scroller[0].getBoundingClientRect().top/y * 100 > 95 ) { //Upward scrolling
+          isScrolling = true;
+          clearInetervals();
+          intTopHandler= setInterval(function(){
+            var currentScrollTop = $scroller.scrollTop();
+            $scroller.scrollTop(currentScrollTop - 2);
+            toggleTransaction();
+        },5);
+        }
+        if (!isScrolling) clearInetervals();
       } else { //If you're not touching a transaction
         clearTimeout(longPressTimer);
         isDragging = false;
       }
     }).on('touchend', '.transaction-row', function(e) {
       isDragging = false;
+      clearInetervals();
       if ( new Date().getTime() < ( start + longpressAmt ) && Math.abs(start_y - y) < 30 ) {
         // If your touch did NOT count as a longpress
         $(this).removeClass('disable-select');
@@ -771,6 +805,7 @@
         clearTimeout(longPressTimer);
         originalStates = null;
         multideleteToggleCheck();
+        setTimeout(function() {$(window).unbind("contextmenu")}, 100); //Re-enable the context menu (only relevant when you switch from mobile inspection to normal inspection on Chrome)
       }
     }).on("click", ".t-delete-checkbox", function(e) {
       var $checkboxes = $(".t-delete-checkbox");
