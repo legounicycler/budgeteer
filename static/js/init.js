@@ -260,7 +260,7 @@
       $('.tooltipped').tooltip();
 
       // Editor modal setup
-      editor_binds();
+      envelope_and_account_editor_binds();
       editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the relevant editor
       expense_editor = $("#edit-expense").detach();
       transfer_editor = $("#edit-transfer").detach();
@@ -463,8 +463,9 @@
 
     // Various event binds in the transaction/account/envelope editors
     // This is called upon initialization and re-called on each data_reload
-    function editor_binds() {
+    function envelope_and_account_editor_binds() {
 
+      // Bind for button in the envelope editor modal
       $("#new-envelope-row").click(function() {
 
         // 1. Determine the new display order for the envelope (defaults to displaying last)
@@ -489,6 +490,7 @@
         $('#no-envelopes').remove(); 
       });
 
+      // Bind for the button in the account editor modal
       $("#new-account-row").click(function() {
 
         // 1. Determine the new display order for the account (defaults to displaying last)
@@ -513,7 +515,7 @@
         $('#no-accounts').remove(); 
       });
 
-      // Makes the envelopes in the editor sortable
+      // Makes the envelopes in the envelope editor modal sortable
       $('#envelope-editor-bin').sortable({
         handle: ".sort-icon",
         containment: "parent",
@@ -539,7 +541,7 @@
         items: "li:not(.unsortable)"
       });
 
-      // Makes the accounts in the editor sortable
+      // Makes the accounts in the account editor modal sortable
       $('#account-editor-bin').sortable({
         handle: ".sort-icon",
         containment: "parent",
@@ -565,7 +567,7 @@
         items: "li:not(.unsortable)"
       });
 
-      // Opens delete warning modal when the envelope delete button is clicked
+      // Opens delete warning modal when the envelope delete button in the envelope editor modal is clicked
       $("#envelope-editor-bin").on("click", ".delete-envelope-button", function() {
         var msg = "The balance of this envelope will be added to your unallocated balance."
         $this = $(this);
@@ -576,7 +578,7 @@
         });
       });
 
-      // Opens delete warning modal when the account delete button is clicked
+      // Opens delete warning modal when the account delete button in the account editor modal is clicked
       $("#account-editor-bin").on("click", ".delete-account-button", function() {
         var msg = "The balance of this account will be subtracted from your unallocated balance."
         $this = $(this);
@@ -635,7 +637,6 @@
 
     // If the "yes" button is clicked in the delete modal, execute the confirmFunction
     function deleteModal(msg, confirmFunction) {
-      console.log("DELETE MODAL OPEN")
       $('#delete-modal p').replaceWith('<p>' + msg + '</p>');
       $('#delete-modal').modal('open');
       $('#yes').click(confirmFunction);
@@ -648,10 +649,10 @@
         if (this.checked) none_checked = false;
       });
       if (none_checked) {
-        $('.checkbox-bucket, #multi-delete-submit, #multi-select-clear').hide();
+        $('.checkbox-bucket, #multi-select-col').hide();
         $('.date-bucket').show();
       } else {
-        $('.checkbox-bucket, #multi-delete-submit, #multi-select-clear').show();
+        $('.checkbox-bucket, #multi-select-col').show();
         $('.date-bucket').hide();
       }
     }
@@ -1018,31 +1019,44 @@
 
     // Retrieves updated data from database and updates the necessary html
     // TODO: Remove the check_pending flag when the login system is implemented and this function will always check pending transactions
-    function data_reload(current_page, check_pending=true) {
+    function data_reload(current_page, check_pending=true, reload_transactions=true) {
       return $.ajax({
         type: "POST",
         url: "/api/data-reload",
-        data: JSON.stringify({"current_page": current_page, "timestamp": gen_timestamp(), "check_pending": check_pending}),
+        data: JSON.stringify({"current_page": current_page, "timestamp": gen_timestamp(), "check_pending": check_pending, "reload_transactions": reload_transactions}),
         contentType: 'application/json'
       }).done(function( o ) {
-        $('#load-more').remove();
-        $('#transactions-bin').replaceWith(o['transactions_html']);
+        
+        // 1. Reload the HTML
+        $('#page-total').text(o['page_total']);
         $('#accounts-bin').replaceWith(o['accounts_html']);
         $('#envelopes-bin').replaceWith(o['envelopes_html']);
-        
-        //Re-enable the simplebar scrollers
-        $('.scroller').each(function(index,el) {
-          new SimpleBar(el);
-        });
+        $('#envelope-modal').replaceWith(o['envelope_editor_html']);
+        $('#account-modal').replaceWith(o['account_editor_html']);
+        $('#envelope-modal, #account-modal').modal();
+        if (reload_transactions) {
+          $('#load-more').remove();
+          $('#transactions-bin').replaceWith(o['transactions_html']);
+          refresh_reconcile();
+        }
 
-        //Update selects in transaction editor
-        // TODO: These three select updates may be able to be combined with some clever CSS ID's and classes
+        // 2. Update the total text
+        $('#total span').text(o['total']);
+        if (o['total'][0] == '-') $('#total span').addClass('negative');
+        else $('#total span').removeClass('negative');
+
+        // 3. Update the unallocated balance text
+        $('#unallocated span, #unallocated-balance-envelope-filler').text(o['unallocated']);
+        if (o['unallocated'][0] == '-') $('#unallocated span, #unallocated-balance-envelope-filler').addClass('negative');
+        else $('#unallocated span, #unallocated-balance-envelope-filler').removeClass('negative');
+
+        // 4.1 Update selects in transaction editor
         expense_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
         expense_editor.detach();
 
-        //Update selects in transfer editor
+        // 4.2 Update selects in transfer editor
         transfer_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
@@ -1052,37 +1066,31 @@
         $('#account-transfer-edit select').last().attr('name', 'to_account');
         transfer_editor.detach();
 
-        //Update selects in the income editor
+        // 4.3 Update selects in the income editor
         income_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
         income_editor.detach()
 
-        $('#envelope-modal').replaceWith(o['envelope_editor_html']);
-        $('#account-modal').replaceWith(o['account_editor_html']);
-        $('#envelope-modal, #account-modal').modal();
-        $('.datepicker').datepicker('setDate', new Date());
-        $('input[name="date"]').val((new Date()).toLocaleDateString("en-US", {day: '2-digit', month: '2-digit', year: 'numeric'}));
-        $('#total span').text(o['total']);
-        if (o['total'][0] == '-') {
-          $('#total span').addClass('negative');
-        } else {
-          $('#total span').removeClass('negative');
-        };
-        $('#unallocated span, #unallocated-balance-envelope-filler').text(o['unallocated']);
-        if (o['unallocated'][0] == '-') {
-          $('#unallocated span, #unallocated-balance-envelope-filler').addClass('negative');
-        } else {
-          $('#unallocated span, #unallocated-balance-envelope-filler').removeClass('negative');
-        };
+        // 4.4 Re-initialize all selects
+        $('select').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
 
-        envelope_fill_editor.appendTo('#editor-row'); //Has to be added back to DOM before replacing HTML
+        // 5. Update the envelope fill editor
+        envelope_fill_editor.appendTo('#editor-row');
         $('.envelope-fill-editor-bin').replaceWith(o['envelope_fill_editor_rows_html']);
         $('#fill-total').text("$0.00").removeClass("negative");
+        envelope_fill_editor.detach();
 
-        editor_binds();
-        editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the relevant editor
+        //6. Re-enable the simplebar scrollers
+        $('.scroller').each(function(index,el) {
+          new SimpleBar(el);
+        });
 
+        // 7. Update the datepickers 
+        $('.datepicker').datepicker('setDate', new Date());
+        $('input[name="date"]').val((new Date()).toLocaleDateString("en-US", {day: '2-digit', month: '2-digit', year: 'numeric'}));
+
+        // 8. Recalculate the global variables
         unallocated_balance = parseFloat($('#unallocated-balance').text().replace("$","")).toFixed(2);
         envelope_balances = []
         $('.envelope-link').each( function() {
@@ -1090,20 +1098,11 @@
         });
         envelope_fill_balances_array = [];
 
-        budget_bars();
-        none_checked = true;
-
-        M.updateTextFields();
-
-        //Update all the selects
-        $('select').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
-
-        //Set the page total
-        $('#page-total').text(o['page_total']);
-
-        $("#multi-delete-submit, #multi-select-clear").hide();
-
-        refresh_reconcile();
+        // 9. Other functions
+        budget_bars(); // Update the envelope budget bars
+        envelope_and_account_editor_binds(); // Various event binds for the envelope/account editor modals
+        editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the envelope/account editor
+        M.updateTextFields(); //Ensure that text input labels don't overlap with filled text
 
         console.log("Page data reloaded!");
       });
@@ -1172,7 +1171,7 @@
         url: url,
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
-        if (remain_open == 1) {
+        if (remain_open == 1) { // RESET NAME FIELD, STAY OPEN
           // If the form was submitted with the submit and new button
           $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
           data_reload(current_page).then( function () {
@@ -1200,7 +1199,7 @@
 
           });
         }
-        else if (remain_open == 2) {
+        else if (remain_open == 2) { // RESET ALL FIELDS, STAY OPEN
           $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
           $form.find(".new-envelope-row").remove() //Only used on #new-expense-form
           $form[0].reset(); //Clear the data from the form fields
@@ -1210,7 +1209,7 @@
             $form.find('input[name="name"]').select();
           });
         }
-        else {
+        else { // RESET ALL FIELDS AND CLOSE
           // If the form was submitted with the standard submit button or enter
           $('#transaction-modal').modal("close")
           $form.find(".new-envelope-row").remove() //Only used on #new-expense-form
@@ -1238,26 +1237,45 @@
         $(this).closest("form").data("remain-open",0);
     });
 
-    // Sends delete ID(s) via form, then reloads data
-    $('.deleter-form, #multi-delete-form').submit(function(e) {
-      e.preventDefault()
+    // Delete a transaction from 
+    $('.deleter-form').submit(function(e) {
+      e.preventDefault();
       var url = $(this).attr('action');
       var method = $(this).attr('method');
-      var parent_modal_id = '#' + $(this).parents('.modal').attr('id'); //Only the .deleter-form should have a parent modal
+      var $parentModal = $(this).parents('.modal');
 
       $.ajax({
         type: method,
         url: url,
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
-        $(parent_modal_id).modal("close");
-        //Removes the new-envelope-row(s) from split transactions in the specific modal so that the next time you open
-        //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
-        $(parent_modal_id + ' .new-envelope-row').remove();
+        $parentModal.modal("close");
+        $parentModal.find(".new-envelope-row").remove(); //Removes the new-envelope-row(s) from split transactions
         data_reload(current_page);
+        // TODO: Delete the .transaction-row HTML from the transactions bin
+        refresh_reconcile();
         o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
       });
     });
+
+    $("#multi-delete-form").submit(function(e) {
+      e.preventDefault();
+      var url = $(this).attr('action');
+      var method = $(this).attr('method');
+
+      $.ajax({
+        type: method,
+        url: url,
+        data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
+      }).done(function( o ) {
+        $("#multi-select-col").hide();
+        none_checked = true;
+        data_reload(current_page, true, false);
+        //TODO: Add code which deletes .transaction-row HTML for each transaction in the multi-delete
+        refresh_reconcile();
+        o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+      });
+    })
 
     // Opens transaction editor modal
     function t_editor_modal_open(e) {
@@ -1275,9 +1293,9 @@
       var from_envelope = null;
       var schedule = e.data('schedule');
       var pending = e.data('pending');
-      // var envelope_name = e.data('envelope_name');
-      // var account_name = e.data('account_name');
-      // var status = e.data('status');
+      // var envelope_name = e.data('envelope_name'); // PLACEHOLDER: NOT USED IN THE FORM, JUST FOR DISPLAYING IN .transaction
+      // var account_name = e.data('account_name');   // PLACEHOLDER: NOT USED IN THE FORM, JUST FOR DISPLAYING IN .transaction
+      // var status = e.data('status');               // PLACEHOLDER: UNUSED DATABASE FIELD
       var $checkbox_input;
 
       //if it's a grouped transaction, use ajax to get data from all grouped transaction

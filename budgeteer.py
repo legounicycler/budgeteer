@@ -535,6 +535,7 @@ def data_reload():
   current_page = js_data['current_page']
   timestamp = js_data['timestamp']
   check_pending = js_data['check_pending']
+  reload_transactions = js_data['reload_transactions']
   if check_pending:
     check_pending_transactions(timestamp) #Apply any pending transactions that need to before rendering the template
   if 'account/' in current_page:
@@ -554,9 +555,10 @@ def data_reload():
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
   data = {}
+  if reload_transactions:
+    data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
   data['total'] = get_total(USER_ID)
   data['unallocated'] = envelopes_data[1].balance
-  data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
   data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
   data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, budget_total=budget_total)
   data['account_selector_html'] = render_template('account_selector.html', accounts_data=accounts_data)
