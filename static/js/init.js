@@ -66,7 +66,12 @@
       // Prevent content from flashing content for a second on document load
       $('#envelopes, #accounts, #bin').removeClass('hide');
       
-      $('.modal').modal();
+      $('#envelope-modal, #account-modal, #editor-modal, #envelope-fill-modal').modal();
+
+      $('#delete-modal').modal({
+        dismissible: false,
+        onCloseEnd: function() {$("#yes").unbind()}
+      })
 
       $('#transaction-modal').modal({
         onOpenEnd: function () {
@@ -91,7 +96,7 @@
       });
 
       $('body').keydown(function(e){
-        if(e.which == 27 && M.Modal._modalsOpen == 0){
+        if(e.which == ESCAPE && M.Modal._modalsOpen == 0){
           // Clear all transaction selection checkboxes on ESCAPE KEY (if you're not hitting escape to close a modal)
           $('.t-delete-checkbox:checked').click();
           none_checked = true;
@@ -219,7 +224,7 @@
 
       // When schedule checkbox is focused, open it on ENTER
       $('input[name="scheduled"]').keydown(function(e) {
-        if (e.which == 13) {
+        if (e.which == ENTER) {
           e.preventDefault();
           $(this).next().click();
         }
@@ -361,11 +366,10 @@
     }
 
     function refresh_reconcile() {
-      var page_total = text_to_num($("#page-total").text())
+      var page_total = text_to_num($("#page-total").text());
       var reconcile_balance = page_total;
-      var i = 0;
       var pending_transactions = [];
-      $("#transactions-bin .transaction-row").each(function(index,elem) {
+      $("#transactions-bin .transaction-row").each(function() {
         if ($(this).hasClass("pending")) {
           //Add any pending transactions to an array to deal with after this loop
           pending_transactions.push($(this));
@@ -658,8 +662,8 @@
     }
 
     // Check/uncheck a transaction checkbox and highlihght the .transaction-row background accordingly
-    $.fn.setCheckbox = function(state) {
-      if (state) {
+    $.fn.setCheckbox = function(checked) {
+      if (checked) {
         $(this).prop("checked", true);
         $(this).closest('.transaction-row').addClass('checked-background');
       } else {
@@ -668,12 +672,11 @@
       }
     }
 
-    // Initialize the multidelete button
+    // Initialize the multidelete button to open the confirmation modal, then submit the form
     $('#multi-delete-submit').click(function() {
       var msg = "Once these transactions are deleted, they're gone forever!"
       deleteModal(msg, function() {
         $('#multi-delete-form').submit();
-        $("#yes").unbind("click"); // ALWAYS discard the click event applied by the deleteModal() function
       })
     });
 
@@ -1242,7 +1245,8 @@
       e.preventDefault();
       var url = $(this).attr('action');
       var method = $(this).attr('method');
-      var $parentModal = $(this).parents('.modal');
+      var $parentModal = $(this).closest('.modal');
+      var dtid = $("#dtid").val();
 
       $.ajax({
         type: method,
@@ -1251,10 +1255,15 @@
       }).done(function( o ) {
         $parentModal.modal("close");
         $parentModal.find(".new-envelope-row").remove(); //Removes the new-envelope-row(s) from split transactions
-        data_reload(current_page);
-        // TODO: Delete the .transaction-row HTML from the transactions bin
-        refresh_reconcile();
-        o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+        data_reload(current_page, true, false).then(function() {
+          $(`.transaction[data-id='${dtid}']`).parent().animate({height: "0px"}, 250).promise().done(function() {
+            $(`.transaction[data-id='${dtid}']`).parent().remove();
+            $(".date-bucket").show();
+            $('.checkbox-bucket').hide();
+            refresh_reconcile();
+            o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+          })
+        });
       });
     });
 
@@ -1270,10 +1279,15 @@
       }).done(function( o ) {
         $("#multi-select-col").hide();
         none_checked = true;
-        data_reload(current_page, true, false);
-        //TODO: Add code which deletes .transaction-row HTML for each transaction in the multi-delete
-        refresh_reconcile();
-        o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+        data_reload(current_page, true, false).then(function() {
+          $(".t-delete-checkbox:checked").closest(".transaction-row").animate({height: "0px"}, 250).promise().done(function() {
+            $(".t-delete-checkbox:checked").closest(".transaction-row").remove();
+            $(".date-bucket").show();
+            $('.checkbox-bucket').hide();
+            refresh_reconcile();
+            o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+          });
+        });
       });
     })
 
