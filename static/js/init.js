@@ -1116,18 +1116,18 @@
       e.preventDefault()
       var url = $(this).attr('action');
       var method = $(this).attr('method');
-      var id = '#' + $(this).attr('id');
-      var parent_modal_id = '#' + $(this).parents('.modal').attr('id');
+      var $form = $(this);
+      var $parentModal = $(this).closest('.modal');
       $.ajax({
         type: method,
         url: url,
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
-        $(parent_modal_id).modal("close")
+        $parentModal.modal("close")
         //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
         //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
-        $(id + ' .new-envelope-row').remove() //Only used on #new-expense-form
-        $(id)[0].reset(); //Clears the data from the form fields
+        $form.find('.new-envelope-row').remove() //Only used on #new-expense-form
+        $form[0].reset(); //Clears the data from the form fields
         data_reload(current_page);
         o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
       });
