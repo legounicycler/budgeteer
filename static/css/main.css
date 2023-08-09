@@ -32,7 +32,6 @@
 
 .table-header {
   margin: 0;
-  /* Box shadow here? */
 }
 
 #transactions-column {
@@ -60,7 +59,36 @@
 
 #envelopes-scroller, #account-scroller {
   margin: 0;
-  max-height: 100%
+  max-height: 100%;
+}
+
+.envelope-fill-sticky-row {
+  position: sticky;
+  top: 0px;
+  padding: 5px 0px 10px 0px;
+  z-index: 100;
+  background: #fafafa;
+  height: 90px;
+}
+
+.envelope-fill-orange-div {
+  border: solid #e9c291;
+  background: #f7ecd6;
+  margin-top: 5px !important;
+}
+
+.envelope-fill-orange-div .col {
+  height: 70px;
+}
+
+.envelope-fill-title-row {
+  position: sticky;
+  top: 89px;
+  z-index: 100;
+}
+
+.envelope-fill-arrow-col {
+  line-height: 62px;
 }
 
 /* This wrapper ensures that this hover state doesn't apply on longpress for mobile */

@@ -312,8 +312,11 @@
 
       <!--Edit envelope fill tab-->
       <div class="col s12" id="edit-envelope-fill">
-        <h3>Fill Envelopes</h3>
-        <form class="row" id="edit-envelope-fill-form" action="{{ url_for('edit_transaction') }}" method="post">
+        <div class="row">
+          <h3>Edit Envelope Fill</h3>
+        </div>
+
+        <form id="edit-envelope-fill-form" action="{{ url_for('edit_transaction') }}" method="post">
           <input id="edit-id" name="edit-id" type="hidden" required>
           <input id="type" name="type" type="hidden" required>
           <div class="row">
@@ -328,24 +331,32 @@
               <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
           </div>
-          <div class="row">
-            <div class="col s6">
-              <h6>Unallocated:</h6>
-              <h6><span id="edit-unallocated-balance-envelope-filler" class="{{'negative' if envelopes_data[1].balance[0] == '-'}} balance">{{envelopes_data[1].balance}}</span></h6>
-            </div>
-            <div class="col s6">
-              <h6>Fill total:</h6>
-              <h6><span id="edit-fill-total" class="balance">$0.00</span></h6>
+          <div class="row envelope-fill-sticky-row">
+            <div class="row envelope-fill-orange-div">
+              <div class="col s5 offset-1">
+                <h6>Unallocated:</h6>
+                <h6><span id="edit-unallocated-balance-envelope-filler" class="{{'negative' if envelopes_data[1].balance[0] == '-'}} balance">{{envelopes_data[1].balance}}</span></h6>
+              </div>
+              <div class="col s2 envelope-fill-arrow-col">
+                <i class="medium material-icons blue-grey-text text-darken-2">arrow_forward</i>
+              </div>
+              <div class="col s5">
+                <h6>Fill total:</h6>
+                <h6><span id="edit-fill-total" class="balance">$0.00</span></h6>
+              </div>
             </div>
           </div>
-          <div class="row">
+  
+          <ul class="row collection envelope-fill-title-row">
+            <li class="row collection-item left-align grey lighten-3">
+              <div class="col s5 offset-m1 header left-align">Name</div>
+              <div class="col s3 header envelope-budget">Amount</div>
+              <div class="col s4 m3 header envelope-balance">Balance</div>
+            </li>
+          </ul>
+
             <ul class="collection">
               <div class="envelope-fill-editor-bin">
-                <li class="row collection-item left-align grey lighten-3">
-                  <div class="col s5 header offset-s1 left-align">Name</div>
-                  <div class="col s3 header envelope-budget">Amount</div>
-                  <div class="col s3 header envelope-balance">Balance</div>
-                </li>
                 {% if active_envelopes == false%}
                   <div class="row collection-item">
                     <h5 class="no-margin no-message">You don't have any envelopes yet!</h5>
@@ -372,7 +383,6 @@
                 {% endif %}
               </div>
             </ul>
-          </div>
           <div class="row">
             <div class="input-field col s10">
               <input id="edit-note" type="text" placeholder="(Optional)" name="note">
