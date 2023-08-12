@@ -45,8 +45,14 @@ select:required {
 /*gets rid of green on verified text input*/
 input.valid[type=text]:not(.browser-default) {
   border-bottom: 1px solid #9e9e9e;
-  webkit-box-shadow: none;
+  -webkit-box-shadow: none;
   box-shadow: none;
+}
+
+/* Gets rid of weird 1px outline on the left edge of inputs from the box shadow */
+input {
+  -webkit-box-shadow: non !important;
+  box-shadow: none !important;
 }
 
 /*makes the rows thinner for transactions and so they don't overflow their columns*/

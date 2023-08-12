@@ -110,6 +110,14 @@
   background-color: #ff5700 !important;
 }
 
+.amount-col {
+  justify-content: center;
+}
+
+.amount-span {
+  font-size: 1.5em;
+}
+
 /* fixes transaction button to bottom-right of page*/
 .fixed-action-btn {
   position: fixed;

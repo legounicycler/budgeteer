@@ -352,7 +352,26 @@
           data_reload(current_page,false);
         }
       });
-    
+
+    $(".special-input").on("input", function() {
+      $span =  $(this).parent().siblings().find("span");
+      try {
+        num = math.evaluate($(this).val());
+        $span.text(balance_format(num)).negative_check();
+        $(this).removeClass("invalid").addClass("valid");
+      } catch (error) {
+        $span.text("$...").removeClass('negative').addClass('neutral');
+        $(this).removeClass("valid").addClass("invalid");
+      }
+    }).on("change", function() {
+      try {
+        num = math.evaluate($(this).val());
+        $(this).val(Math.round(num * 100) / 100);
+      } catch (error) {
+        return;
+      }
+    });
+
     }); // end of document ready
 
 
@@ -421,7 +440,12 @@
     $.fn.negative_check = function(number) {
       if (number < 0) {
         this.addClass('negative');
+        this.removeClass('neutral');
+      } else if (number == 0) {
+        this.removeClass('negative');
+        this.addClass('neutral');
       } else {
+        this.removeClass('neutral');
         this.removeClass('negative');
       };
     }
