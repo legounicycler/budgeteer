@@ -1,0 +1,28 @@
+{
+  "name": "budgeteer",
+  "version": "1.0.0",
+  "description": "A personal finance budgeting web application",
+  "main": "init.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legounicycler/budgeteer.git"
+  },
+  "author": "Anthony Limiero",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/legounicycler/budgeteer/issues"
+  },
+  "homepage": "https://github.com/legounicycler/budgeteer#readme",
+  "dependencies": {
+    "@materializecss/materialize": "^2.0.2-alpha",
+    "jquery": "^3.7.0",
+    "jquery-ui": "^1.13.2",
+    "jquery-ui-touch-punch": "^0.2.3",
+    "jquery.tabbable": "^1.0.1",
+    "resize-observer-polyfill": "^1.5.1",
+    "simplebar": "^6.2.5"
+  }
+}

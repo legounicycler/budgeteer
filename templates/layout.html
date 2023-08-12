@@ -141,12 +141,13 @@
   {% include 'envelope_filler.html' %}
   {% include 'delete_modal.html' %}
 
-  <script src="{{url_for('static', filename='js/jquery-3.3.1.min.js')}}"></script>
-  <script src="{{url_for('static', filename='js/jquery-ui.min.js')}}"></script>
-  <script src="{{url_for('static', filename='js/jquery.tabbable.min.js')}}"></script>
-  <script src="{{url_for('static', filename='js/jquery.ui.touch-punch.js')}}"></script>
-  <script src="{{url_for('static', filename='js/materialize.js')}}"></script>
-  <script src="https://unpkg.com/simplebar@latest/dist/simplebar.min.js"></script>
+  <script src="{{url_for('static', filename='node_modules/jquery/dist/jquery.min.js')}}"></script>
+  <script src="{{url_for('static', filename='node_modules/jquery-ui/dist/jquery-ui.min.js')}}"></script>
+  <script src="{{url_for('static', filename='node_modules/jquery.tabbable/jquery.tabbable.min.js')}}"></script>
+  <script src="{{url_for('static', filename='node_modules/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js')}}"></script>
+  <!-- <script src="{{url_for('static', filename='node_modules/@materializecss/dist/js/materialize.min.js')}}"></script> -->
+  <script src="{{url_for('static', filename='js/materialize.js')}}"></script> <!-- TODO: Modernize this-->
+  <script src="{{url_for('static', filename='node_modules/simplebar/dist/simplebar.min.js')}}"></script>
   <script src="{{url_for('static', filename='js/init.js')}}"></script>
 </body>
 </html>
