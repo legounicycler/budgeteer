@@ -16,7 +16,7 @@
             </div>
           </div>
           <div id="edit-envelopes-and-amounts">
-            <div class="row" id="edit-envelope-selector-row">
+            <div class="row flex" id="edit-envelope-selector-row">
               <div class="input-field col s6">
                 <select id="edit-envelope_id" class="envelope-selector" name="envelope_id" required>
                   <option value="" disabled selected>Choose an Envelope</option>
@@ -28,10 +28,12 @@
                 </select>
                 <label class="no-active">Envelope</label>
               </div>
-              <div class="input-field col s6 ">
-                <input id="edit-amount" class="validate" type="number" step=".01" autocomplete="off" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+              <div class="input-field col s4 ">
+                <input id="edit-amount" class="validate special-input negate-input" type="text" autocomplete="off" name="amount" required>
                 <label for="edit-amount" class="active">Amount</label>
-                <span class="helper-text" data-error="Please enter a numeric value"></span>
+              </div>
+              <div class="col s2 valign-wrapper center-align amount-col">
+                <span class="amount-span balance neutral">$0.00</span>
               </div>
             </div>
           </div>
@@ -53,7 +55,6 @@
             <div class="input-field col s6 ">
               <input id="edit-date" type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
               <label for="edit-date">Date</label>
-              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
           </div>
           <div class="row">
@@ -170,16 +171,17 @@
               </div>
             </div>
           </div>
-          <div class="row">
+          <div class="row flex">
             <div class="input-field col s6 ">
               <input id="edit-date" type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
               <label for="edit-date">Date</label>
-              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
-            <div class="input-field col s6 ">
-              <input id="edit-amount" class="validate" type="number" step=".01" autocomplete="off" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
-              <label for="edit-amount">Amount</label>
-              <span class="helper-text" data-error="Please enter a numeric value"></span>
+            <div class="input-field col s4 ">
+              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required>
+              <label for="edit-amount" class="active">Amount</label>
+            </div>
+            <div class="col s2 valign-wrapper center-align amount-col">
+              <span class="amount-span balance neutral">$0.00</span>
             </div>
           </div>
           <div class="row">
@@ -252,16 +254,17 @@
               <label class="no-active">Account</label>
             </div>
           </div>
-          <div class="row">
+          <div class="row flex">
             <div class="input-field col s6 ">
               <input id="edit-date" type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
               <label for="edit-date">Date</label>
-              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
-            <div class="input-field col s6 ">
-              <input id="edit-amount" class="validate" type="number" step=".01" autocomplete="off" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
-              <label for="edit-amount">Amount</label>
-              <span class="helper-text" data-error="Please enter a numeric value"></span>
+            <div class="input-field col s4 ">
+              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required>
+              <label for="edit-amount" class="active">Amount</label>
+            </div>
+            <div class="col s2 valign-wrapper center-align amount-col">
+              <span class="amount-span balance neutral">$0.00</span>
             </div>
           </div>
           <div class="row">
@@ -328,7 +331,6 @@
             <div class="input-field col s6">
               <input id="edit-date" type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
               <label for="edit-date">Date</label>
-              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
           </div>
           <div class="row envelope-fill-sticky-row">
@@ -355,7 +357,7 @@
             </li>
           </ul>
 
-            <ul class="collection">
+            <ul class="collection envelope-fill-collection">
               <div class="envelope-fill-editor-bin">
                 {% if active_envelopes == false%}
                   <div class="row collection-item">
@@ -371,8 +373,7 @@
                           <input type="hidden" value={{envelope.id}} name="envelope_id">
                         </div>
                         <div class="col s3 envelope-budget editor-col input-field">
-                          <input class="validate" type="number" step=".01" autocomplete="off" value="0.00" name="fill-amount" data-envelope-id="{{envelope.id}}" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
-                          <span class="helper-text" data-error="Please enter a numeric value"></span>
+                          <input class="validate special-fill-input" type="text" autocomplete="off" name="fill-amount" placeholder="0.00" data-envelope-id="{{envelope.id}}">
                         </div>
                         <div class="col s3 valign-wrapper envelope-balance editor-col">
                           <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>
@@ -535,16 +536,17 @@
               <span class="helper-text" data-error="Transaction name required"></span>
             </div>
           </div>
-          <div class="row">
+          <div class="row flex">
             <div class="input-field col s6 ">
               <input id="edit-date" type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
               <label for="edit-date">Date</label>
-              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
-            <div class="input-field col s6 ">
-              <input id="edit-amount" class="validate" type="number" step=".01" autocomplete="off" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
-              <label for="edit-amount">Amount</label>
-              <span class="helper-text" data-error="Please enter a numeric value"></span>
+            <div class="input-field col s4 ">
+              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required>
+              <label for="edit-amount" class="active">Amount</label>
+            </div>
+            <div class="col s2 valign-wrapper center-align amount-col">
+              <span class="amount-span balance neutral">$0.00</span>
             </div>
           </div>
           <div class="row">

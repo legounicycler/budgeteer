@@ -35,7 +35,7 @@
                   <label>Envelope</label>
                 </div>
                 <div class="input-field col s4 ">
-                  <input class="validate special-input" type="text" autocomplete="off" name="amount" required > <!-- pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$" -->
+                  <input class="validate special-input negate-input" type="text" autocomplete="off" name="amount" required>
                   <label for="amount">Amount</label>
                 </div>
                 <div class="col s2 valign-wrapper center-align amount-col">
@@ -199,16 +199,17 @@
 
             </div>
 
-            <div class="row">
+            <div class="row flex">
               <div class="input-field col s6 ">
                 <input type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
                 <label for="date">Date</label>
-                <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
               </div>
-              <div class="input-field col s6 ">
-                <input class="validate" type="number" step=".01" autocomplete="off" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+              <div class="input-field col s4 ">
+                <input class="validate special-input" type="text" autocomplete="off" name="amount" required>
                 <label for="amount">Amount</label>
-                <span class="helper-text" data-error="Please enter a numeric value"></span>
+              </div>
+              <div class="col s2 valign-wrapper center-align amount-col">
+                <span class="amount-span balance neutral">$0.00</span>
               </div>
             </div>
 
@@ -288,16 +289,17 @@
               </div>
             </div>
 
-            <div class="row">
+            <div class="row flex">
               <div class="input-field col s6 ">
                 <input type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
                 <label for="date">Date</label>
-                <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
               </div>
-              <div class="input-field col s6 ">
-                <input class="validate" type="number" step=".01" autocomplete="off" name="amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+              <div class="input-field col s4 ">
+                <input class="validate special-input" type="text" autocomplete="off" name="amount" required>
                 <label for="amount">Amount</label>
-                <span class="helper-text" data-error="Please enter a numeric value"></span>
+              </div>
+              <div class="col s2 valign-wrapper center-align amount-col">
+                <span class="amount-span balance neutral">$0.00</span>
               </div>
             </div>
 

@@ -323,16 +323,18 @@ def fill_envelopes():
   sched_t_submitted = False
   pending = is_pending(date, timestamp)
   
-  for name in names:
-    deletes =[]
-    for i in range(len(amounts)):
+  deletes = []
+  for i in range(len(amounts)):
+    if amounts[i] == "":
+      deletes.append(i)
+    else:
       amounts[i] = int(round(float(amounts[i])*100))
       envelope_ids[i] = int(envelope_ids[i])
-      if amounts[i] == 0:
-        deletes.append(i)
-    for index in reversed(deletes):
-      amounts.pop(index)
-      envelope_ids.pop(index)
+  for index in reversed(deletes):
+    amounts.pop(index)
+    envelope_ids.pop(index)
+
+  for name in names:
     t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, pending)
     if scheduled and not pending:
       envelope_fill(t)

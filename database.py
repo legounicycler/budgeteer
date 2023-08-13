@@ -655,7 +655,7 @@ def adjust_account_balance(a_id, balance_diff, name, date):
 
     # 1. Create the transaction note
     if balance_diff > 0:
-        note = f"{stringify(-1*balance_diff)} was deducted from this account AND the Unallocated envelope."
+        note = f"{stringify(balance_diff)} was deducted from this account AND the Unallocated envelope."
     else:
         note = f"{stringify(-1*balance_diff)} was added to this account AND the Unallocated envelope."
     # 2. Add a transaction with an amount that will make the account balance equal to the specied balance

@@ -31,7 +31,7 @@
             </div>
             <div class="col s5">
               <h6>Fill total:</h6>
-              <h6><span id="fill-total" class="balance">$0.00</span></h6>
+              <h6><span id="fill-total" class="balance neutral">$0.00</span></h6>
             </div>
           </div>
         </div>
@@ -44,7 +44,7 @@
           </li>
         </ul>
 
-        <ul class="collection">
+        <ul class="collection envelope-fill-collection">
           <div class="envelope-fill-editor-bin">
             {% if active_envelopes == false%}
               <div class="row collection-item">
@@ -60,8 +60,7 @@
                       <input type="hidden" value={{envelope.id}} name="envelope_id">
                     </div>
                     <div class="col s3 envelope-budget editor-col input-field">
-                      <input class="validate" type="number" step=".01" autocomplete="off" value="0.00" name="fill-amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
-                      <span class="helper-text" data-error="Must be numeric"></span>
+                      <input class="validate special-fill-input" type="text" autocomplete="off" name="fill-amount" placeholder="0.00">
                     </div>
                     <div class="col s4 m3 valign-wrapper envelope-balance editor-col">
                       <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>

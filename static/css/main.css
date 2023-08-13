@@ -116,6 +116,7 @@
 
 .amount-span {
   font-size: 1.5em;
+  max-width: 170%;
 }
 
 /* fixes transaction button to bottom-right of page*/
@@ -201,8 +202,12 @@
   margin: 0 0 0 10px;
 }
 
-input[type="text"] {
+input[type="text"]:not(.special-fill-input) {
   margin-bottom: 0px !important;
+}
+
+.special-fill-input {
+  margin-bottom: 10px !important;
 }
 
 .transaction {
@@ -244,6 +249,10 @@ input[type="text"] {
 
 .flex-child i {
   vertical-align: middle;
+}
+
+.envelope-fill-collection {
+  margin-top: 0px
 }
 
 .no-padding {
@@ -500,9 +509,9 @@ h5 {
     margin-top: .2em;
   }
 
-  input.validate {
+  /* input.validate {
     margin-bottom: 0px !important;
-  }
+  } */
 
   .non-selectable {
     -webkit-touch-callout:none;

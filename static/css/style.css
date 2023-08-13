@@ -51,7 +51,7 @@ input.valid[type=text]:not(.browser-default) {
 
 /* Gets rid of weird 1px outline on the left edge of inputs from the box shadow */
 input {
-  -webkit-box-shadow: non !important;
+  -webkit-box-shadow: none !important;
   box-shadow: none !important;
 }
 
