@@ -202,11 +202,11 @@
   margin: 0 0 0 10px;
 }
 
-input[type="text"]:not(.special-fill-input) {
+input[type="text"]:not(.special-fill-input, .special-input-envelope-editor) {
   margin-bottom: 0px !important;
 }
 
-.special-fill-input {
+.special-fill-input, .special-input-envelope-editor {
   margin-bottom: 10px !important;
 }
 

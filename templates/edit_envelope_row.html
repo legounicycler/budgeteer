@@ -5,11 +5,9 @@
     </div>
     <div class="col s6 m4 envelope-name left-align editor-col input-field">
         <input required class="validate" type="text" name="new-envelope-name">
-        <span class="helper-text" data-error="Envelope name required"></span>
     </div>
     <div class="col s5 m2 envelope-budget editor-col input-field">
-        <input required class="validate" type="number" step=".01" name="new-envelope-budget" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$">
-        <span class="helper-text" data-error="Must be numeric"></span>
+        <input class="validate special-input-envelope-editor" type="text" autocomplete="off" name="new-envelope-budget" required>
     </div>
     <div class="col m3 hide-on-small-only valign-wrapper envelope-balance editor-col">
         <span class="balance neutral">$0.00</span>
