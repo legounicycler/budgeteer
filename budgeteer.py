@@ -17,6 +17,8 @@ app.config['SECRET_KEY'] = 'da3e7b955be0f7eb264a9093989e0b46'
 
 USER_ID = 1
 
+
+# TODO: Make this a global filter instead
 t_type_dict = {
   0: 'Basic Transaction',
   1: 'Envelope Transfer',
@@ -29,6 +31,7 @@ t_type_dict = {
   8: 'Account Adjust'
 }
 
+# TODO: Make this a global filter instead
 t_type_icon_dict = {
   0: 'local_atm',
   1: 'swap_horiz',
@@ -46,6 +49,9 @@ def datetimeformat(value, format='%m/%d/%Y'):
 
 def datetimeformatshort(value, format='%b %d\n%Y'):
   return value.strftime(format)
+
+def inputformat(num):
+  return '%.2f' % num
 
 def add_months(sourcedate, months):
   """
@@ -103,6 +109,8 @@ def is_pending(date, timestamp):
 
 app.jinja_env.filters['datetimeformat'] = datetimeformat
 app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
+app.jinja_env.filters['balanceformat'] = balanceformat
+app.jinja_env.filters['inputformat'] = inputformat
 
 @app.route("/")
 @app.route("/home", methods=['GET'])
@@ -112,8 +120,7 @@ def home():
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
   total_funds = get_total(USER_ID)
-  current_total = total_funds
-  return render_template('layout.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, active_envelopes=active_envelopes, envelopes_data=envelopes_data, budget_total=budget_total, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, current_total=current_total, offset=offset, limit=limit)
+  return render_template('layout.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, active_envelopes=active_envelopes, envelopes_data=envelopes_data, budget_total=budget_total, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, offset=offset, limit=limit)
 
 @app.route("/get_envelope_page", methods=["POST"], )
 def get_envelope_page():
@@ -122,7 +129,7 @@ def get_envelope_page():
   (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
-  page_total = stringify(get_envelope(envelope_id).balance)
+  page_total = balanceformat(get_envelope(envelope_id).balance)
   data = {}
   data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
   data['page_total'] = page_total
@@ -136,7 +143,7 @@ def get_account_page():
   (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
-  page_total = stringify(get_account(account_id).balance)
+  page_total = balanceformat(get_account(account_id).balance)
   data = {}
   data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
   data['page_total'] = page_total
@@ -614,12 +621,12 @@ def data_reload():
     regex = re.compile('account/(\d+)')
     account_id = int(regex.findall(current_page)[0])
     (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
-    page_total = stringify(get_account(account_id).balance)
+    page_total = balanceformat(get_account(account_id).balance)
   elif 'envelope/' in current_page:
     regex = re.compile('envelope/(\d+)')
     envelope_id = int(regex.findall(current_page)[0])
     (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
-    page_total = stringify(get_envelope(envelope_id).balance)
+    page_total = balanceformat(get_envelope(envelope_id).balance)
   else:
     current_page = 'All Transactions'
     (transactions_data, offset, limit) = get_home_transactions(0,50)
@@ -632,7 +639,7 @@ def data_reload():
   data['total'] = get_total(USER_ID)
   data['unallocated'] = envelopes_data[1].balance
   data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
-  data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, budget_total=budget_total)
+  data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
   data['account_selector_html'] = render_template('account_selector.html', accounts_data=accounts_data)
   data['envelope_selector_html'] = render_template('envelope_selector.html', envelopes_data=envelopes_data)
   data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total)

@@ -98,16 +98,15 @@ def unpack(list_of_tuples):
         unpacked_array.append(item[0])
     return unpacked_array
 
-def stringify(number):
+def balanceformat(number):
     """
     Formats amount numbers into a string with a "$" and "-" if necessary for display
     """
     if number is None:
         string = "NAN"
     else:
-        negative = number < 0
-        string = '$%.2f' % abs(number / 100)
-        if negative:
+        string = '$%.2f' % abs(number)
+        if number < 0:
             string = '-' + string
     return string
 
@@ -233,7 +232,7 @@ def get_home_transactions(start, amount):
             c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=?", (t.grouping,UNALLOCATED))
             t.amt = c.fetchone()[0] # Total the amount for the envelope fill
         
-        t.amt = stringify(t.amt)
+        t.amt = t.amt/100
         tlist.append(t)
 
     # offset specifies where to start from on the next call
@@ -280,7 +279,7 @@ def get_envelope_transactions(envelope_id, start, amount):
             t.envelope_id = from_envelope_id # When displaying transactions, envelope ID is always displayed first.
             t.account_id = to_envelope_id    # When displaying transactions, account ID is always displayed second
 
-        t.amt = stringify(t.amt * -1)
+        t.amt = t.amt * -1 / 100
         tlist.append(t)
 
     # offset specifies where to start from on the next call
@@ -327,7 +326,7 @@ def get_account_transactions(account_id, start, amount):
             # Display format (eID -> aID) or for account transfers, (fromaccount -> toaccount)
             t.envelope_id = from_account_id # When displaying transactions, envelope ID is always displayed first.
             t.account_id = to_account_id    # When displaying transactions, account ID is always displayed second
-        t.amt = stringify(thing[1] * -1)
+        t.amt = thing[1] * -1 / 100
         tlist.append(t)
     
     # offset specifies where to start from on the next call
@@ -524,7 +523,7 @@ def get_account_dict():
     active_accounts = False
     for id in ids:
         a = get_account(id)
-        a.balance = stringify(a.balance)
+        a.balance = a.balance/100
         a_dict[id] = a
         if a.deleted == 0:
             active_accounts = True
@@ -655,9 +654,9 @@ def adjust_account_balance(a_id, balance_diff, name, date):
 
     # 1. Create the transaction note
     if balance_diff > 0:
-        note = f"{stringify(balance_diff)} was deducted from this account AND the Unallocated envelope."
+        note = f"{balanceformat(balance_diff/100)} was deducted from this account AND the Unallocated envelope."
     else:
-        note = f"{stringify(-1*balance_diff)} was added to this account AND the Unallocated envelope."
+        note = f"{balanceformat(-1*balance_diff/100)} was added to this account AND the Unallocated envelope."
     # 2. Add a transaction with an amount that will make the account balance equal to the specied balance
     insert_transaction(Transaction(ACCOUNT_ADJUST, f"{name}: Balance Adjustment", balance_diff, date, UNALLOCATED, a_id, gen_grouping_num(), note, None, False, USER_ID, False))
 
@@ -698,13 +697,13 @@ def get_envelope_dict():
     budget_total = 0
     for id in ids:
         e = get_envelope(id)
-        e.balance = stringify(e.balance)
+        e.balance = e.balance/100
+        e.budget = e.budget/100
         e_dict[id] = e
         if e.deleted == 0 and e.id != 1:
             active_envelopes = True
             budget_total = budget_total + e.budget
-        e.budget = stringify(e.budget)
-    return (active_envelopes, e_dict, stringify(budget_total))
+    return (active_envelopes, e_dict, budget_total)
 
 def get_envelope_order():
     """
@@ -851,10 +850,10 @@ def get_total(user_id):
     """
     c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (user_id,))
     total = c.fetchone()[0]
-    if not total is None:
-        return stringify(total)
+    if total is not None:
+        return total/100
     else:
-        return stringify(0)
+        return 0
 
 def gen_grouping_num():
     """

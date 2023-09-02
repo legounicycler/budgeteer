@@ -6,7 +6,7 @@
 
       <form id="envelope-editor-form" action="{{ url_for('edit_envelopes_page') }}" method="post">
         <div class="row budget-total-row">
-          <h5>Total Budget: <b><span id="budget-total">{{budget_total}}</span></b></h5>
+          <h5>Total Budget: <b><span id="budget-total">{{budget_total|balanceformat}}</span></b></h5>
         </div>
         <ul id="envelope-editor-bin" class="collection">
           <li class="row collection-item left-align grey lighten-3 unsortable">
@@ -28,12 +28,12 @@
                   <input name="original-envelope-name" type="hidden" value="{{envelope.name}}" required>
                 </div>
                 <div class="col s5 m2 envelope-budget input-field">
-                  <input class="validate special-input-envelope-editor" type="text" autocomplete="off" name="edit-envelope-budget" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
-                  <input name="original-envelope-budget" type="hidden" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" required>
+                  <input class="validate special-input-envelope-editor" type="text" autocomplete="off" name="edit-envelope-budget" value="{{envelope.budget|inputformat}}" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
+                  <input name="original-envelope-budget" type="hidden" value="{{envelope.budget}}" required>
                 </div>
                 <div class="col m3 hide-on-small-only valign-wrapper envelope-balance">
-                  <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>
-                  <input name="envelope-balance" type="hidden" value="{% if envelope.balance[0] == '$' %}{{ envelope.balance[1:] }}{% else %}-{{ envelope.balance[2:] }}{% endif %}" required>
+                  <span class="{{'negative' if envelope.balance < 0}} balance">{{envelope.balance|balanceformat}}</span>
+                  <input name="envelope-balance" type="hidden" value="{{envelope.balance}}" required>
                 </div>
                 <div class="col s1 m2 valign-wrapper delete-envelope">
                   <a href="#!" class="delete-envelope-button"><i class="material-icons red-text">delete_forever</i></a>

@@ -81,11 +81,11 @@
         <div class="row" id="left-header">
           <div class="row" id="total">
             <h4 class="col s4 white-text bold">Total:</h4>
-            <h4 class="col s8"><span class="{{'negative' if total_funds[0] == '-'}} balance">{{total_funds}}</span></h4>
+            <h4 class="col s8"><span class="{{'negative' if total_funds < 0}} balance">{{total_funds|balanceformat}}</span></h4>
           </div>
           <div class="row" id="unallocated">
             <h6 class="col s4 white-text bold">Unallocated:</h6>
-            <h6 class="col s8"><span id="unallocated-balance" class="{{'negative' if envelopes_data[1].balance[0] == '-'}} balance">{{envelopes_data[1].balance}}</span></h6>
+            <h6 class="col s8"><span id="unallocated-balance" class="{{'negative' if envelopes_data[1].balance < 0}} balance" data-amt="{{envelopes_data[1].balance}}">{{envelopes_data[1].balance|balanceformat}}</span></h6>
           </div>
         </div>
 
@@ -112,7 +112,7 @@
           <div id="transaction-header" class="orange lighten-1 white-text">
             <div class="row" id="title-row">
               <div id = "page-title-col" class="col s11 left-align">
-                <h4 id="page-title" class="truncate"><span id="current-view">All Transactions</span> | <i id="page-total">{{current_total}}</i></h4>
+                <h4 id="page-title" class="truncate"><span id="current-view">All Transactions</span> | <i id="page-total">{{total_funds|balanceformat}}</i></h4>
               </div>
               <div id="multi-select-col" class="col s1">
                 <div class="row">

@@ -28,7 +28,7 @@
                     <option value="" disabled selected>Choose an Envelope</option>
                     {% for id, envelope in envelopes_data.items() %}
                       {% if envelope.deleted == false and envelope.id != 1 %}
-                        <option value="{{envelope.id}}">{{envelope.name}}  {{envelope.balance}}</option>
+                        <option value="{{envelope.id}}">{{envelope.name}}  {{envelope.balance|balanceformat}}</option>
                       {% endif %}
                     {% endfor %}
                   </select>
@@ -55,7 +55,7 @@
                 <select name="account_id" class="account-selector" required>
                   <option value="" disabled selected>Choose an Account</option>
                   {% for id, account in accounts_data.items() %}
-                    {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance}}</option>{% endif %}
+                    {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance|balanceformat}}</option>{% endif %}
                   {% endfor %}
                 </select>
                 <label>Account</label>
@@ -153,7 +153,7 @@
                     <select name="from_account" class="account-selector" required>
                       <option value="" disabled selected>Choose an Account</option>
                       {% for id, account in accounts_data.items() %}
-                       {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance}}</option>{% endif %}
+                       {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance|balanceformat}}</option>{% endif %}
                       {% endfor %}
                     </select>
                     <label>From</label>
@@ -162,7 +162,7 @@
                     <select name="to_account" class="account-selector" required>
                       <option value="" disabled selected>Choose an Account</option>
                       {% for id, account in accounts_data.items() %}
-                        {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance}}</option>{% endif %}
+                        {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance|balanceformat}}</option>{% endif %}
                       {% endfor %}
                     </select>
                     <label>To</label>
@@ -177,7 +177,7 @@
                       <option value="" disabled selected>Choose an Envelope</option>
                       {% for id, envelope in envelopes_data.items() %}
                         {% if envelope.deleted == false and envelope.id != 1 %}
-                          <option value="{{envelope.id}}">{{envelope.name}}  {{envelope.balance}}</option>
+                          <option value="{{envelope.id}}">{{envelope.name}}  {{envelope.balance|balanceformat}}</option>
                         {% endif %}
                       {% endfor %}
                     </select>
@@ -188,7 +188,7 @@
                       <option value="" disabled selected>Choose an Envelope</option>
                       {% for id, envelope in envelopes_data.items() %}
                         {% if envelope.deleted == false and envelope.id != 1 %}
-                          <option value="{{envelope.id}}">{{envelope.name}}  {{envelope.balance}}</option>
+                          <option value="{{envelope.id}}">{{envelope.name}}  {{envelope.balance|balanceformat}}</option>
                         {% endif %}
                       {% endfor %}
                     </select>
@@ -282,7 +282,7 @@
                 <select name="account_id" class="account-selector" required>
                   <option value="" disabled selected>Choose an Account</option>
                   {% for id, account in accounts_data.items() %}
-                    {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance}}</option>{% endif %}
+                    {% if account.deleted == false%}<option value="{{account.id}}">{{account.name}}  {{account.balance|balanceformat}}</option>{% endif %}
                   {% endfor %}
                 </select>
                 <label>Account</label>

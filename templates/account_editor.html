@@ -24,12 +24,10 @@
                 <div class="col s6 m6 account-name left-align input-field">
                   <input class="validate" type="text" value="{{account.name}}" name="edit-account-name" required>
                   <input name="original-account-name" type="hidden" value="{{account.name}}" required>
-                  <span class="helper-text" data-error="Account name required"></span>
                 </div>
                 <div class="col s4 m3 account-balance input-field">
-                  <input class="validate" type="number" step=".01" autocomplete="off" value="{% if account.balance[0] == '$' %}{{ account.balance[1:] }}{% else %}-{{ account.balance[2:] }}{% endif %}" name="edit-account-balance" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
-                  <input name="original-account-balance" type="hidden" value="{% if account.balance[0] == '$' %}{{ account.balance[1:] }}{% else %}-{{ account.balance[2:] }}{% endif %}" required>
-                  <span class="helper-text" data-error="Must be numeric"></span>
+                  <input class="validate" type="number" step=".01" autocomplete="off" value="{{account.balance|inputformat}}" name="edit-account-balance" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                  <input name="original-account-balance" type="hidden" value="{{account.balance}}" required>
                 </div>
                 <div class="col s1 m2 valign-wrapper delete-account">
                   <a href="#!" class="delete-account-button"><i class="material-icons red-text">delete_forever</i></a>
