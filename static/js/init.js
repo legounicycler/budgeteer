@@ -901,7 +901,6 @@
       $('#unallocated-balance-envelope-filler').text(balance_format(unallocated_balance - fill_total)).negative_check(unallocated_balance - fill_total);
       $('#fill-total').text(balance_format(fill_total)).negative_check(fill_total);
     }).on("change", ".special-fill-input", function() {
-      console.log("ONCHANGE")
       try {
         num = math.evaluate($(this).val());
         if (!isNaN(num)) {
@@ -1001,7 +1000,6 @@
         }
       });
 
-      console.log(budget_total)
       // 3. Update the budget total span
       $('#budget-total').text(balance_format(budget_total))
     }).on("change", ".special-input-envelope-editor", function() {
