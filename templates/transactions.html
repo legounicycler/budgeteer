@@ -107,7 +107,7 @@
             </div>
             <div class="col s3 m2 transaction-amount">
               <div class='row balance-row'>
-                <span class="{{'neutral' if (transaction.amt == '$0.00') or ((transaction.type == 1 or transaction.type == 2 or transaction.type == 5 or transaction.type == 6) and current_page == 'All Transactions')}} {{'negative' if transaction.amt[0] == '-'}} balance non-selectable">{{transaction.amt}}</span>
+                <span class="{{'neutral' if (transaction.amt == 0) or ((transaction.type == 1 or transaction.type == 2 or transaction.type == 5 or transaction.type == 6) and current_page == 'All Transactions')}} {{'negative' if transaction.amt < 0}} balance non-selectable">{{transaction.amt|balanceformat}}</span>
               </div>
               <div class='row reconcile-row'>
                 <span class="tiny reconcile-span">$0.00</span>

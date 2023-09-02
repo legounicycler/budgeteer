@@ -24,27 +24,27 @@
           <div class="row envelope-fill-orange-div">
             <div class="col s5 offset-1">
               <h6>Unallocated:</h6>
-              <h6><span id="unallocated-balance-envelope-filler" class="{{'negative' if envelopes_data[1].balance[0] == '-'}} balance">{{envelopes_data[1].balance}}</span></h6>
+              <h6><span id="unallocated-balance-envelope-filler" class="{{'negative' if envelopes_data[1].balance < 0}} balance">{{envelopes_data[1].balance|balanceformat}}</span></h6>
             </div>
             <div class="col s2 envelope-fill-arrow-col">
               <i class="medium material-icons blue-grey-text text-darken-2">arrow_forward</i>
             </div>
             <div class="col s5">
               <h6>Fill total:</h6>
-              <h6><span id="fill-total" class="balance">$0.00</span></h6>
+              <h6><span id="fill-total" class="balance neutral">$0.00</span></h6>
             </div>
           </div>
         </div>
 
         <ul class="row collection envelope-fill-title-row">
           <li class="row collection-item left-align grey lighten-3">
-            <div class="col s5 offset-m1 header left-align">Name</div>
+            <div class="col s5 m6 header">Name</div>
             <div class="col s3 header envelope-budget">Amount</div>
             <div class="col s4 m3 header envelope-balance">Balance</div>
           </li>
         </ul>
 
-        <ul class="collection">
+        <ul class="collection envelope-fill-collection">
           <div class="envelope-fill-editor-bin">
             {% if active_envelopes == false%}
               <div class="row collection-item">
@@ -60,11 +60,10 @@
                       <input type="hidden" value={{envelope.id}} name="envelope_id">
                     </div>
                     <div class="col s3 envelope-budget editor-col input-field">
-                      <input class="validate" type="number" step=".01" autocomplete="off" value="0.00" name="fill-amount" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
-                      <span class="helper-text" data-error="Must be numeric"></span>
+                      <input class="special-fill-input" type="text" autocomplete="off" name="fill-amount" data-original-balance="{{envelope.balance}}" placeholder="0.00" pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
                     </div>
                     <div class="col s4 m3 valign-wrapper envelope-balance editor-col">
-                      <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>
+                      <span class="{{'negative' if envelope.balance < 0}} balance">{{envelope.balance|balanceformat}}</span>
                     </div>
                   </li>
                 {% endif %}

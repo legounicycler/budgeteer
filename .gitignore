@@ -1,7 +1,7 @@
 *.pyc
-helpful_documents/
+static/node_modules/
 Things To Do.txt
-Exported_Transactions/*.csv
+Exported_Transactions/
 EventLog.txt
 *.sqlite
 *.ppk
