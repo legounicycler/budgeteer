@@ -16,7 +16,7 @@
             <input class="validate special-fill-input" type="text" autocomplete="off" name="fill-amount" data-original-balance="{{envelope.balance}}" placeholder="0.00" data-envelope-id="{{envelope.id}}" pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
           </div>
           <div class="col s4 m3 valign-wrapper envelope-balance editor-col">
-            <span class="{{'negative' if envelope.balance < 0}} balance">{{envelope.balance}}</span>
+            <span class="{{'negative' if envelope.balance < 0}} balance">{{envelope.balance|balanceformat}}</span>
           </div>
         </li>
       {% endif %}
