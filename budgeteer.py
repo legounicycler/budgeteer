@@ -144,7 +144,7 @@ def get_account_page():
   return jsonify(data)
 
 @app.route('/new_expense', methods=['POST'])
-def new_expense():
+def new_expense(edited=False):
   names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
   amounts = request.form.getlist('amount')
   envelope_ids = request.form.getlist('envelope_id')
@@ -156,59 +156,67 @@ def new_expense():
   schedule = request.form['schedule']
   sched_t_submitted = False
   pending = is_pending(date, timestamp)
-
-  for i in range(len(amounts)):
-    amounts[i] = int(round(float(amounts[i]) * 100))
-    envelope_ids[i] = int(envelope_ids[i])
-  for name in names:
-    t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID, pending)
-    if scheduled and not pending:
-      # Create pending scheduled transaction
-      nextdate = schedule_date_calc(date, schedule, timestamp)
-      scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
-    elif scheduled and pending:
-      t.schedule = schedule
-
-    if len(envelope_ids) == 1: # If it is a BASIC_TRANSACTION
-      t.grouping = gen_grouping_num()
-      t.envelope_id = envelope_ids[0]
-      t.amt = amounts[0]
-      insert_transaction(t)
-      if scheduled and not pending:
-        scheduled_t.grouping = gen_grouping_num()
-        scheduled_t.envelope_id = envelope_ids[0]
-        scheduled_t.amt = amounts[0]
-        insert_transaction(scheduled_t)
-        sched_t_submitted = True
-    else: # If it is a SPLIT_TRANSACTION
-      t.type = SPLIT_TRANSACTION
-      new_split_transaction(t)
-      if scheduled and not pending:
-        scheduled_t.type = SPLIT_TRANSACTION
-        new_split_transaction(scheduled_t)
-        sched_t_submitted = True
-
   toasts = []
-  if len(names) > 1:
-    toasts.append(f'Added {len(names)} new expenses!')
-    if sched_t_submitted:
-      toasts.append(f'Added {len(names)} new expenses scheduled for {datetimeformat(nextdate)}!')
-  elif len(names) == 1:
-    toasts.append('Added new expense!')
-    if sched_t_submitted:
-      toasts.append(f'Added new expense scheduled for {datetimeformat(nextdate)}!')
+  success = True
+
+  try: 
+    for i in range(len(amounts)):
+      amounts[i] = int(round(float(amounts[i]) * 100))
+      envelope_ids[i] = int(envelope_ids[i])
+  except:
+    toasts.append("An error occurred, and your request was not processed!")
+    log_write("ERROR: Bad form data!")
+    success = False
   else:
-    toasts.append('There was an error!')
+    for name in names:
+      t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID, pending)
+      if scheduled and not pending:
+        # Create pending scheduled transaction
+        nextdate = schedule_date_calc(date, schedule, timestamp)
+        scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
+      elif scheduled and pending:
+        t.schedule = schedule
+
+      if len(envelope_ids) == 1: # If it is a BASIC_TRANSACTION
+        t.grouping = gen_grouping_num()
+        t.envelope_id = envelope_ids[0]
+        t.amt = amounts[0]
+        insert_transaction(t)
+        if scheduled and not pending:
+          scheduled_t.grouping = gen_grouping_num()
+          scheduled_t.envelope_id = envelope_ids[0]
+          scheduled_t.amt = amounts[0]
+          insert_transaction(scheduled_t)
+          sched_t_submitted = True
+      else: # If it is a SPLIT_TRANSACTION
+        t.type = SPLIT_TRANSACTION
+        new_split_transaction(t)
+        if scheduled and not pending:
+          scheduled_t.type = SPLIT_TRANSACTION
+          new_split_transaction(scheduled_t)
+          sched_t_submitted = True
+    if edited:
+      toasts.append("Transaction updated!")
+    else:
+      if len(names) > 1:
+        toasts.append(f'Added {len(names)} new expenses!')
+        if sched_t_submitted:
+          toasts.append(f'Added {len(names)} new expenses scheduled for {datetimeformat(nextdate)}!')
+      elif len(names) == 1:
+        toasts.append('Added new expense!')
+        if sched_t_submitted:
+          toasts.append(f'Added new expense scheduled for {datetimeformat(nextdate)}!')
+      else:
+        toasts.append('There was an error!')
 
   if (health_check() is False):
     toasts.append("HEALTH ERROR!")
-  return jsonify({'toasts': toasts})
+  return jsonify({'toasts': toasts, 'success': success})
 
 @app.route('/new_transfer', methods=['POST'])
-def new_transfer():
+def new_transfer(edited=False):
   transfer_type = int(request.form['transfer_type'])
   names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
-  amount = int(round(float(request.form['amount'])*100))
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
   timestamp = date_parse(request.form['timestamp'])
   note = request.form['note']
@@ -216,61 +224,71 @@ def new_transfer():
   schedule = request.form['schedule']
   sched_t_submitted = False
   pending = is_pending(date, timestamp)
-
-  for name in names:
-    if (transfer_type == 2):
-      to_account = request.form['to_account']
-      from_account = request.form['from_account']
-      if scheduled and pending:
-        # Create transfer WITH a schedule
-        account_transfer(name, amount, date, to_account, from_account, note, schedule, USER_ID, pending)
-      elif scheduled and not pending:
-        # Create transfer WITHOUT schedule, then pending transfer WITH schedule
-        account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID, pending)
-        nextdate = schedule_date_calc(date, schedule, timestamp)
-        account_transfer(name, amount, nextdate, to_account, from_account, note, schedule, USER_ID, is_pending(nextdate, timestamp))
-        sched_t_submitted = True
-      else:
-        # Create transfer WITHOUT schedule
-        account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID, pending)
-    elif (transfer_type == 1):
-      to_envelope = request.form['to_envelope']
-      from_envelope = request.form['from_envelope']
-      if scheduled and pending:
-        # Create a transfer WITH a schedule
-        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, schedule, USER_ID, pending)
-      elif scheduled and not pending:
-        # Create transfer WITHOUT schedule, then pending transfer WITH schedule
-        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID, pending)
-        nextdate = schedule_date_calc(date, schedule, timestamp)
-        envelope_transfer(name, amount, nextdate, to_envelope, from_envelope, note, schedule, USER_ID, is_pending(nextdate, timestamp))
-        sched_t_submitted = True
-      else:
-        # Create transfer WITHOUT schedule
-        envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID, pending)
-    else:
-      log_write(f"ERROR: '{transfer_type}' isn't a valid transfer type, you twit!")
-
   toasts = []
-  if len(names) > 1:
-    toasts.append(f'Added {len(names)} new transfers!')
-    if sched_t_submitted:
-      toasts.append(f'Added {len(names)} new transfers scheduled for {datetimeformat(nextdate)}!')
-  elif len(names) == 1:
-    toasts.append('Added new transfer!')
-    if sched_t_submitted:
-      toasts.append(f'Added new transfer scheduled for {datetimeformat(nextdate)}!')
+  success = True
+
+  try:
+    amount = int(round(float(request.form['amount'])*100))
+  except:
+    toasts.append("An error occurred, and your request was not processed!")
+    log_write("ERROR: Bad form data!")
+    success = False
   else:
-    toasts.append('There was an error!')
+    for name in names:
+      if (transfer_type == 2):
+        to_account = request.form['to_account']
+        from_account = request.form['from_account']
+        if scheduled and pending:
+          # Create transfer WITH a schedule
+          account_transfer(name, amount, date, to_account, from_account, note, schedule, USER_ID, pending)
+        elif scheduled and not pending:
+          # Create transfer WITHOUT schedule, then pending transfer WITH schedule
+          account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID, pending)
+          nextdate = schedule_date_calc(date, schedule, timestamp)
+          account_transfer(name, amount, nextdate, to_account, from_account, note, schedule, USER_ID, is_pending(nextdate, timestamp))
+          sched_t_submitted = True
+        else:
+          # Create transfer WITHOUT schedule
+          account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID, pending)
+      elif (transfer_type == 1):
+        to_envelope = request.form['to_envelope']
+        from_envelope = request.form['from_envelope']
+        if scheduled and pending:
+          # Create a transfer WITH a schedule
+          envelope_transfer(name, amount, date, to_envelope, from_envelope, note, schedule, USER_ID, pending)
+        elif scheduled and not pending:
+          # Create transfer WITHOUT schedule, then pending transfer WITH schedule
+          envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID, pending)
+          nextdate = schedule_date_calc(date, schedule, timestamp)
+          envelope_transfer(name, amount, nextdate, to_envelope, from_envelope, note, schedule, USER_ID, is_pending(nextdate, timestamp))
+          sched_t_submitted = True
+        else:
+          # Create transfer WITHOUT schedule
+          envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID, pending)
+      else:
+        log_write(f"ERROR: '{transfer_type}' isn't a valid transfer type, you twit!")
+
+    if edited:
+      toasts.append("Transaction updated!")
+    else:
+      if len(names) > 1:
+        toasts.append(f'Added {len(names)} new transfers!')
+        if sched_t_submitted:
+          toasts.append(f'Added {len(names)} new transfers scheduled for {datetimeformat(nextdate)}!')
+      elif len(names) == 1:
+        toasts.append('Added new transfer!')
+        if sched_t_submitted:
+          toasts.append(f'Added new transfer scheduled for {datetimeformat(nextdate)}!')
+      else:
+        toasts.append('There was an error!')
 
   if (health_check() is False):
     toasts.append("HEALTH ERROR!")
-  return jsonify({'toasts': toasts})
+  return jsonify({'toasts': toasts, 'success': success})
 
 @app.route('/new_income', methods=['POST'])
-def new_income():
+def new_income(edited=False):
   names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
-  amount = int(round(float(request.form['amount'])*100))
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
   timestamp = date_parse(request.form['timestamp'])
   account_id = request.form['account_id']
@@ -279,39 +297,50 @@ def new_income():
   schedule = request.form['schedule']
   sched_t_submitted = False
   pending = is_pending(date, timestamp)
-  
-  for name in names:
-    t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, pending)
-    if scheduled and not pending:
-      insert_transaction(t)
-      nextdate = schedule_date_calc(date, schedule, timestamp)
-      scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
-      insert_transaction(scheduled_t)
-      sched_t_submitted = True
-    elif scheduled and pending:
-      t.schedule = schedule
-      insert_transaction(t)
-    else:
-      insert_transaction(t)
-
   toasts = []
-  if len(names) > 1:
-    toasts.append(f'Added {len(names)} new income!')
-    if sched_t_submitted:
-      toasts.append(f'Added {len(names)} new incomes scheduled for {datetimeformat(nextdate)}!')
-  elif len(names) == 1:
-    toasts.append('Added new income!')
-    if sched_t_submitted:
-      toasts.append(f'Added new income scheduled for {datetimeformat(nextdate)}!')
+  success = True
+
+  try:
+    amount = int(round(float(request.form['amount'])*100))
+  except:
+    toasts.append("An error occurred, and your request was not processed!")
+    log_write("ERROR: Bad form data!")
+    success = False
   else:
-    toasts.append('There was an error!')
+    for name in names:
+      t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, pending)
+      if scheduled and not pending:
+        insert_transaction(t)
+        nextdate = schedule_date_calc(date, schedule, timestamp)
+        scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
+        insert_transaction(scheduled_t)
+        sched_t_submitted = True
+      elif scheduled and pending:
+        t.schedule = schedule
+        insert_transaction(t)
+      else:
+        insert_transaction(t)
+
+    if edited:
+      toasts.append("Transaction updated!")
+    else:
+      if len(names) > 1:
+        toasts.append(f'Added {len(names)} new income!')
+        if sched_t_submitted:
+          toasts.append(f'Added {len(names)} new incomes scheduled for {datetimeformat(nextdate)}!')
+      elif len(names) == 1:
+        toasts.append('Added new income!')
+        if sched_t_submitted:
+          toasts.append(f'Added new income scheduled for {datetimeformat(nextdate)}!')
+      else:
+        toasts.append('There was an error!')
 
   if (health_check() is False):
     toasts.append("HEALTH ERROR!")
-  return jsonify({'toasts': toasts})
+  return jsonify({'toasts': toasts, 'success': success})
 
 @app.route('/fill_envelopes', methods=['POST'])
-def fill_envelopes():
+def fill_envelopes(edited=False):
   names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
   amounts = request.form.getlist('fill-amount')
   envelope_ids = request.form.getlist('envelope_id')
@@ -322,47 +351,59 @@ def fill_envelopes():
   schedule = request.form['schedule']
   sched_t_submitted = False
   pending = is_pending(date, timestamp)
-  
-  deletes = []
-  for i in range(len(amounts)):
-    if amounts[i] == "":
-      deletes.append(i)
-    else:
-      amounts[i] = int(round(float(amounts[i])*100))
-      envelope_ids[i] = int(envelope_ids[i])
-  for index in reversed(deletes):
-    amounts.pop(index)
-    envelope_ids.pop(index)
-
-  for name in names:
-    t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, pending)
-    if scheduled and not pending:
-      envelope_fill(t)
-      nextdate = schedule_date_calc(date, schedule, timestamp)
-      scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
-      envelope_fill(scheduled_t)
-      sched_t_submitted = True
-    elif scheduled and pending:
-      t.schedule = schedule
-      envelope_fill(t)
-    else:
-      envelope_fill(t)
-
   toasts = []
-  if len(names) > 1:
-    toasts.append(f'Added {len(names)} envelope fills!')
-    if sched_t_submitted:
-      toasts.append(f'Added {len(names)} new envelope fills scheduled for {datetimeformat(nextdate)}!')
-  elif len(names) == 1:
-    toasts.append('Envelopes filled!')
-    if sched_t_submitted:
-      toasts.append(f'Added new envelope fill scheduled for {datetimeformat(nextdate)}!')
+  success = True
+   
+  try:
+    deletes = []
+    for i in range(len(amounts)):
+      if amounts[i] == "":
+        deletes.append(i)
+      else:
+        amounts[i] = int(round(float(amounts[i])*100))
+        envelope_ids[i] = int(envelope_ids[i])
+    for index in reversed(deletes):
+      amounts.pop(index)
+      envelope_ids.pop(index)
+  except:
+    toasts.append("An error occurred, and your request was not processed!")
+    log_write("ERROR: Bad form data!")
+    success = False
   else:
-   toasts.append('There was an error!')
+    if amounts:
+      for name in names:
+        t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, pending)
+        if scheduled and not pending:
+          envelope_fill(t)
+          nextdate = schedule_date_calc(date, schedule, timestamp)
+          scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
+          envelope_fill(scheduled_t)
+          sched_t_submitted = True
+        elif scheduled and pending:
+          t.schedule = schedule
+          envelope_fill(t)
+        else:
+          envelope_fill(t)
+          
+      if edited:
+        toasts.append("Transaction updated!")
+      else:
+        if len(names) > 1:
+          toasts.append(f'Added {len(names)} envelope fills!')
+          if sched_t_submitted:
+            toasts.append(f'Added {len(names)} new envelope fills scheduled for {datetimeformat(nextdate)}!')
+        elif len(names) == 1:
+          toasts.append('Envelopes filled!')
+          if sched_t_submitted:
+            toasts.append(f'Added new envelope fill scheduled for {datetimeformat(nextdate)}!')
+        else:
+          toasts.append('There was an error!')
+    else:
+      toasts.append("No envelope fill was created!")
 
   if (health_check() is False):
     toasts.append("HEALTH ERROR!")
-  return jsonify({'toasts': toasts})
+  return jsonify({'toasts': toasts, 'success': success})
 
 @app.route('/edit_delete_envelope', methods=['POST'])
 def edit_delete_envelope():
@@ -371,6 +412,8 @@ def edit_delete_envelope():
   date = datetime.strptime(request.form['date'], "%m/%d/%Y")
   envelope_id = request.form['envelope_id']
   # timestamp = date_parse(request.form['timestamp']) #Don't need to check timestamp in this function
+  toasts = []
+  success = True
 
   # A copy of the delete_envelope() function from database.py but with the info from the form pasted in
   with conn:
@@ -385,10 +428,19 @@ def edit_delete_envelope():
       insert_transaction(t_unallocated)
       # 3. Mark the envelope as deleted
       c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
+      toasts.append("Transaction updated!")
       log_write('E DELETE: ' + str(get_envelope(envelope_id)))
     else:
       log_write("ERROR: You can't delete the 'Unallocated' envelope you moron")
+      toasts.append("Something went wrong, and your transaction was not processed!")
+      success = False
 
+    if (health_check() is False):
+      toasts.append("HEALTH ERROR!")
+    return jsonify({'toasts': toasts, 'success': success})
+
+# TODO: Revisit this. There's probably no need to delete and recreate the transaction. Test to see what happens if you directly
+#       update the transaction details in the database
 @app.route('/edit_delete_account', methods=['POST'])
 def edit_delete_account():
   name = request.form['name']
@@ -396,6 +448,8 @@ def edit_delete_account():
   date = datetime.strptime(request.form['date'], "%m/%d/%Y")
   account_id = request.form['account_id']
   # timestamp = date_parse(request.form['timestamp']) #Don't need to check timestamp in this function
+  toasts = []
+  success = True
   
   # A copy of the delete_account() function from database.py but with the info from the form pasted in
   with conn:
@@ -406,47 +460,63 @@ def edit_delete_account():
 
     # 2. Mark the account as deleted
     c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
+    toasts.append("Transaction updated!")
     log_write('A DELETE: ' + str(get_account(account_id)))
+
+  if (health_check() is False):
+    toasts.append("HEALTH ERROR!")
+  return jsonify({'toasts': toasts, 'success': success})
 
 @app.route('/edit_account_adjust', methods=['POST'])
 def edit_account_adjust():
   name = request.form['name']
   date = datetime.strptime(request.form['date'], "%m/%d/%Y")
   note = request.form['note']
-  balance_diff = int(round(float(request.form['amount'])*100))
   account_id = int(request.form['account_id'])
   timestamp = date_parse(request.form['timestamp'])
+  toasts = []
+  success = True
 
-  insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, is_pending(date, timestamp)))
+  try:
+    balance_diff = int(round(float(request.form['amount'])*100))
+  except:
+    toasts.append("An error occurred, and your request was not processed!")
+    log_write("ERROR: Bad form data!")
+    success = False
+  else:
+    insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, is_pending(date, timestamp)))
+    toasts.append("Transaction updated!")
+
+  if (health_check() is False):
+    toasts.append("HEALTH ERROR!")
+  return jsonify({'toasts': toasts, 'success': success})
 
 @app.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
   id = int(request.form['edit-id'])
   type = int(request.form['type'])
-  delete_transaction(id)
     
   if (type == BASIC_TRANSACTION):
-    new_expense()
+    response = new_expense(True)
   elif (type == ENVELOPE_TRANSFER or type == ACCOUNT_TRANSFER):
-    new_transfer()
+    response =  new_transfer(True)
   elif (type == INCOME):
-    new_income()
+    response = new_income()
   elif (type == SPLIT_TRANSACTION):
-    new_expense()
+    response = new_expense(True)
   elif (type == ENVELOPE_FILL):
-    fill_envelopes()
+    response = fill_envelopes(True)
   elif (type == ENVELOPE_DELETE):
-    edit_delete_envelope()
+    response = edit_delete_envelope()
   elif (type == ACCOUNT_DELETE):
-    edit_delete_account()
+    response = edit_delete_account()
   elif (type == ACCOUNT_ADJUST):
-    edit_account_adjust()
+    response =  edit_account_adjust()
 
-  toasts = []
-  toasts.append('Transaction edited!')
-  if (health_check() is False):
-    toasts.append("HEALTH ERROR!")
-  return jsonify({'toasts': toasts})
+  if response.json['success']:
+    delete_transaction(id) #Only delete the original transaction if you were successful in creating the replacement edited transaction
+  return response
+
 
 @app.route('/delete_transaction_page', methods=['POST'])
 # TODO: Change this to use an <id> in the URL instead of using the hidden form thing (SEE get_json)
