@@ -643,7 +643,6 @@
 
       // Envelope budget math n' stuff
       $('#envelope-editor-form').on("input", '.special-input-envelope-editor', function() {
-        console.log("INPUT")
         var index = $(this).parent().parent().index()-1; //The index of the envelope you are filling
         var skip;
 
@@ -679,7 +678,17 @@
         // 3. Update the budget total span
         $('#budget-total').text(balance_format(budget_total))
       }).on("change", ".special-input-envelope-editor", function() {
-        console.log("CHANGE")
+        try {
+          num = math.evaluate($(this).val());
+          if (!isNaN(num)) {
+            $(this).val((Math.round(num * 100) / 100).toFixed(2)); //Replace the input text with the result of the parsed expression
+          }
+        } catch (error) {
+          return;
+        }
+      });
+
+      $('#account-editor-form').on('change', '.special-input-account-editor', function() {
         try {
           num = math.evaluate($(this).val());
           if (!isNaN(num)) {

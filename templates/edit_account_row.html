@@ -8,7 +8,7 @@
     <span class="helper-text" data-error="Account name required"></span>
   </div>
   <div class="col s4 m3 account-balance editor-col input-field">
-    <input required class="validate" type="number" step=".01" name="new-account-balance" pattern="^[-]?([1-9]{1}[0-9]{0,}(\\.[0-9]{0,2})?|0(\\.[0-9]{0,2})?|\\.[0-9]{1,2})$" />
+    <input required class="validate special-input-account-editor" type="text" name="new-account-balance" pattern="^-?(?!0\d)\d+(?:\.\d{2})?$" />
     <span class="helper-text" data-error="Must be numeric"></span>
   </div>
   <div class="col s1 m2 valign-wrapper delete-account editor-col">

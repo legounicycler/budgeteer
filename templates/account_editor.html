@@ -26,7 +26,7 @@
                   <input name="original-account-name" type="hidden" value="{{account.name}}" required>
                 </div>
                 <div class="col s4 m3 account-balance input-field">
-                  <input class="validate" type="number" step=".01" autocomplete="off" value="{{account.balance|inputformat}}" name="edit-account-balance" required pattern="^[-]?([1-9]{1}[0-9]{0,}(\.[0-9]{0,2})?|0(\.[0-9]{0,2})?|\.[0-9]{1,2})$">
+                  <input class="validate special-input-account-editor" type="text" autocomplete="off" value="{{account.balance|inputformat}}" name="edit-account-balance" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
                   <input name="original-account-balance" type="hidden" value="{{account.balance}}" required>
                 </div>
                 <div class="col s1 m2 valign-wrapper delete-account">
