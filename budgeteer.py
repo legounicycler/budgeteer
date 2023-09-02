@@ -129,7 +129,7 @@ def get_envelope_page():
   (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
-  page_total = balanceformat(get_envelope(envelope_id).balance)
+  page_total = balanceformat(get_envelope(envelope_id).balance/100)
   data = {}
   data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
   data['page_total'] = page_total
@@ -143,7 +143,7 @@ def get_account_page():
   (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
-  page_total = balanceformat(get_account(account_id).balance)
+  page_total = balanceformat(get_account(account_id).balance/100)
   data = {}
   data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
   data['page_total'] = page_total
@@ -621,12 +621,12 @@ def data_reload():
     regex = re.compile('account/(\d+)')
     account_id = int(regex.findall(current_page)[0])
     (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
-    page_total = balanceformat(get_account(account_id).balance)
+    page_total = balanceformat(get_account(account_id).balance/100)
   elif 'envelope/' in current_page:
     regex = re.compile('envelope/(\d+)')
     envelope_id = int(regex.findall(current_page)[0])
     (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
-    page_total = balanceformat(get_envelope(envelope_id).balance)
+    page_total = balanceformat(get_envelope(envelope_id).balance/100)
   else:
     current_page = 'All Transactions'
     (transactions_data, offset, limit) = get_home_transactions(0,50)
