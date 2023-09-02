@@ -28,7 +28,7 @@
                   <input name="original-envelope-name" type="hidden" value="{{envelope.name}}" required>
                 </div>
                 <div class="col s5 m2 envelope-budget input-field">
-                  <input class="validate special-input-envelope-editor" type="text" autocomplete="off" name="edit-envelope-budget" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" required>
+                  <input class="validate special-input-envelope-editor" type="text" autocomplete="off" name="edit-envelope-budget" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
                   <input name="original-envelope-budget" type="hidden" value="{% if envelope.budget[0] == '$' %}{{ envelope.budget[1:] }}{% else %}-{{ envelope.budget[2:] }}{% endif %}" required>
                 </div>
                 <div class="col m3 hide-on-small-only valign-wrapper envelope-balance">

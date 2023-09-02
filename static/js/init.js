@@ -355,7 +355,7 @@
         $span.text("$...").removeClass('negative').addClass('neutral');
         $(this).removeClass("valid").addClass("invalid");
       }
-    }).on("change", function() {
+    }).on("change",".special-input", function() {
       try {
         num = math.evaluate($(this).val());
         if (!isNaN(num)) {
@@ -1554,6 +1554,7 @@
         var $inputs = $('#edit-envelope-fill-form .special-fill-input');
         var fill_total = 0;
         $inputs.each(function(index) {
+          $(this).val("");
           var original_balance = parseFloat($(this).data("original-balance"));
           // this code exists so that if you change a value, close the editor,
           // then reopen it, the envelope balances will always be correct

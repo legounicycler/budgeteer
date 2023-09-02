@@ -60,7 +60,7 @@
                       <input type="hidden" value={{envelope.id}} name="envelope_id">
                     </div>
                     <div class="col s3 envelope-budget editor-col input-field">
-                      <input class="special-fill-input" type="text" autocomplete="off" name="fill-amount" data-original-balance="{{envelope.balance[1:]}}" placeholder="0.00">
+                      <input class="special-fill-input" type="text" autocomplete="off" name="fill-amount" data-original-balance="{{envelope.balance[1:]}}" placeholder="0.00" pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
                     </div>
                     <div class="col s4 m3 valign-wrapper envelope-balance editor-col">
                       <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>

@@ -6,7 +6,7 @@
   </div>
   <div class="input-field col s5 addedEnvelope"><label>Envelope</label></div>
   <div class="input-field col s4 ">
-    <input class="validate special-input negate-input" type="text" autocomplete="off" name="amount" required>
+    <input class="validate special-input negate-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
     <label for="amount">Amount</label>
   </div>
   <div class="col s2 valign-wrapper center-align amount-col">

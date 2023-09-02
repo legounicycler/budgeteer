@@ -29,7 +29,7 @@
                 <label class="no-active">Envelope</label>
               </div>
               <div class="input-field col s4 ">
-                <input id="edit-amount" class="validate special-input negate-input" type="text" autocomplete="off" name="amount" required>
+                <input id="edit-amount" class="validate special-input negate-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
                 <label for="edit-amount" class="active">Amount</label>
               </div>
               <div class="col s2 valign-wrapper center-align amount-col">
@@ -177,7 +177,7 @@
               <label for="edit-date">Date</label>
             </div>
             <div class="input-field col s4 ">
-              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required>
+              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
               <label for="edit-amount" class="active">Amount</label>
             </div>
             <div class="col s2 valign-wrapper center-align amount-col">
@@ -260,7 +260,7 @@
               <label for="edit-date">Date</label>
             </div>
             <div class="input-field col s4 ">
-              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required>
+              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
               <label for="edit-amount" class="active">Amount</label>
             </div>
             <div class="col s2 valign-wrapper center-align amount-col">
@@ -373,7 +373,7 @@
                           <input type="hidden" value={{envelope.id}} name="envelope_id">
                         </div>
                         <div class="col s3 envelope-budget editor-col input-field">
-                          <input class="validate special-fill-input" type="text" autocomplete="off" name="fill-amount" placeholder="0.00" data-envelope-id="{{envelope.id}}" data-original-balance="{{envelope.balance[1:]}}">
+                          <input class="validate special-fill-input" type="text" autocomplete="off" name="fill-amount" placeholder="0.00" data-envelope-id="{{envelope.id}}" data-original-balance="{{envelope.balance[1:]}}" pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
                         </div>
                         <div class="col s3 valign-wrapper envelope-balance editor-col">
                           <span class="{{'negative' if envelope.balance[0] == '-'}} balance">{{envelope.balance}}</span>
@@ -542,7 +542,7 @@
               <label for="edit-date">Date</label>
             </div>
             <div class="input-field col s4 ">
-              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required>
+              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
               <label for="edit-amount" class="active">Amount</label>
             </div>
             <div class="col s2 valign-wrapper center-align amount-col">
