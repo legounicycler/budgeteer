@@ -200,6 +200,7 @@
 #page-title {
   font-size: 2em;
   margin: 0 0 0 10px;
+  padding-bottom: .1em;
 }
 
 input[type="text"]:not(.special-fill-input, .special-input-envelope-editor) {
@@ -527,10 +528,13 @@ h5 {
 
 @media only screen and (max-width: 600px) {
 
+  .modal .amount-span {
+    font-size: .85em;
+  }
+
   #delete-modal {
     max-width: 75%;
   }
-
 
   #delete-modal .modal-content{
     padding: 0 5px 10px 5px;
@@ -617,7 +621,7 @@ h5 {
   }
 
   .input-field {
-    margin-bottom: 0;
+    margin-bottom: 5px;
   }
 
   input {
@@ -656,49 +660,58 @@ h5 {
 }
 
 @media only screen and (max-width: 450px) {
-    /* Extends transactions to edge of screen*/
-    #bin {
-      padding: 0px
-    }
+    
+  .modal .amount-span {
+    font-size: .8em;
+  }
+    
+  /* Extends transactions to edge of screen*/
+  #bin {
+    padding: 0px
+  }
 
-    .long-date {
-      display: none;
-    }
+  .long-date {
+    display: none;
+  }
 
-    .short-date {
-      display: inline !important;
-      line-height: 16px;
-    }
+  .short-date {
+    display: inline !important;
+    line-height: 16px;
+  }
 
-    /* Keeps transaction title from wrapping*/
-    #page-title {
-      font-size: 1.5em;
-    }
+  /* Keeps transaction title from wrapping*/
+  #page-title {
+    font-size: 1.5em;
+  }
 
-    .transaction-name {
-      font-size: .9em;
-    }
+  .transaction-name {
+    font-size: .9em;
+  }
 
-    .transaction-name .tiny {
-      font-size: 1.2em;
-    }
+  .transaction-name .tiny {
+    font-size: 1.2em;
+  }
 
-    .envelope-budget.editor-col.col {
-      padding: 0 3px;
-    }
+  .envelope-budget.editor-col.col {
+    padding: 0 3px;
+  }
 
-    .envelope-budget.editor-col .helper-text {
-      font-size: .6em !important;
-    }
+  .envelope-budget.editor-col .helper-text {
+    font-size: .6em !important;
+  }
 
-    .transaction-name h5 {
-      margin: 5px 0px 0px 0px;
-      font-size: 1.5em;
-    }
+  .transaction-name h5 {
+    margin: 5px 0px 0px 0px;
+    font-size: 1.5em;
+  }
 
 }
 
 @media only screen and (max-width: 350px) {
+  .modal .amount-span {
+    font-size: .6em;
+  }
+  
   .s6 .select-wrapper input {
     font-size: 10px !important;
   }
