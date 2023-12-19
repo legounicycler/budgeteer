@@ -943,7 +943,7 @@
       // 2. Iterate over the input fields to calculate the fill total
       fill_total = 0;
       $('#envelope-fill-form .special-fill-input').each(function(i) {
-        if ($(this) == $currentInput) { //If parsing the input that you are currently focused on
+        if ($(this).is($currentInput)) { //If parsing the input that you are currently focused on
           if (!skip) {
             fill_total = fill_total + num; //Add the result of the parsed expression in the input to the fill total
           }
@@ -974,31 +974,31 @@
       var $envelopeBalanceSpan = $(this).parent().siblings(".envelope-balance").children();
       var original_fill_total =  parseFloat($('#edit-fill-total').data("original-fill-total"));
       var $currentInput = $(this);
-      var original_balance = parseFloat($(this).data("original-balance"));
+      var prefill_balance = parseFloat($(this).data("prefill-balance"));
       var skip;
 
       // 1. Attempt to evaluate the expression in the input and update the envelope total span accordingly
       try {
         num = Math.round(math.evaluate($(this).val())*100)/100;
         if (!isNaN(num)) {
-          $envelopeBalanceSpan.text(balance_format(original_balance + num)).negative_check(original_balance + num);
+          $envelopeBalanceSpan.text(balance_format(prefill_balance + num)).negative_check(prefill_balance + num);
           $(this).removeClass("invalid").addClass("valid");
           skip = false; //Include this number when calculating the fill total
         } else {
-          $envelopeBalanceSpan.text(balance_format(original_balance)).negative_check(original_balance);
+          $envelopeBalanceSpan.text(balance_format(prefill_balance)).negative_check(prefill_balance);
           $(this).removeClass("valid").removeClass("invalid");
           skip = true; // DO NOT include this number when calculating the fill total
         }
       } catch (error) {
-        $envelopeBalanceSpan.text(balance_format(original_balance)).negative_check(original_balance);
+        $envelopeBalanceSpan.text(balance_format(prefill_balance)).negative_check(prefill_balance);
         $(this).removeClass("valid").addClass("invalid");
         skip = true; // DO NOT include this number when calculating the fill total
       }
 
       // 2. Iterate over the input fields to calculate the fill total
       fill_total = 0;
-      $('#edit-envelope-fill-form .special-fill-input').each(function(i) {
-        if ($(this) == $currentInput) { //If parsing the input that you are currently focused on
+      $('#edit-envelope-fill-form .special-fill-input').each(function() {
+        if ($(this).is($currentInput)) { //If parsing the input that you are currently focused on
           if (!skip) {
             fill_total = fill_total + num; //Add the result of the parsed expression in the input to the fill total
           }
@@ -1569,8 +1569,11 @@
           $span.text(balance_format(original_balance)).negative_check(original_balance);
           // Fills input fields and adds up the fill total
           if (envelope_ids.includes($(this).data("envelope-id"))) {
-            $(this).val(amounts[envelope_ids.indexOf($(this).data("envelope-id"))].toFixed(2));
-            fill_total = fill_total + parseFloat(amounts[envelope_ids.indexOf($(this).data("envelope-id"))]);
+            var amt = amounts[envelope_ids.indexOf($(this).data("envelope-id"))];
+            $(this).val(amt.toFixed(2)).attr("data-prefill-balance", original_balance - amt); //Set the value in the input and update the metadata
+            fill_total = fill_total + amt;
+          } else {
+            $(this).attr("data-prefill-balance", original_balance); //Set the value in the input and update the metadata
           }
         });
         $('#edit-fill-total').text(balance_format(fill_total)).negative_check(parseFloat(fill_total));
