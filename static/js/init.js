@@ -917,7 +917,7 @@
 
     // Envelope fill math n' stuff
     $('#envelope-fill-form').on("input", ".special-fill-input", function() {
-      var $envelopeBalanceSpan = $(this).parent().siblings(".envelope-balance").children();
+      var $envelopeBalanceSpan = $(this).parent().siblings(".envelope-balance-col").find(".balance");
       var skip;
       var $currentInput = $(this);
       var original_balance = parseFloat($(this).data("original-balance"));
@@ -971,7 +971,7 @@
 
     // Envelope fill editor math n' stuff
     $('#edit-envelope-fill-form').on("input",  ".special-fill-input", function() {
-      var $envelopeBalanceSpan = $(this).parent().siblings(".envelope-balance").children();
+      var $envelopeBalanceSpan = $(this).parent().siblings(".envelope-balance-col").find(".balance");
       var original_fill_total =  parseFloat($('#edit-fill-total').data("original-fill-total"));
       var $currentInput = $(this);
       var prefill_balance = parseFloat($(this).data("prefill-balance"));
@@ -1565,7 +1565,7 @@
           var original_balance = parseFloat($(this).data("original-balance"));
           // this code exists so that if you change a value, close the editor,
           // then reopen it, the envelope balances will always be correct
-          var $span = $(this).parent().siblings(".envelope-balance").children();
+          var $span = $(this).parent().siblings(".envelope-balance-col").find(".balance");
           $span.text(balance_format(original_balance)).negative_check(original_balance);
           // Fills input fields and adds up the fill total
           if (envelope_ids.includes($(this).data("envelope-id"))) {

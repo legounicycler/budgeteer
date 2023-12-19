@@ -15,8 +15,13 @@
           <div class="col s3 envelope-budget editor-col input-field">
             <input class="validate special-fill-input" type="text" autocomplete="off" name="fill-amount" data-original-balance="{{envelope.balance}}" data-prefill-balance="" placeholder="0.00" data-envelope-id="{{envelope.id}}" pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
           </div>
-          <div class="col s4 m3 valign-wrapper envelope-balance editor-col">
-            <span class="{{'negative' if envelope.balance < 0}} balance">{{envelope.balance|balanceformat}}</span>
+          <div class="col s4 m3 envelope-balance-col editor-col">
+            <div class="row envelope-fill-balance-row valign-wrapper">
+              <span class="{{'negative' if envelope.balance < 0}} balance">{{envelope.balance|balanceformat}}</span>
+            </div>
+            <div class="row envelope-fill-budget-row valign-wrapper">
+              <span class="tiny">of {{envelope.budget|balanceformat}}</span>
+            </div>
           </div>
         </li>
       {% endif %}
