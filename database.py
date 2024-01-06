@@ -842,6 +842,20 @@ def envelope_fill(t):
 
 # endregion ENVELOPE FUNCTIONS
 
+# region USER FUNCTIONS ------ #
+def get_user(email):
+    c.execute("SELECT user_id, password_hash, first_name, last_name FROM users WHERE email=?",(email,))
+    user_touple = c.fetchone()
+    if user_touple is not None:
+        u = User(email,user_touple[1],user_touple[2],user_touple[3])
+        return u
+
+def insert_user(u):
+    with conn:
+        c.execute("INSERT INTO users (email, password_hash, first_name, last_name) VALUES (?,?,?,?)", (u.email,u.password_hash,u.first_name,u.last_name))
+
+# endregion USER FUNCTIONS
+
 # region ---------------OTHER FUNCTIONS---------------
 
 def get_total(user_id):
