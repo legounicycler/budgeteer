@@ -376,10 +376,10 @@
           url: url,
           data: $(this).serialize(),
         }).done(function( o ) {
-          if (o['login']) {
+          if (o['login_success']) {
             window.location.href= "home";
           } else {
-            M.toast({html: o['message']})
+            M.toast({html: o['message']});
           }
         });
       });
@@ -395,44 +395,7 @@
           url: url,
           data: $(this).serialize(),
         }).done(function( o ) {
-          if (o['login']) {
-            window.location.href= "home";
-          } else {
-            M.toast({html: o['message']})
-          }
-        });
-      });
-
-      // AJAX request for login form
-      $('#login-form').submit(function(e) {
-        e.preventDefault()
-        var url = $(this).attr('action');
-        var method = $(this).attr('method');
-        $.ajax({
-          type: method,
-          url: url,
-          data: $(this).serialize(),
-        }).done(function( o ) {
-          if (o['login']) {
-            window.location.href= "home";
-          } else {
-            M.toast({html: o['message']})
-          }
-        });
-      });
-
-
-      // AJAX request for account creation form
-      $('#create-account-form').submit(function(e) {
-        e.preventDefault()
-        var url = $(this).attr('action');
-        var method = $(this).attr('method');
-        $.ajax({
-          type: method,
-          url: url,
-          data: $(this).serialize(),
-        }).done(function( o ) {
-          if (o['login']) {
+          if (o['login_success']) {
             window.location.href= "home";
           } else {
             M.toast({html: o['message']})

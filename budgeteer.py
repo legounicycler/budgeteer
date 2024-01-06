@@ -20,23 +20,6 @@ app.config['SECRET_KEY'] = 'totallysecretkey'
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-class User(UserMixin):
-
-  def __init__(self,email,password_hash,first_name,last_name):
-    self.password_hash = password_hash
-    self.email = email
-    self.id = self.email
-    self.first_name = first_name
-    self.last_name = last_name
-
-  def check_password(self, password):
-    return check_password_hash(self.password_hash, password)
-
-  def set_password(self, password):
-    self.password_hash = generate_password_hash(password)
-
-  def __repr__(self):
-    return '<User {}>'.format(self.email)
 
 @app.route("/create_account", methods=["POST", "GET"])
 def create_account():
@@ -51,11 +34,12 @@ def create_account():
     u = User(new_email, generate_password_hash(new_password), new_first_name, new_last_name)
     insert_user(u)
     data['message'] = None
-    data['login'] = True
+    data['login_success'] = True
     login_user(u, remember=False)
+
   else:
-    data['message'] = 'INVALID'
-    data['login'] = False
+    data['message'] = 'YOUR PASSWORDS DO NOT MATCH'
+    data['login_success'] = False
   return jsonify(data)
 
 
@@ -67,42 +51,41 @@ def load_user(email):
 @app.route('/login', methods=["POST", "GET"])
 def login():
   data = {}
-  if current_user.is_authenticated:
-    print("User already authenticated")
-    return redirect(url_for('home'))
   try:
     email = request.form['email']
     password = request.form['password']
   except:
     return redirect(url_for('login_page'))
   user = load_user(email)
-  user.password = password
-  print(user.password)
   if user is None:
     data['message'] = 'USER DOES NOT EXIST'
-    data['login'] = False
+    data['login_success'] = False
     return jsonify(data)
   elif not user.check_password(password):
     data['message'] = 'INCORRECT PASSWORD'
-    data['login'] = False
+    data['login_success'] = False
     return jsonify(data)
   else:
     login_user(user, remember=False) # Swap to this eventually: login_user(user, remember=form.remember_me.data)
     data['message'] = None
-    data['login'] = True
+    data['login_success'] = True
     return jsonify(data)
 
 
 @app.route('/login-page', methods=["POST", "GET"])
 def login_page():
-  return render_template('login.html')
+  if current_user.is_authenticated:
+    print("User already authenticated")
+    return redirect(url_for('home'))
+  else:
+    return render_template('login.html')
 
 @app.route('/logout')
 @login_required
 def logout():
   if current_user.is_authenticated:
     logout_user()
-  return redirect(url_for('login'))
+  return redirect(url_for('login_page'))
 
 
 USER_ID = 1

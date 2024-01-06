@@ -9,6 +9,8 @@ from datetime import date
 import json
 import platform
 import sys, os
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 
 platform = platform.system()
 if platform == 'Windows':
@@ -88,6 +90,24 @@ class Envelope:
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id,self.display_order)
     def __str__(self):
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id,self.display_order)
+
+class User(UserMixin):
+
+  def __init__(self,email,password_hash,first_name,last_name):
+    self.email = email
+    self.id = self.email
+    self.password_hash = password_hash
+    self.first_name = first_name
+    self.last_name = last_name
+
+  def check_password(self, password):
+    return check_password_hash(self.password_hash, password)
+
+  def set_password(self, password):
+    self.password_hash = generate_password_hash(password)
+
+  def __repr__(self):
+    return '<User {}>'.format(self.email)
 
 # endregion CLASS DEFINITIONS
 
@@ -844,11 +864,17 @@ def envelope_fill(t):
 
 # region USER FUNCTIONS ------ #
 def get_user(email):
-    c.execute("SELECT user_id, password_hash, first_name, last_name FROM users WHERE email=?",(email,))
-    user_touple = c.fetchone()
+    """
+    Given an email address, return a User object if the email is in the database, or return none if not
+    """
+    c_local = conn.cursor()
+    c_local.execute("SELECT password_hash, first_name, last_name FROM users WHERE email=?",(email,))
+    user_touple = c_local.fetchone()
     if user_touple is not None:
-        u = User(email,user_touple[1],user_touple[2],user_touple[3])
+        u = User(email, user_touple[0], user_touple[1], user_touple[2])
         return u
+    else:
+        return None
 
 def insert_user(u):
     with conn:
@@ -1167,6 +1193,17 @@ def print_database(print_all=0,reverse=1):
     print()
     print("TOTAL FUNDS: ", get_total(USER_ID))
     print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
+
+    print('USERS:')
+    c.execute("PRAGMA table_info(users)")
+    colnames = ''
+    for row in c:
+        colnames = colnames + row[1] + ', '
+    print("(" + colnames[:-2] + ")\n")
+    c.execute("SELECT * FROM users ORDER BY user_id ASC")
+    for row in c:
+        print(row)
+    print()
 
 # endregion DEBUGGING FUNCTIONS
 
