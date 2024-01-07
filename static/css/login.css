@@ -41,3 +41,19 @@ body {
 #no-account {
     cursor: pointer
 }
+
+@media only screen and (max-width: 992px) {
+    
+    #orange-div {
+        display: none;
+    }
+
+    main {
+        height: auto;
+    }
+
+    .content {
+        position: fixed;
+    }
+
+  }

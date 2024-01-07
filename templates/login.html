@@ -61,10 +61,10 @@
           </div> -->
         </div>
       </div>
-      <div class="col l6 offset-l1 m12 main-content-col">
+      <div class="col l6 offset-l1 m12 s12 main-content-col">
         <div class="row main-content-row valign-wrapper">
           <div class="container">
-            <div class="card hoverable">
+            <div id="login-card" class="card hoverable">
 
               <div class="card-content">
                 <div class="row">
@@ -101,7 +101,7 @@
               </div>
 
               <div class="card-reveal">
-                <span class="card-title grey-text text-darken-4"><i class="material-icons right">close</i></span>
+                <span class="card-title grey-text text-darken-4"><i id="login-card-close" class="material-icons right">close</i></span>
                 <div class="row">
                   <h4>Create your account</h4>
                 </div>
@@ -148,6 +148,6 @@
   <script src="{{url_for('static', filename='node_modules/jquery/dist/jquery.min.js')}}"></script>
   <script src="{{url_for('static', filename='node_modules/jquery-ui/dist/jquery-ui.min.js')}}"></script>
   <script src="{{url_for('static', filename='js/materialize.js')}}"></script> <!-- TODO: Modernize this-->
-  <script src="{{url_for('static', filename='js/init.js')}}"></script>
+  <script src="{{url_for('static', filename='js/login.js')}}"></script>
 </body>
 </html>
