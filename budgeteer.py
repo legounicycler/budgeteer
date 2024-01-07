@@ -3,11 +3,11 @@ This file contains functions relevant the GUI, the flask app, and getting data f
 This file interacts a lot with the javascript/jQuery running on the site
 """
 
-from hashlib import new
-from flask import Flask, render_template, url_for, request, redirect, jsonify, flash
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, render_template, url_for, request, redirect, jsonify
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash
 from database import *
+from forms import *
 from datetime import datetime
 from datetime import timedelta
 import calendar
@@ -19,29 +19,7 @@ app.config['SECRET_KEY'] = 'totallysecretkey'
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-
-
-@app.route("/create_account", methods=["POST", "GET"])
-def create_account():
-  new_email = request.form['new_email']
-  new_password = request.form['new_password']
-  new_new_password = request.form['new_new_password']
-  new_first_name = request.form['new_first_name']
-  new_last_name = request.form['new_last_name']
-  data = {}
-  if new_password == new_new_password:
-    # If new_email is not unique, display error message
-    u = User(new_email, generate_password_hash(new_password), new_first_name, new_last_name)
-    insert_user(u)
-    data['message'] = None
-    data['login_success'] = True
-    login_user(u, remember=False)
-
-  else:
-    data['message'] = 'YOUR PASSWORDS DO NOT MATCH'
-    data['login_success'] = False
-  return jsonify(data)
-
+login_manager.login_view = "login"
 
 @login_manager.user_loader
 def load_user(email):
@@ -50,42 +28,62 @@ def load_user(email):
 @app.route("/")
 @app.route('/login', methods=["POST", "GET"])
 def login():
-  data = {}
-  try:
-    email = request.form['email']
-    password = request.form['password']
-  except:
-    return redirect(url_for('login_page'))
-  user = load_user(email)
-  if user is None:
-    data['message'] = 'USER DOES NOT EXIST'
-    data['login_success'] = False
-    return jsonify(data)
-  elif not user.check_password(password):
-    data['message'] = 'INCORRECT PASSWORD'
-    data['login_success'] = False
-    return jsonify(data)
-  else:
-    login_user(user, remember=False) # Swap to this eventually: login_user(user, remember=form.remember_me.data)
-    data['message'] = None
-    data['login_success'] = True
-    return jsonify(data)
-
-
-@app.route('/login-page', methods=["POST", "GET"])
-def login_page():
   if current_user.is_authenticated:
-    print("User already authenticated")
     return redirect(url_for('home'))
   else:
-    return render_template('login.html')
+    login_form = LoginForm()
+    register_form = RegisterForm()
+    return render_template('login.html',login_form=login_form, register_form=register_form)
+  
+@app.route('/api/login', methods=["POST", "GET"])
+def api_login():
+  if current_user.is_authenticated:
+    return jsonify({'login_success': True})
+  
+  form = LoginForm()
+  email = form.email.data
+  password = form.password.data
+  if email is not None:
+    user = load_user(email)
+    if user is not None:
+      if user.check_password(password):
+        login_user(user, remember=False)
+        return jsonify({'login_success': True})
+      else:
+        return jsonify({'message': 'Incorrect password!', 'login_success': False})
+    else:
+      return jsonify({'message': 'No user with that email exists!', 'login_success': False})
+  else:
+    return jsonify({'message': "FORM VALIDATION ERROR (Shouldn't be possible)", 'login_success': False})
+
+@app.route("/register", methods=["POST", "GET"])
+def register():
+  form = RegisterForm()
+  new_email = form.new_email.data
+  new_password = form.new_password.data
+
+  new_first_name = form.new_first_name.data
+  new_last_name = form.new_last_name.data
+
+  # 1. Check if user with that email already exists
+  if get_user(new_email) is not None:
+    return jsonify({'message': 'A user with that email already exists!', 'login_success': False})
+
+  # 2. Check the password validation
+  if form.new_password.validate(form) and form.confirm_password.validate(form):
+    new_user = User(new_email, generate_password_hash(new_password), new_first_name, new_last_name)
+    insert_user(new_user)
+    login_user(new_user, remember=False) # Swap to this eventually: login_user(user, remember=form.remember_me.data)
+    return jsonify({'login_success': True})
+  else:
+    return jsonify({'message': 'Passwords must match!', 'login_success': False})
 
 @app.route('/logout')
 @login_required
 def logout():
   if current_user.is_authenticated:
     logout_user()
-  return redirect(url_for('login_page'))
+  return redirect(url_for('login'))
 
 
 USER_ID = 1
@@ -616,6 +614,7 @@ def delete_transaction_page():
 
 # TODO: Once the login system is implemented, this whole page will no longer be needed, since all check_pending_request() calls will be in /home or /data-reload
 @app.route('/api/check_pending_transactions', methods=['POST'])
+@login_required
 def check_pending_request():
   timestamp = request.get_json()['timestamp']
   return jsonify({'should_reload': check_pending_transactions(timestamp)})
@@ -773,6 +772,7 @@ def multi_delete():
   return jsonify({'toasts': toasts})
 
 @app.route('/api/load-static-html', methods=["POST"])
+@login_required
 def load_static_html():
   return jsonify({
     'edit_envelope_row': render_template('edit_envelope_row.html'),
@@ -784,7 +784,7 @@ def load_static_html():
 if __name__ == '__main__':
   platform = platform.system()
   if platform == 'Windows':
-      debug_bool = True
+      app.run(debug=True)
   else:
-    debug_bool = False
-  app.run(debug=debug_bool)
+    app.run(debug=False)
+  
