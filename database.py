@@ -197,7 +197,7 @@ def get_transaction(id):
     t.id = tdata[0]
     return t
 
-def get_home_transactions(start, amount):
+def get_home_transactions(uuid, start, amount):
     """
     For displaying transactions on the HOME PAGE ONLY
     Given a start number and an amount of transactions to fetch, returns:
@@ -208,7 +208,7 @@ def get_home_transactions(start, amount):
     Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
     with its summed total
     """
-    c.execute("SELECT id from TRANSACTIONS GROUP BY grouping ORDER BY day DESC, id DESC LIMIT ? OFFSET ?", (amount, start))
+    c.execute("SELECT id from TRANSACTIONS WHERE user_id=? GROUP BY grouping ORDER BY day DESC, id DESC LIMIT ? OFFSET ?", (uuid, amount, start))
     groupings = c.fetchall()
     tlist = []
     for id in groupings:
@@ -368,11 +368,16 @@ def get_scheduled_transactions(user_id):
         tlist.append(t)
     return tlist
 
-def delete_transaction(t_id):
+def delete_transaction(uuid, t_id):
     """
     Deletes transaction and associated grouped transactions and updates appropriate envelope/account balances
+    Returns True if the transaction was actually deleted, False if it was not deleted (i.e. if the user did not have permission to delete it)
     """
     with conn:
+        if get_transaction(t_id).user_id != uuid:
+            log_write(f"ERROR: User {uuid} attempted to delete transaction {t_id} which belongs to user {get_transaction(t_id).user_id}.")
+            return False
+
         # 1. Get all the grouped transactions to delete
         ids = get_grouped_ids_from_id(t_id)
         for id in ids:                
@@ -447,6 +452,8 @@ def delete_transaction(t_id):
             # 6. Delete the actual transaction from the database
             c.execute("DELETE FROM transactions WHERE id=?", (id,))
             log_write('T DELETE: ' + str(t))
+
+            return True
 
 def new_split_transaction(t):
     """
@@ -528,14 +535,14 @@ def get_account(id):
     a.id = adata[0]
     return a
 
-def get_account_dict():
+def get_account_dict(uuid):
     """
     Used for displaying the accounts in the side panel and selects.
     Returns:
     1. A boolean that says whether there are accounts to render
     2. A tuple with a dictionary with keys of account_id and values of account objects.
     """
-    c.execute("SELECT id FROM accounts ORDER by display_order ASC, id ASC")
+    c.execute("SELECT id FROM accounts where user_id=? ORDER by display_order ASC, id ASC", (uuid,))
     ids = unpack(c.fetchall())
     a_dict = {}
     active_accounts = False
@@ -700,7 +707,7 @@ def get_envelope(id):
     e.id = edata[0]
     return e
 
-def get_envelope_dict():
+def get_envelope_dict(uuid):
     """
     Used for displaying the envelopes in the side panel and selects.
     Returns:
@@ -708,7 +715,7 @@ def get_envelope_dict():
     2. A tuple with a dictionary with keys of envelope_id and values of envelope objects.
     3. A string displaying the total budget for all envelopes
     """
-    c.execute("SELECT id FROM envelopes ORDER by display_order ASC, id ASC")
+    c.execute("SELECT id FROM envelopes WHERE user_id=? ORDER by display_order ASC, id ASC", (uuid,))
     ids = unpack(c.fetchall())
     e_dict = {}
     active_envelopes = False
@@ -948,14 +955,17 @@ def get_grouped_ids_from_id(t_id):
     c.execute("SELECT id from transactions WHERE grouping = (SELECT grouping FROM transactions WHERE id=?)", (t_id,))
     return unpack(c.fetchall())
 
-def get_grouped_json(t_id):
+def get_grouped_json(uuid, t_id):
     """
     Given a transaction id, return a json with the transaction data necessary to fill the transaction editor
     This function is called for displaying ENVELOPE_TRANSFER's, ACCOUNT_TRANSFER's, SPLIT_TRANSACTION's, and ENVELOPE_FILL's
     """
+    if get_transaction(t_id).user_id != uuid:
+        log_write(f"ERROR: User {uuid} attempted to get grouped transaction data for id={t_id} which belongs to user {get_transaction(t_id).user_id}.")
+        return {'success', False}
+
     ids = get_grouped_ids_from_id(t_id)
-    data = {}
-    data['transactions'] = []
+    data = {'transactions': [], 'success': True}
     for id in ids:
         t = get_transaction(id)
         data['transactions'].append({

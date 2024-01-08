@@ -1094,13 +1094,17 @@
         data: JSON.stringify({"offset": parseInt($(this).attr('data-offset')), "current_page": current_page}),
         contentType: 'application/json'
       }).done(function( o ) {
-        $('#load-more').before(o['transactions'])
-        if (o['limit']) {
-          $('#load-more').remove()
+        if (o.success == false) {
+          M.toast({html: o['toasts']}); //Display error message
         } else {
-          $('#load-more').attr('data-offset', o['offset'])
+          $('#load-more').before(o['transactions'])
+          if (o['limit']) {
+            $('#load-more').remove()
+          } else {
+            $('#load-more').attr('data-offset', o['offset'])
+          }
+          refresh_reconcile()
         }
-        refresh_reconcile()
       });
     });
 
@@ -1192,73 +1196,76 @@
         data: JSON.stringify({"current_page": current_page, "timestamp": gen_timestamp(), "check_pending": check_pending, "reload_transactions": reload_transactions}),
         contentType: 'application/json'
       }).done(function( o ) {
-        
-        // 1. Reload the HTML
-        $('#page-total').text(o['page_total']);
-        $('#accounts-bin').replaceWith(o['accounts_html']);
-        $('#envelopes-bin').replaceWith(o['envelopes_html']);
-        $('#envelope-modal').replaceWith(o['envelope_editor_html']);
-        $('#account-modal').replaceWith(o['account_editor_html']);
-        $('#envelope-modal, #account-modal').modal();
-        if (reload_transactions) {
-          $('#load-more').remove();
-          $('#transactions-bin').replaceWith(o['transactions_html']);
-          refresh_reconcile();
+        if (o.success == false) {
+          M.toast({html: o['toasts']}); //Display error message
+        } else {
+          // 1. Reload the HTML
+          $('#page-total').text(o['page_total']);
+          $('#accounts-bin').replaceWith(o['accounts_html']);
+          $('#envelopes-bin').replaceWith(o['envelopes_html']);
+          $('#envelope-modal').replaceWith(o['envelope_editor_html']);
+          $('#account-modal').replaceWith(o['account_editor_html']);
+          $('#envelope-modal, #account-modal').modal();
+          if (reload_transactions) {
+            $('#load-more').remove();
+            $('#transactions-bin').replaceWith(o['transactions_html']);
+            refresh_reconcile();
+          }
+
+          // 2. Update the total text
+          $('#total span').text(balance_format(o['total'])).negative_check(o['total']);
+
+          // 3. Update the unallocated balance text
+          $('#unallocated span, #unallocated-balance-envelope-filler').attr('data-amt', o['unallocated']).text(balance_format(o['unallocated'])).negative_check(o['unallocated']);
+
+          // 4.1 Update selects in transaction editor
+          expense_editor.appendTo('#editor-row');
+          $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
+          $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
+          expense_editor.detach();
+
+          // 4.2 Update selects in transfer editor
+          transfer_editor.appendTo('#editor-row');
+          $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
+          $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
+          $('#envelope-transfer-edit select').first().attr('name', 'from_envelope');
+          $('#envelope-transfer-edit select').last().attr('name', 'to_envelope');
+          $('#account-transfer-edit select').first().attr('name', 'from_account');
+          $('#account-transfer-edit select').last().attr('name', 'to_account');
+          transfer_editor.detach();
+
+          // 4.3 Update selects in the income editor
+          income_editor.appendTo('#editor-row');
+          $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
+          $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
+          income_editor.detach()
+
+          // 4.4 Re-initialize all selects
+          $('select').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+
+          // 5. Update the envelope fill editor
+          envelope_fill_editor.appendTo('#editor-row');
+          $('.envelope-fill-editor-bin').replaceWith(o['envelope_fill_editor_rows_html']);
+          $('#fill-total').text("$0.00").removeClass("negative");
+          envelope_fill_editor.detach();
+
+          //6. Re-enable the simplebar scrollers
+          $('.scroller').each(function(index,el) {
+            new SimpleBar(el);
+          });
+
+          // 7. Update the datepickers 
+          $('.datepicker').datepicker('setDate', new Date());
+          $('input[name="date"]').val((new Date()).toLocaleDateString("en-US", {day: '2-digit', month: '2-digit', year: 'numeric'}));
+
+          // 8. Other functions
+          budget_bars(); // Update the envelope budget bars
+          envelope_and_account_editor_binds(); // Various event binds for the envelope/account editor modals
+          editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the envelope/account editor
+          M.updateTextFields(); //Ensure that text input labels don't overlap with filled text
+
+          console.log("Page data reloaded!");
         }
-
-        // 2. Update the total text
-        $('#total span').text(balance_format(o['total'])).negative_check(o['total']);
-
-        // 3. Update the unallocated balance text
-        $('#unallocated span, #unallocated-balance-envelope-filler').attr('data-amt', o['unallocated']).text(balance_format(o['unallocated'])).negative_check(o['unallocated']);
-
-        // 4.1 Update selects in transaction editor
-        expense_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
-        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
-        expense_editor.detach();
-
-        // 4.2 Update selects in transfer editor
-        transfer_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
-        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
-        $('#envelope-transfer-edit select').first().attr('name', 'from_envelope');
-        $('#envelope-transfer-edit select').last().attr('name', 'to_envelope');
-        $('#account-transfer-edit select').first().attr('name', 'from_account');
-        $('#account-transfer-edit select').last().attr('name', 'to_account');
-        transfer_editor.detach();
-
-        // 4.3 Update selects in the income editor
-        income_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
-        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
-        income_editor.detach()
-
-        // 4.4 Re-initialize all selects
-        $('select').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
-
-        // 5. Update the envelope fill editor
-        envelope_fill_editor.appendTo('#editor-row');
-        $('.envelope-fill-editor-bin').replaceWith(o['envelope_fill_editor_rows_html']);
-        $('#fill-total').text("$0.00").removeClass("negative");
-        envelope_fill_editor.detach();
-
-        //6. Re-enable the simplebar scrollers
-        $('.scroller').each(function(index,el) {
-          new SimpleBar(el);
-        });
-
-        // 7. Update the datepickers 
-        $('.datepicker').datepicker('setDate', new Date());
-        $('input[name="date"]').val((new Date()).toLocaleDateString("en-US", {day: '2-digit', month: '2-digit', year: 'numeric'}));
-
-        // 8. Other functions
-        budget_bars(); // Update the envelope budget bars
-        envelope_and_account_editor_binds(); // Various event binds for the envelope/account editor modals
-        editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the envelope/account editor
-        M.updateTextFields(); //Ensure that text input labels don't overlap with filled text
-
-        console.log("Page data reloaded!");
       });
     };
 
@@ -1471,48 +1478,54 @@
           type: "GET",
           url: "/api/transaction/" + id + "/group",
         }).done(function( o ) {
-          var t_data = o["transactions"];
+          if (!o['success']) {
+            M.toast({html: "ERROR: uuid error"});
+            // TODO: THIS SHOULD BREAK FROM THE WHOLE FUNCTION SO THAT THE MODAL DOES NOT ATTEMPT TO OPEN
+          } else {
+            var t_data = o["transactions"];
 
-          // depending on the type, get/format different transaction data
-          if (type == ENVELOPE_TRANSFER) {
-            var t1 = t_data[0];
-            var t2 = t_data[1];
-            if (t1["amt"] > 0) {
-              to_envelope = t2["envelope_id"];
-              from_envelope = t1["envelope_id"];
-            } else {
-              to_envelope = t1["envelope_id"];
-              from_envelope = t2["envelope_id"];
-            }
-          } else if (type == ACCOUNT_TRANSFER) {
-            var t1 = t_data[0];
-            var t2 = t_data[1];
-            if (t1["amt"] > 0) {
-              to_account = t2["account_id"];
-              from_account = t1["account_id"];
-            } else {
-              to_account = t1["account_id"];
-              from_account = t2["account_id"];
-            }
-          } else if (type == SPLIT_TRANSACTION) {
-            envelope_ids = [];
-            amounts = [];
-            $.each(t_data, function(key, t) {
-                envelope_ids.push(t['envelope_id']);
-                amounts.push(t['amt']);
-            });
-            amt = amounts[0];
-            envelope_id = envelope_ids[0];
-          } else if (type == ENVELOPE_FILL) {
-            envelope_ids = [];
-            amounts = [];
-            $.each(t_data, function(key, t) {
-                if (t['envelope_id'] != 1) {
+            // depending on the type, get/format different transaction data
+            if (type == ENVELOPE_TRANSFER) {
+              var t1 = t_data[0];
+              var t2 = t_data[1];
+              if (t1["amt"] > 0) {
+                to_envelope = t2["envelope_id"];
+                from_envelope = t1["envelope_id"];
+              } else {
+                to_envelope = t1["envelope_id"];
+                from_envelope = t2["envelope_id"];
+              }
+            } else if (type == ACCOUNT_TRANSFER) {
+              var t1 = t_data[0];
+              var t2 = t_data[1];
+              if (t1["amt"] > 0) {
+                to_account = t2["account_id"];
+                from_account = t1["account_id"];
+              } else {
+                to_account = t1["account_id"];
+                from_account = t2["account_id"];
+              }
+            } else if (type == SPLIT_TRANSACTION) {
+              envelope_ids = [];
+              amounts = [];
+              $.each(t_data, function(key, t) {
                   envelope_ids.push(t['envelope_id']);
-                  amounts.push(t['amt'] * -1);
-                }
-            });
-          };
+                  amounts.push(t['amt']);
+              });
+              amt = amounts[0];
+              envelope_id = envelope_ids[0];
+            } else if (type == ENVELOPE_FILL) {
+              envelope_ids = [];
+              amounts = [];
+              $.each(t_data, function(key, t) {
+                  if (t['envelope_id'] != 1) {
+                    envelope_ids.push(t['envelope_id']);
+                    amounts.push(t['amt'] * -1);
+                  }
+              });
+            };
+          }
+          
         });
       }
 

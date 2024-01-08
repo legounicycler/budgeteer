@@ -27,6 +27,13 @@ def set_secure_cookie(response, key, value):
   response.set_cookie(key, encrypted_value, httponly=True, secure=True, max_age=30*24*60*60) #Make age is 30 days
   return response
 
+def retrieve_uuid():
+  encrypted_uuid = request.cookies.get('uuid')
+  if encrypted_uuid:
+    return serializer.loads(encrypted_uuid)    
+  else:
+    return None
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
@@ -96,9 +103,6 @@ def logout():
   if current_user.is_authenticated:
     logout_user()
   return redirect(url_for('login'))
-
-
-USER_ID = 1
 
 
 # TODO: Make this a global filter instead
@@ -198,14 +202,17 @@ app.jinja_env.filters['inputformat'] = inputformat
 @app.route("/home", methods=['GET'])
 @login_required
 def home():
-  current_page = 'All Transactions'
-  (transactions_data, offset, limit) = get_home_transactions(0,50)
-  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
-  (active_accounts, accounts_data) = get_account_dict()
-  total_funds = get_total(USER_ID)
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify("ERROR: No uuid cookie found!")
+  
+  (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
+  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
+  (active_accounts, accounts_data) = get_account_dict(uuid)
+  total_funds = get_total(uuid)
   return render_template(
     'layout.html',
-    current_page=current_page,
+    current_page='All transactions',
     t_type_dict=t_type_dict,
     t_type_icon_dict=t_type_icon_dict,
     active_envelopes=active_envelopes,
@@ -225,11 +232,15 @@ def home():
 @app.route("/get_envelope_page", methods=["POST"])
 @login_required
 def get_envelope_page():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify("ERROR: No uuid cookie found!")
+  
   envelope_id = request.get_json()['envelope_id']
   current_page = f'envelope/{envelope_id}'
   (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,0,50)
-  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
-  (active_accounts, accounts_data) = get_account_dict()
+  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
+  (active_accounts, accounts_data) = get_account_dict(uuid)
   page_total = balanceformat(get_envelope(envelope_id).balance/100)
   data = {}
   data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
@@ -240,11 +251,15 @@ def get_envelope_page():
 @app.route("/get_account_page", methods=["POST"])
 @login_required
 def get_account_page():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify("ERROR: No uuid cookie found!")
+  
   account_id = request.get_json()['account_id']
   current_page = f'account/{account_id}'
   (transactions_data, offset, limit) = get_account_transactions(account_id,0,50)
-  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
-  (active_accounts, accounts_data) = get_account_dict()
+  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
+  (active_accounts, accounts_data) = get_account_dict(uuid)
   page_total = balanceformat(get_account(account_id).balance/100)
   data = {}
   data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
@@ -255,6 +270,10 @@ def get_account_page():
 @app.route('/new_expense', methods=['POST'])
 @login_required
 def new_expense(edited=False):
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({'toasts': ["ERROR: No uuid cookie found!"], 'success': False})
+  
   names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
   amounts = request.form.getlist('amount')
   envelope_ids = request.form.getlist('envelope_id')
@@ -279,11 +298,11 @@ def new_expense(edited=False):
     success = False
   else:
     for name in names:
-      t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, USER_ID, pending)
+      t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, uuid, pending)
       if scheduled and not pending:
         # Create pending scheduled transaction
         nextdate = schedule_date_calc(date, schedule, timestamp)
-        scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
+        scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, uuid, is_pending(nextdate, timestamp))
       elif scheduled and pending:
         t.schedule = schedule
 
@@ -326,6 +345,10 @@ def new_expense(edited=False):
 @app.route('/new_transfer', methods=['POST'])
 @login_required
 def new_transfer(edited=False):
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({'toasts': ["ERROR: No uuid cookie found!"], 'success': False})
+  
   transfer_type = int(request.form['transfer_type'])
   names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
@@ -351,31 +374,31 @@ def new_transfer(edited=False):
         from_account = request.form['from_account']
         if scheduled and pending:
           # Create transfer WITH a schedule
-          account_transfer(name, amount, date, to_account, from_account, note, schedule, USER_ID, pending)
+          account_transfer(name, amount, date, to_account, from_account, note, schedule, uuid, pending)
         elif scheduled and not pending:
           # Create transfer WITHOUT schedule, then pending transfer WITH schedule
-          account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID, pending)
+          account_transfer(name, amount, date, to_account, from_account, note, None, uuid, pending)
           nextdate = schedule_date_calc(date, schedule, timestamp)
-          account_transfer(name, amount, nextdate, to_account, from_account, note, schedule, USER_ID, is_pending(nextdate, timestamp))
+          account_transfer(name, amount, nextdate, to_account, from_account, note, schedule, uuid, is_pending(nextdate, timestamp))
           sched_t_submitted = True
         else:
           # Create transfer WITHOUT schedule
-          account_transfer(name, amount, date, to_account, from_account, note, None, USER_ID, pending)
+          account_transfer(name, amount, date, to_account, from_account, note, None, uuid, pending)
       elif (transfer_type == 1):
         to_envelope = request.form['to_envelope']
         from_envelope = request.form['from_envelope']
         if scheduled and pending:
           # Create a transfer WITH a schedule
-          envelope_transfer(name, amount, date, to_envelope, from_envelope, note, schedule, USER_ID, pending)
+          envelope_transfer(name, amount, date, to_envelope, from_envelope, note, schedule, uuid, pending)
         elif scheduled and not pending:
           # Create transfer WITHOUT schedule, then pending transfer WITH schedule
-          envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID, pending)
+          envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, uuid, pending)
           nextdate = schedule_date_calc(date, schedule, timestamp)
-          envelope_transfer(name, amount, nextdate, to_envelope, from_envelope, note, schedule, USER_ID, is_pending(nextdate, timestamp))
+          envelope_transfer(name, amount, nextdate, to_envelope, from_envelope, note, schedule, uuid, is_pending(nextdate, timestamp))
           sched_t_submitted = True
         else:
           # Create transfer WITHOUT schedule
-          envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, USER_ID, pending)
+          envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, uuid, pending)
       else:
         log_write(f"ERROR: '{transfer_type}' isn't a valid transfer type, you twit!")
 
@@ -400,6 +423,10 @@ def new_transfer(edited=False):
 @app.route('/new_income', methods=['POST'])
 @login_required
 def new_income(edited=False):
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({'toasts': ["ERROR: No uuid cookie found!"], 'success': False})
+  
   names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
   date = datetime.strptime(request.form['date'], '%m/%d/%Y')
   timestamp = date_parse(request.form['timestamp'])
@@ -420,11 +447,11 @@ def new_income(edited=False):
     success = False
   else:
     for name in names:
-      t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, pending)
+      t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, uuid, pending)
       if scheduled and not pending:
         insert_transaction(t)
         nextdate = schedule_date_calc(date, schedule, timestamp)
-        scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
+        scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, uuid, is_pending(nextdate, timestamp))
         insert_transaction(scheduled_t)
         sched_t_submitted = True
       elif scheduled and pending:
@@ -454,6 +481,10 @@ def new_income(edited=False):
 @app.route('/fill_envelopes', methods=['POST'])
 @login_required
 def fill_envelopes(edited=False):
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({'toasts': ["ERROR: No uuid cookie found!"], 'success': False})
+  
   names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
   amounts = request.form.getlist('fill-amount')
   envelope_ids = request.form.getlist('envelope_id')
@@ -485,11 +516,11 @@ def fill_envelopes(edited=False):
   else:
     if amounts:
       for name in names:
-        t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, USER_ID, pending)
+        t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, uuid, pending)
         if scheduled and not pending:
           envelope_fill(t)
           nextdate = schedule_date_calc(date, schedule, timestamp)
-          scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, USER_ID, is_pending(nextdate, timestamp))
+          scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, uuid, is_pending(nextdate, timestamp))
           envelope_fill(scheduled_t)
           sched_t_submitted = True
         elif scheduled and pending:
@@ -520,6 +551,10 @@ def fill_envelopes(edited=False):
 
 @app.route('/edit_delete_envelope', methods=['POST'])
 def edit_delete_envelope():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({'toasts': ["ERROR: No uuid cookie found!"], 'success': False})
+  
   name = request.form['name']
   note = request.form['note']
   date = datetime.strptime(request.form['date'], "%m/%d/%Y")
@@ -534,10 +569,10 @@ def edit_delete_envelope():
       e = get_envelope(envelope_id)
       grouping = gen_grouping_num()
       # 1. Empty the deleted envelope
-      t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, date, envelope_id, None, grouping, note, None, 0, USER_ID, False)
+      t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, date, envelope_id, None, grouping, note, None, 0, uuid, False)
       insert_transaction(t_envelope)
       # 2. Fill the unallocated envelope
-      t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, date, UNALLOCATED, None, grouping, note, None, 0, USER_ID, False)
+      t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, date, UNALLOCATED, None, grouping, note, None, 0, uuid, False)
       insert_transaction(t_unallocated)
       # 3. Mark the envelope as deleted
       c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
@@ -556,6 +591,10 @@ def edit_delete_envelope():
 #       update the transaction details in the database
 @app.route('/edit_delete_account', methods=['POST'])
 def edit_delete_account():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({'toasts': ["ERROR: No uuid cookie found!"], 'success': False})
+  
   name = request.form['name']
   note = request.form['note']
   date = datetime.strptime(request.form['date'], "%m/%d/%Y")
@@ -569,7 +608,7 @@ def edit_delete_account():
     a = get_account(account_id)
     
     # 1. Empty the deleted account
-    insert_transaction(Transaction(ACCOUNT_DELETE, name, a.balance, date, UNALLOCATED, a.id, gen_grouping_num(), note, None, 0, USER_ID, False))
+    insert_transaction(Transaction(ACCOUNT_DELETE, name, a.balance, date, UNALLOCATED, a.id, gen_grouping_num(), note, None, 0, uuid, False))
 
     # 2. Mark the account as deleted
     c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
@@ -582,6 +621,10 @@ def edit_delete_account():
 
 @app.route('/edit_account_adjust', methods=['POST'])
 def edit_account_adjust():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({'toasts': ["ERROR: No uuid cookie found!"], 'success': False})
+  
   name = request.form['name']
   date = datetime.strptime(request.form['date'], "%m/%d/%Y")
   note = request.form['note']
@@ -597,7 +640,7 @@ def edit_account_adjust():
     log_write("ERROR: Bad form data!")
     success = False
   else:
-    insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, USER_ID, is_pending(date, timestamp)))
+    insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, uuid, is_pending(date, timestamp)))
     toasts.append("Transaction updated!")
 
   if (health_check() is False):
@@ -607,6 +650,10 @@ def edit_account_adjust():
 @app.route('/edit_transaction', methods=['POST'])
 @login_required
 def edit_transaction():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify("ERROR: No uuid cookie found!")
+  
   id = int(request.form['edit-id'])
   type = int(request.form['type'])
     
@@ -615,7 +662,7 @@ def edit_transaction():
   elif (type == ENVELOPE_TRANSFER or type == ACCOUNT_TRANSFER):
     response =  new_transfer(True)
   elif (type == INCOME):
-    response = new_income()
+    response = new_income(True)
   elif (type == SPLIT_TRANSACTION):
     response = new_expense(True)
   elif (type == ENVELOPE_FILL):
@@ -628,18 +675,29 @@ def edit_transaction():
     response =  edit_account_adjust()
 
   if response.json['success']:
-    delete_transaction(id) #Only delete the original transaction if you were successful in creating the replacement edited transaction
+    delete_success = delete_transaction(uuid, id) #Only delete the original transaction if you were successful in creating the replacement edited transaction
+    if not delete_success:
+      log_write("ERROR: Failed to delete original transaction after editing!")
+      response.json['toasts'] = ["An error occurred, and your request was not processed!"]
+      response.json['success'] = False
   return response
 
 
 @app.route('/delete_transaction_page', methods=['POST'])
 @login_required
-# TODO: Change this to use an <id> in the URL instead of using the hidden form thing (SEE get_json)
+# TODO: Change this to use an <id> in the URL instead of using the hidden form thing (SEE get_json). Also probably rename this to not say "page"
 def delete_transaction_page():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify("ERROR: No uuid cookie found!")
+  
   id = int(request.form['delete-id'])
   # timestamp = date_parse(request.form['timestamp']) #Don't need to check timestamp in this function
-  delete_transaction(id)
-  return jsonify({'toasts': ['Transaction deleted!']})
+  success = delete_transaction(uuid, id)
+  if success:
+    return jsonify({'toasts': ['Transaction deleted!']})
+  else:
+    return jsonify({'toasts': ['An error occurred, and your request was not processed!']})
 
 # TODO: Once the login system is implemented, this whole page will no longer be needed, since all check_pending_request() calls will be in /home or /data-reload
 @app.route('/api/check_pending_transactions', methods=['POST'])
@@ -650,12 +708,21 @@ def check_pending_request():
 
 @app.route('/api/transaction/<id>/group', methods=['GET'])
 @login_required
-def get_json(id):
-  return jsonify(get_grouped_json(id))
+def get_json(id): #TODO: Should this be get_grouped_json??? This doesn't seem to get called anywhere, nor does get_grouped_json()
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({"success": False})
+  
+  return jsonify(get_grouped_ids_from_id(uuid,id))
+  
 
 @app.route('/api/edit-accounts', methods=['POST'])
 @login_required
 def edit_accounts_page():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({'toasts': ["ERROR: No uuid cookie found!"]})
+  
   edit_balances = request.form.getlist('edit-account-balance')
   original_balances = request.form.getlist('original-account-balance')
   edit_names = request.form.getlist('edit-account-name')
@@ -673,11 +740,11 @@ def edit_accounts_page():
   new_accounts = []
   for i in range(len(present_ids)):
     if (edit_names[i] != original_names[i] or edit_balances[i] != original_balances[i] or edit_a_order[i] != original_a_order[present_ids[i]]):
-      a = Account(edit_names[i], int(round(float(edit_balances[i])*100)), False, USER_ID, edit_a_order[i])
+      a = Account(edit_names[i], int(round(float(edit_balances[i])*100)), False, uuid, edit_a_order[i])
       a.id = present_ids[i]
       accounts_to_edit.append(a)
   for i in range(len(new_names)):
-    new_accounts.append(Account(new_names[i], int(round(float(new_balances[i])*100)), False, USER_ID, new_a_order[i]))
+    new_accounts.append(Account(new_names[i], int(round(float(new_balances[i])*100)), False, uuid, new_a_order[i]))
 
   toasts = []
   toasts.append(edit_accounts(accounts_to_edit, new_accounts, present_ids, timestamp)) #From the account editor form, there is no date field, so use timestamp for date of transaction
@@ -689,6 +756,10 @@ def edit_accounts_page():
 @app.route('/api/edit-envelopes', methods=['POST'])
 @login_required
 def edit_envelopes_page():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({'toasts': ["ERROR: No uuid cookie found!"]})
+  
   edit_budgets = request.form.getlist('edit-envelope-budget')
   original_budgets = request.form.getlist('original-envelope-budget')
   envelope_balances = request.form.getlist('envelope-balance')
@@ -707,11 +778,11 @@ def edit_envelopes_page():
   new_envelopes = []
   for i in range(len(present_ids)):
     if (edit_names[i] != original_names[i] or edit_budgets[i] != original_budgets[i] or edit_e_order[i] != original_e_order[present_ids[i]]): #
-      e = Envelope(edit_names[i], int(round(float(envelope_balances[i])*100)), int(round(float(edit_budgets[i])*100)), False, USER_ID, edit_e_order[i])
+      e = Envelope(edit_names[i], int(round(float(envelope_balances[i])*100)), int(round(float(edit_budgets[i])*100)), False, uuid, edit_e_order[i])
       e.id = present_ids[i]
       envelopes_to_edit.append(e)
   for i in range(len(new_names)):
-    new_envelopes.append(Envelope(new_names[i], 0, int(round(float(new_budgets[i])*100)), False, USER_ID, new_e_order[i]))
+    new_envelopes.append(Envelope(new_names[i], 0, int(round(float(new_budgets[i])*100)), False, uuid, new_e_order[i]))
 
   toasts = []
   toasts.append(edit_envelopes(envelopes_to_edit, new_envelopes, present_ids))
@@ -723,6 +794,10 @@ def edit_envelopes_page():
 @app.route('/api/data-reload', methods=['POST'])
 @login_required
 def data_reload():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({"success": False, "toast": 'UUID cookie not found!'})
+  
   js_data = request.get_json()
   current_page = js_data['current_page']
   timestamp = js_data['timestamp']
@@ -742,14 +817,14 @@ def data_reload():
     page_total = balanceformat(get_envelope(envelope_id).balance/100)
   else:
     current_page = 'All Transactions'
-    (transactions_data, offset, limit) = get_home_transactions(0,50)
-    page_total = get_total(USER_ID)
-  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
-  (active_accounts, accounts_data) = get_account_dict()
+    (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
+    page_total = get_total(uuid)
+  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
+  (active_accounts, accounts_data) = get_account_dict(uuid)
   data = {}
   if reload_transactions:
     data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
-  data['total'] = get_total(USER_ID)
+  data['total'] = get_total(uuid)
   data['unallocated'] = envelopes_data[1].balance
   data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
   data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
@@ -759,11 +834,16 @@ def data_reload():
   data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
   data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
   data['page_total'] = page_total
+  data['success'] = True
   return jsonify(data)
 
 @app.route('/api/load-more', methods=['POST'])
 @login_required
 def load_more():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({"success": False, "toast": 'UUID cookie not found!'})
+  
   current_offset = request.get_json()['offset']
   current_page = request.get_json()['current_page']
   if 'account/' in current_page:
@@ -775,33 +855,41 @@ def load_more():
     envelope_id = int(regex.findall(current_page)[0])
     (transactions_data, offset, limit) = get_envelope_transactions(envelope_id,current_offset,50)
   else:
-    (transactions_data, offset, limit) = get_home_transactions(current_offset,50)
+    (transactions_data, offset, limit) = get_home_transactions(uuid,current_offset,50)
 
-  # these 2 lines shouldn't be necessary here after updating to a join clause
-  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
-  (active_accounts, accounts_data) = get_account_dict()
+  # TODO: these 2 lines shouldn't be necessary here after updating to a join clause
+  (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
+  (active_accounts, accounts_data) = get_account_dict(uuid)
   more_transactions = render_template('more_transactions.html', t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, accounts_data=accounts_data, envelopes_data=envelopes_data, current_page=current_page)
-  return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions})
+  return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions, 'success': True})
 
 @app.route('/api/multi-delete', methods=['POST'])
 @login_required
 def multi_delete():
+  uuid = retrieve_uuid()
+  if uuid is None:
+    return jsonify({"success": False, "toast": 'UUID cookie not found!'})
+  
   delete_ids = request.form.getlist('delete')
   # timestamp = date_parse(request.form['timestamp']) #Don't need to check timestamp in this function
   for id in delete_ids:
-    delete_transaction(id)
-
-  toasts = []
-  if len(delete_ids) == 1:
-    toasts.append("Transaction deleted!")
+    delete_transaction(uuid, id)
+    success = delete_transaction(uuid, id)
+  if success:
+    toasts = []
+    if len(delete_ids) == 1:
+      toasts.append("Transaction deleted!")
+    else:
+      toasts.append(f'{len(delete_ids)} transactions deleted!')
+    if (health_check() is False):
+      toasts.append("HEALTH ERROR!")
+    return jsonify({'toasts': toasts})
   else:
-    toasts.append(f'{len(delete_ids)} transactions deleted!')
-  if (health_check() is False):
-   toasts.append("HEALTH ERROR!")
-  return jsonify({'toasts': toasts})
+    return jsonify({'toasts': ['An error occurred, and your request was not processed!']})
+
+  
 
 @app.route('/api/load-static-html', methods=["POST"])
-@login_required
 def load_static_html():
   return jsonify({
     'edit_envelope_row': render_template('edit_envelope_row.html'),
