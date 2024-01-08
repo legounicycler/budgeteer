@@ -865,27 +865,27 @@ def get_user_by_email(email):
     """
     Given an email address, return a User object if the email is in the database, or return none if not
     """
-    c_local = conn.cursor()
-    c_local.execute("SELECT * FROM users WHERE email=?",(email,))
-    u = c_local.fetchone()
-    if u is not None:
-        user = User(u[0], u[1], u[2], u[3], u[4], u[5])
-        return user
-    else:
-        return None
+    with conn:
+        c.execute("SELECT * FROM users WHERE email=?",(email,))
+        u = c.fetchone()
+        if u is not None:
+            user = User(u[0], u[1], u[2], u[3], u[4], u[5])
+            return user
+        else:
+            return None
     
 def get_user_by_uuid(uuid):
     """
     Given a uuid address, return a User object if the uuid is in the database, or return none if not
     """
-    c_local = conn.cursor()
-    c_local.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
-    u = c_local.fetchone()
-    if u is not None:
-        user = User(u[0], u[1], u[2], u[3], u[4], u[5])
-        return user
-    else:
-        return None
+    with conn:
+        c.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
+        u = c.fetchone()
+        if u is not None:
+            user = User(u[0], u[1], u[2], u[3], u[4], u[5])
+            return user
+        else:
+            return None
 
 def insert_user(u):
     with conn:

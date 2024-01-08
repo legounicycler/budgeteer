@@ -10,12 +10,13 @@ from itsdangerous import URLSafeSerializer
 import uuid
 
 from database import *
+from secret import SECRET_KEY
 from forms import *
 from datetime import datetime, timedelta
 import calendar, re, platform
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'totallysecretkey' #TODO Change this to a secret key in a file that isn't in the repo
+app.config['SECRET_KEY'] = SECRET_KEY
 serializer = URLSafeSerializer(app.config['SECRET_KEY'])
 
 def generate_uuid():

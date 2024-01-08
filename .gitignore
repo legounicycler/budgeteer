@@ -6,3 +6,4 @@ EventLog.txt
 *.sqlite
 *.ppk
 *.key
+secret.py

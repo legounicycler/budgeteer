@@ -51,14 +51,6 @@
           });
         });
 
-        $("#no-account").click(function(){
-            $("#login-card").animate({height: $("#login-card .card-reveal").outerHeight()+100}, 500);
-        });
-
-        $("#login-card-close").click(function(){
-            $("#login-card").animate({height: $("#login-card .card-content").outerHeight()}, 500);
-        });
-
       }); // end of document ready
 
     });
