@@ -2,15 +2,10 @@
 This file contains functions relevant to actually manipulating values in the database
 """
 
-import sqlite3
-import datetime
+import sqlite3, datetime, platform, hashlib, secrets
 from datetime import datetime
 from datetime import date
-import json
-import platform
-import sys, os
 from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
 
 platform = platform.system()
 if platform == 'Windows':
@@ -92,22 +87,19 @@ class Envelope:
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id,self.display_order)
 
 class User(UserMixin):
-
-  def __init__(self,email,password_hash,first_name,last_name):
-    self.email = email
-    self.id = self.email
-    self.password_hash = password_hash
-    self.first_name = first_name
-    self.last_name = last_name
-
-  def check_password(self, password):
-    return check_password_hash(self.password_hash, password)
-
-  def set_password(self, password):
-    self.password_hash = generate_password_hash(password)
-
-  def __repr__(self):
-    return '<User {}>'.format(self.email)
+    def __init__(self, uuid, email, password_hash, password_salt, first_name, last_name):
+        self.id = uuid
+        self.email = email
+        self.password_hash = password_hash
+        self.password_salt = password_salt
+        self.first_name = first_name
+        self.last_name = last_name
+    def check_password(self, password):
+        return hash_password(password, self.password_salt)[0] == self.password_hash
+    def __repr__(self):
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name)
+    def __str__(self):
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name)
 
 # endregion CLASS DEFINITIONS
 
@@ -117,6 +109,12 @@ def unpack(list_of_tuples):
     for item in list_of_tuples:
         unpacked_array.append(item[0])
     return unpacked_array
+
+def hash_password(password, salt=None):
+  if salt is None:
+    salt = secrets.token_hex(16)
+  hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
+  return hashed_password, salt
 
 def balanceformat(number):
     """
@@ -863,22 +861,40 @@ def envelope_fill(t):
 # endregion ENVELOPE FUNCTIONS
 
 # region USER FUNCTIONS ------ #
-def get_user(email):
+def get_user_by_email(email):
     """
     Given an email address, return a User object if the email is in the database, or return none if not
     """
     c_local = conn.cursor()
-    c_local.execute("SELECT password_hash, first_name, last_name FROM users WHERE email=?",(email,))
-    user_touple = c_local.fetchone()
-    if user_touple is not None:
-        u = User(email, user_touple[0], user_touple[1], user_touple[2])
-        return u
+    c_local.execute("SELECT * FROM users WHERE email=?",(email,))
+    u = c_local.fetchone()
+    if u is not None:
+        user = User(u[0], u[1], u[2], u[3], u[4], u[5])
+        return user
+    else:
+        return None
+    
+def get_user_by_uuid(uuid):
+    """
+    Given a uuid address, return a User object if the uuid is in the database, or return none if not
+    """
+    c_local = conn.cursor()
+    c_local.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
+    u = c_local.fetchone()
+    if u is not None:
+        user = User(u[0], u[1], u[2], u[3], u[4], u[5])
+        return user
     else:
         return None
 
 def insert_user(u):
     with conn:
-        c.execute("INSERT INTO users (email, password_hash, first_name, last_name) VALUES (?,?,?,?)", (u.email,u.password_hash,u.first_name,u.last_name))
+        c.execute("INSERT INTO users (uuid, email, password_hash, password_salt, first_name, last_name) VALUES (?,?,?,?,?,?)", (u.id, u.email, u.password_hash, u.password_salt, u.first_name, u.last_name))
+
+def delete_user(email):
+    with conn:
+        c.execute("DELETE FROM users WHERE email=?", (email,))
+        
 
 # endregion USER FUNCTIONS
 

@@ -1,5 +1,4 @@
-from database import *
-import platform
+import sqlite3, platform
 
 platform = platform.system()
 if platform == 'Windows':
@@ -11,29 +10,19 @@ conn = sqlite3.connect(database, check_same_thread=False)
 c = conn.cursor()
 
 with conn:
-    # Create new table
-    c.execute("""
-    CREATE TABLE users_new (
-        user_id INTEGER PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        first_name TEXT NOT NULL,
-        last_name TEXT NOT NULL
-        )
-    """)
-
-    # Copy data from old table
-    c.execute("""
-        INSERT INTO users_new (user_id, email)
-        SELECT user_id, email FROM users
-    """)
-
     # Delete the original table
     c.execute("""
         DROP TABLE users
     """)
 
-    # Rename the new table to original name
+    # Create new table
     c.execute("""
-        ALTER TABLE users_new RENAME TO users
+    CREATE TABLE users (
+        uuid TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        password_salt TEXT NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL
+        )
     """)

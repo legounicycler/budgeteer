@@ -24,10 +24,10 @@
             url: url,
             data: $(this).serialize(),
           }).done(function( o ) {
-            if (o['login_success']) {
+            if (o.login_success) {
               window.location.href= "home";
             } else {
-              M.toast({html: o['message']});
+              M.toast({html: o.message});
             }
           });
         });

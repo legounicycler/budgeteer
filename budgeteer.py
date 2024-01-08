@@ -3,27 +3,36 @@ This file contains functions relevant the GUI, the flask app, and getting data f
 This file interacts a lot with the javascript/jQuery running on the site
 """
 
-from flask import Flask, render_template, url_for, request, redirect, jsonify
+from flask import Flask, render_template, url_for, request, redirect, jsonify, make_response
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash
+
+from itsdangerous import URLSafeSerializer
+import uuid
+
 from database import *
 from forms import *
-from datetime import datetime
-from datetime import timedelta
-import calendar
-import re
-import platform
+from datetime import datetime, timedelta
+import calendar, re, platform
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'totallysecretkey'
+app.config['SECRET_KEY'] = 'totallysecretkey' #TODO Change this to a secret key in a file that isn't in the repo
+serializer = URLSafeSerializer(app.config['SECRET_KEY'])
+
+def generate_uuid():
+  return str(uuid.uuid4())
+
+def set_secure_cookie(response, key, value):
+  encrypted_value = serializer.dumps(value)
+  response.set_cookie(key, encrypted_value, httponly=True, secure=True, max_age=30*24*60*60) #Make age is 30 days
+  return response
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
 @login_manager.user_loader
-def load_user(email):
-  return get_user(email)
+def load_user(uuid):
+  return get_user_by_uuid(uuid)
 
 @app.route("/")
 @app.route('/login', methods=["POST", "GET"])
@@ -44,11 +53,12 @@ def api_login():
   email = form.email.data
   password = form.password.data
   if email is not None:
-    user = load_user(email)
+    user = get_user_by_email(email)
     if user is not None:
       if user.check_password(password):
-        login_user(user, remember=False)
-        return jsonify({'login_success': True})
+        login_user(user, remember=False) # Swap to this eventually: login_user(user, remember=form.remember_me.data)
+        response = make_response(jsonify({'login_success': True}))
+        return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
       else:
         return jsonify({'message': 'Incorrect password!', 'login_success': False})
     else:
@@ -61,25 +71,26 @@ def register():
   form = RegisterForm()
   new_email = form.new_email.data
   new_password = form.new_password.data
-
   new_first_name = form.new_first_name.data
   new_last_name = form.new_last_name.data
 
   # 1. Check if user with that email already exists
-  if get_user(new_email) is not None:
+  if get_user_by_email(new_email) is not None:
     return jsonify({'message': 'A user with that email already exists!', 'login_success': False})
 
   # 2. Check the password validation
   if form.new_password.validate(form) and form.confirm_password.validate(form):
-    new_user = User(new_email, generate_password_hash(new_password), new_first_name, new_last_name)
+    uuid = generate_uuid()
+    (new_password_hash, new_password_salt) = hash_password(new_password)
+    new_user = User(uuid, new_email, new_password_hash, new_password_salt, new_first_name, new_last_name)
     insert_user(new_user)
     login_user(new_user, remember=False) # Swap to this eventually: login_user(user, remember=form.remember_me.data)
-    return jsonify({'login_success': True})
+    response = make_response(jsonify({'login_success': True}))
+    return set_secure_cookie(response, 'uuid', new_user.id) # Set the encrypted uuid cookie on the user's browser
   else:
     return jsonify({'message': 'Passwords must match!', 'login_success': False})
 
 @app.route('/logout')
-@login_required
 def logout():
   if current_user.is_authenticated:
     logout_user()
@@ -191,7 +202,24 @@ def home():
   (active_envelopes, envelopes_data, budget_total) = get_envelope_dict()
   (active_accounts, accounts_data) = get_account_dict()
   total_funds = get_total(USER_ID)
-  return render_template('layout.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, active_envelopes=active_envelopes, envelopes_data=envelopes_data, budget_total=budget_total, active_accounts=active_accounts, accounts_data=accounts_data, transactions_data=transactions_data, total_funds=total_funds, offset=offset, limit=limit, email=current_user.email, first_name=current_user.first_name, last_name=current_user.last_name)
+  return render_template(
+    'layout.html',
+    current_page=current_page,
+    t_type_dict=t_type_dict,
+    t_type_icon_dict=t_type_icon_dict,
+    active_envelopes=active_envelopes,
+    envelopes_data=envelopes_data,
+    budget_total=budget_total,
+    active_accounts=active_accounts,
+    accounts_data=accounts_data,
+    transactions_data=transactions_data,
+    total_funds=total_funds,
+    offset=offset,
+    limit=limit,
+    email=current_user.email,
+    first_name=current_user.first_name,
+    last_name=current_user.last_name
+  )
 
 @app.route("/get_envelope_page", methods=["POST"])
 @login_required
