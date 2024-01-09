@@ -209,9 +209,13 @@ app.jinja_env.filters['inputformat'] = inputformat
 def home():
   try:
     uuid = get_uuid_from_cookie()
+    u = get_user_by_uuid(uuid)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
     (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
     (active_accounts, accounts_data) = get_account_dict(uuid)
+    unallocated_balance = get_envelope_balance(u.unallocated_e_id)
     total_funds = get_total(uuid)
     return render_template(
       'layout.html',
@@ -219,6 +223,7 @@ def home():
       t_type_dict=t_type_dict,
       t_type_icon_dict=t_type_icon_dict,
       active_envelopes=active_envelopes,
+      unallocated_balance=unallocated_balance,
       envelopes_data=envelopes_data,
       budget_total=budget_total,
       active_accounts=active_accounts,
@@ -433,6 +438,9 @@ def new_transfer(edited=False):
 def new_income(edited=False):
   try:
     uuid = get_uuid_from_cookie()
+    u = get_user_by_uuid(uuid)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     timestamp = date_parse(request.form['timestamp'])
@@ -454,7 +462,7 @@ def new_income(edited=False):
       success = False
     else:
       for name in names:
-        t = Transaction(INCOME, name, -1 * amount, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, uuid, pending)
+        t = Transaction(INCOME, name, -1 * amount, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, pending)
         if scheduled and not pending:
           insert_transaction(t)
           nextdate = schedule_date_calc(date, schedule, timestamp)
@@ -565,6 +573,9 @@ def fill_envelopes(edited=False):
 def edit_delete_envelope():
   try:
     uuid = get_uuid_from_cookie()
+    u = get_user_by_uuid(uuid)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     name = request.form['name']
     note = request.form['note']
     date = datetime.strptime(request.form['date'], "%m/%d/%Y")
@@ -575,14 +586,14 @@ def edit_delete_envelope():
 
     # A copy of the delete_envelope() function from database.py but with the info from the form pasted in
     with conn:
-      if (envelope_id != UNALLOCATED): #You can't delete the unallocated envelope
+      if (envelope_id != u.unallocated_e_id): #You can't delete the unallocated envelope
         e = get_envelope(envelope_id)
         grouping = gen_grouping_num()
         # 1. Empty the deleted envelope
         t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, date, envelope_id, None, grouping, note, None, 0, uuid, False)
         insert_transaction(t_envelope)
         # 2. Fill the unallocated envelope
-        t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, date, UNALLOCATED, None, grouping, note, None, 0, uuid, False)
+        t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, date, u.unallocated_e_id, None, grouping, note, None, 0, uuid, False)
         insert_transaction(t_unallocated)
         # 3. Mark the envelope as deleted
         c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
@@ -606,6 +617,9 @@ def edit_delete_envelope():
 def edit_delete_account():
   try:
     uuid = get_uuid_from_cookie()
+    u = get_user_by_uuid(uuid)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     name = request.form['name']
     note = request.form['note']
     date = datetime.strptime(request.form['date'], "%m/%d/%Y")
@@ -620,7 +634,7 @@ def edit_delete_account():
       a = get_account(account_id)
       
       # 1. Empty the deleted account
-      insert_transaction(Transaction(ACCOUNT_DELETE, name, a.balance, date, UNALLOCATED, a.id, gen_grouping_num(), note, None, 0, uuid, False))
+      insert_transaction(Transaction(ACCOUNT_DELETE, name, a.balance, date, u.unallocated_e_id, a.id, gen_grouping_num(), note, None, 0, uuid, False))
 
       # 2. Mark the account as deleted
       c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
@@ -638,6 +652,9 @@ def edit_delete_account():
 def edit_account_adjust():
   try:
     uuid = get_uuid_from_cookie()
+    u = get_user_by_uuid(uuid)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     name = request.form['name']
     date = datetime.strptime(request.form['date'], "%m/%d/%Y")
     note = request.form['note']
@@ -654,7 +671,7 @@ def edit_account_adjust():
       log_write("ERROR: Bad form data!")
       success = False
     else:
-      insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, date, UNALLOCATED, account_id, gen_grouping_num(), note, None, False, uuid, is_pending(date, timestamp)))
+      insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, is_pending(date, timestamp)))
       toasts.append("Transaction updated!")
 
     if (health_check() is False):
@@ -753,7 +770,7 @@ def edit_accounts_page():
     new_names = request.form.getlist('new-account-name')
     new_a_order = list(map(int, request.form.getlist('new-account-order'))) # Turn the list of strings into a list of ints
 
-    original_a_order = get_account_order() #TODO: This will need a uuid
+    original_a_order = get_account_order(uuid)
     accounts_to_edit = []
     new_accounts = []
     for i in range(len(present_ids)):
@@ -765,7 +782,7 @@ def edit_accounts_page():
       new_accounts.append(Account(new_names[i], int(round(float(new_balances[i])*100)), False, uuid, new_a_order[i]))
 
     toasts = []
-    toasts.append(edit_accounts(accounts_to_edit, new_accounts, present_ids, timestamp)) #From the account editor form, there is no date field, so use timestamp for date of transaction
+    toasts.append(edit_accounts(uuid, accounts_to_edit, new_accounts, present_ids, timestamp)) #From the account editor form, there is no date field, so use timestamp for date of transaction
 
     if (health_check() is False):
       toasts.append(" HEALTH ERROR!!!")
@@ -792,7 +809,7 @@ def edit_envelopes_page():
     new_budgets = request.form.getlist('new-envelope-budget')
     new_e_order = list(map(int, request.form.getlist('new-envelope-order'))) # Turn the list of strings into a list of ints
 
-    original_e_order = get_envelope_order() #TODO: This will need a uuid
+    original_e_order = get_envelope_order(uuid)
     envelopes_to_edit = []
     new_envelopes = []
     for i in range(len(present_ids)):
@@ -804,7 +821,7 @@ def edit_envelopes_page():
       new_envelopes.append(Envelope(new_names[i], 0, int(round(float(new_budgets[i])*100)), False, uuid, new_e_order[i]))
 
     toasts = []
-    toasts.append(edit_envelopes(envelopes_to_edit, new_envelopes, present_ids))
+    toasts.append(edit_envelopes(uuid, envelopes_to_edit, new_envelopes, present_ids))
 
     if (health_check() is False):
       toasts.append("HEALTH ERROR!")
@@ -817,7 +834,10 @@ def edit_envelopes_page():
 @login_required
 def data_reload():
   try:
-    uuid = get_uuid_from_cookie() 
+    uuid = get_uuid_from_cookie()
+    u = get_user_by_uuid(uuid)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     js_data = request.get_json()
     current_page = js_data['current_page']
     timestamp = js_data['timestamp']
@@ -845,7 +865,7 @@ def data_reload():
     if reload_transactions:
       data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
     data['total'] = get_total(uuid)
-    data['unallocated'] = envelopes_data[1].balance
+    data['unallocated'] = get_envelope_balance(u.unallocated_e_id)
     data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
     data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
     data['account_selector_html'] = render_template('account_selector.html', accounts_data=accounts_data)

@@ -21,10 +21,7 @@ else:
 conn = sqlite3.connect(database, check_same_thread=False)
 c = conn.cursor()
 
-# Going to have to CHANGE since each user has their own unique unallocated envelope
-UNALLOCATED = 1
-
-#Should this eventually be an ENUM instead?
+#Should this eventually be an ENUM instead? Or should it be a part of the transaction class?
 BASIC_TRANSACTION = 0
 ENVELOPE_TRANSFER = 1
 ACCOUNT_TRANSFER = 2
@@ -38,9 +35,6 @@ ACCOUNT_ADJUST = 8
 #Should this also eventually be an ENUM?
 REMOVE = False
 INSERT = True
-
-# Temporary testing user_id
-USER_ID = 1
 
 # region ---------------CLASS DEFINITIONS---------------
 
@@ -214,6 +208,10 @@ def get_home_transactions(uuid, start, amount):
     Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
     with its summed total
     """
+    u = get_user_by_uuid(uuid)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {uuid}")
+    
     c.execute("SELECT id from TRANSACTIONS WHERE user_id=? GROUP BY grouping ORDER BY day DESC, id DESC LIMIT ? OFFSET ?", (uuid, amount, start))
     groupings = c.fetchall()
     tlist = []
@@ -253,7 +251,7 @@ def get_home_transactions(uuid, start, amount):
             c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?", (t.grouping,))
             t.amt = -1 * c.fetchone()[0] # Total the amount for all the constituent transactions
         elif t.type == ENVELOPE_FILL:
-            c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=?", (t.grouping,UNALLOCATED))
+            c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=?", (t.grouping,u.unallocated_e_id))
             t.amt = c.fetchone()[0] # Total the amount for the envelope fill
         
         t.amt = t.amt/100
@@ -280,6 +278,7 @@ def get_envelope_transactions(uuid, envelope_id, start, amount):
     with its summed total
     """
     # TODO: (ADD LATER?) If the envelope is unallocated, group envelope_fill transactions
+            # Me from the future: Why would you be getting the unallocated envelope transactions? Should this be possible?
 
     # Make sure envelope exists and uuid matches envelope uuid
     c.execute("SELECT user_id FROM envelopes WHERE envelope_id=?",(envelope_id,))
@@ -397,6 +396,10 @@ def delete_transaction(uuid, t_id):
     Deletes transaction and associated grouped transactions and updates appropriate envelope/account balances
     Returns True if the transaction was actually deleted, False if it was not deleted (i.e. if the user did not have permission to delete it)
     """
+    u = get_user_by_uuid(uuid)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {uuid}")
+
     with conn:
         if get_transaction(t_id).user_id != uuid:
             log_write(f"ERROR: User {uuid} attempted to delete transaction {t_id} which belongs to user {get_transaction(t_id).user_id}.")
@@ -408,7 +411,7 @@ def delete_transaction(uuid, t_id):
             t = get_transaction(id)
             # 2a. If you're deleting an "ENVELOPE_DELETE" transaction, restore the envelope
             if t.type == ENVELOPE_DELETE:
-                if t.envelope_id is not UNALLOCATED: # Don't try to restore the unallocated envelope since it can't be deleted
+                if t.envelope_id is not u.unallocated_e_id: # Don't try to restore the unallocated envelope since it can't be deleted
                     if (get_envelope(t.envelope_id).deleted is not False): # Don't try to restore an envelope that is not deleted
                         restore_envelope(t.envelope_id)
             
@@ -423,7 +426,7 @@ def delete_transaction(uuid, t_id):
                     if bool(get_envelope(t.envelope_id).deleted) is not True:
                         update_envelope_balance(t.envelope_id, get_envelope_balance(t.envelope_id) + t.amt)
                     else:
-                        update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) + t.amt)
+                        update_envelope_balance(u.unallocated_e_id, get_envelope_balance(u.unallocated_e_id) + t.amt)
                         # When deleting a transaction referencing a deleted envelope, you must also update the amount of the
                         # ENVELOPE_DELETE transactions so the deleted envelope maintains a balance of $0.
                         # i.e. If you delete a $1 transaction in a deleted envelope, the money does not go back into the envelope since it's deleted
@@ -443,7 +446,7 @@ def delete_transaction(uuid, t_id):
 
                             # Step 3. Change the amount by which you will adjust the transaction amount depending on whether
                             #         it was filling or draining the envelopes in the ENVELOPE_DELETE transaction.
-                            if e_delete_t.envelope_id == UNALLOCATED:
+                            if e_delete_t.envelope_id == u.unallocated_e_id:
                                 amt = t.amt*-1
                             else:
                                 amt = t.amt
@@ -456,7 +459,7 @@ def delete_transaction(uuid, t_id):
                     if bool(get_account(t.account_id).deleted) is not True:
                         update_account_balance(t.account_id, get_account_balance(t.account_id) + t.amt)
                     else:
-                        update_envelope_balance(UNALLOCATED, get_envelope_balance(UNALLOCATED) - t.amt)
+                        update_envelope_balance(u.unallocated_e_id, get_envelope_balance(u.unallocated_e_id) - t.amt)
 
                         # When deleting a transaction referencing a deleted account, you must also update the amount of the
                         # ACCOUNT_DELETE transactions so the deleted account maintains a balance of $0.
@@ -510,7 +513,7 @@ def check_pending_transactions(timestamp):
     Given a timestamp passed in from the user's browser, apply or unapply the pending transactions in the database and set the pending flag accordingly
     Returns: "needs_reload" which indicates whether the page needs to reload the data on the $(document).ready() function in jQuery
     TODO: When the login system is implemented, this will NOT need to return anything, since there will be no reloading happening on document ready
-          Instead, this function will only be called from the /home page and the /date-reload page before their templates render.
+          Instead, this function will only be called from the /home page and the /data-reload page before their templates render.
     """
     needs_reload = False
     with conn:
@@ -578,15 +581,17 @@ def get_account_dict(uuid):
             active_accounts = True
     return (active_accounts, a_dict)
 
-def get_account_order():
+def get_account_order(uuid):
     """
     Used for determining when the account order has changed within the account editor.
     Returns:
     1. A dictionary with keys of account id and values of display order
     """
     with conn:
-        c.execute("SELECT id,display_order FROM accounts WHERE deleted=0 ORDER BY id ASC")
+        c.execute("SELECT id,display_order FROM accounts WHERE (deleted=0 AND user_id=?) ORDER BY id ASC",(uuid,))
         tuple_array = c.fetchall()
+        if tuple_array is None:
+            raise OtherError(f"ERROR: Account order unable to be retrieved for given uuid: {uuid}") 
         display_dict = dict(tuple_array)
         return display_dict
 
@@ -597,11 +602,13 @@ def delete_account(account_id):
     2. Sets account "deleted" flag to true
     3. Sets display_order to NULL
     """
+    
     with conn:
         a = get_account(account_id)
+        u = get_user_by_uuid(a.user_id)
 
         # 1. Empty the deleted account
-        insert_transaction(Transaction(ACCOUNT_DELETE, f"Deleted account: {a.name}", a.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, a.id, gen_grouping_num(), "", None, 0, USER_ID, False))
+        insert_transaction(Transaction(ACCOUNT_DELETE, f"Deleted account: {a.name}", a.balance, datetime.combine(date.today(), datetime.min.time()), u.unallocated_e_id, a.id, gen_grouping_num(), "", None, 0, a.user_id, False))
 
         # 2. Mark the account as deleted
         c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
@@ -616,7 +623,8 @@ def restore_account(account_id):
     * Does NOT adjust the account balances, since this is done at the transaction level
     """
     with conn:
-        c.execute("SELECT MAX(display_order) FROM accounts WHERE user_id=?", (USER_ID,))
+        a = get_account(account_id)
+        c.execute("SELECT MAX(display_order) FROM accounts WHERE user_id=?", (a.user_id,))
         max_disp_order = c.fetchone()[0]
         if max_disp_order is not None:
             new_disp_order = max_disp_order + 1
@@ -656,7 +664,7 @@ def edit_account(id, new_name, new_balance, new_order, timestamp):
         c.execute("UPDATE accounts SET name=?, display_order=? WHERE id=?", (new_name, new_order, id))
         log_write('A EDIT: ' + str(get_account(id)))
 
-def edit_accounts(accounts_to_edit, new_accounts, present_ids, timestamp):
+def edit_accounts(uuid, accounts_to_edit, new_accounts, present_ids, timestamp):
     """
     Compares an old and new list of accounts, then:
     1.  Updates accounts in DB if their fields are different from those in old_accounts
@@ -664,7 +672,7 @@ def edit_accounts(accounts_to_edit, new_accounts, present_ids, timestamp):
     3.  Deletes old accounts not present in new list
     """
     done_something = False
-    c.execute("SELECT id FROM accounts WHERE deleted=0")
+    c.execute("SELECT id FROM accounts WHERE deleted=0 AND user_id=?",(uuid,))
     original_account_ids = unpack(c.fetchall())
 
     # 1. Updates info for accounts that exist in both lists
@@ -700,6 +708,10 @@ def adjust_account_balance(a_id, balance_diff, name, date):
     The name input exists so that your ACCOUNT_ADJUST transaction will match the name of the account if you renamed it at the same time
     as adjusting the balance.
     """
+    a = get_account(a_id)
+    u = get_user_by_uuid(a.user_id)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {a.user_id}")
 
     # 1. Create the transaction note
     if balance_diff > 0:
@@ -707,7 +719,7 @@ def adjust_account_balance(a_id, balance_diff, name, date):
     else:
         note = f"{balanceformat(-1*balance_diff/100)} was added to this account AND the Unallocated envelope."
     # 2. Add a transaction with an amount that will make the account balance equal to the specied balance
-    insert_transaction(Transaction(ACCOUNT_ADJUST, f"{name}: Balance Adjustment", balance_diff, date, UNALLOCATED, a_id, gen_grouping_num(), note, None, False, USER_ID, False))
+    insert_transaction(Transaction(ACCOUNT_ADJUST, f"{name}: Balance Adjustment", balance_diff, date, u.unallocated_e_id, a_id, gen_grouping_num(), note, None, False, a.user_id, False))
 
 # endregion ACCOUNT FUNCTIONS
 
@@ -754,15 +766,20 @@ def get_envelope_dict(uuid):
             budget_total = budget_total + e.budget
     return (active_envelopes, e_dict, budget_total)
 
-def get_envelope_order():
+def get_envelope_order(uuid):
     """
     Used for determining when the envelope order has changed within the envelope editor.
     Returns:
     1. A dictionary with keys of envelope id and values of display order
     """
     with conn:
-        c.execute("SELECT id,display_order FROM envelopes WHERE deleted=0 AND id!=? ORDER BY id ASC", (UNALLOCATED,))
+        u = get_user_by_uuid(uuid)
+        if u is None:
+            raise UserNotFoundError(f"No user exists with uuid {uuid}")
+        c.execute("SELECT id,display_order FROM envelopes WHERE (deleted=0 AND user_id=? AND id!=?) ORDER BY id ASC", (uuid, u.unallocated_e_id,))
         tuple_array = c.fetchall()
+        if tuple_array is None:
+            raise OtherError(f"ERROR: Envelope order unable to be retrieved for given uuid: {uuid}") 
         display_dict = dict(tuple_array)
         return display_dict
 
@@ -775,15 +792,17 @@ def delete_envelope(envelope_id):
     4. Sets display_order of deleted envelope to NULL
     """
     with conn:
-        if (envelope_id != UNALLOCATED): #You can't delete the unallocated envelope
-            e = get_envelope(envelope_id)
+        e = get_envelope(envelope_id)
+        u = get_user_by_uuid(e.user_id)
+        if (envelope_id != u.unallocated_e_id): #You can't delete the unallocated envelope
+            
             grouping = gen_grouping_num()
 
             # 1. Empty the deleted envelope
-            insert_transaction(Transaction(ENVELOPE_DELETE,f"Deleted envelope: {e.name}", e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, "", None, 0, USER_ID, False))
+            insert_transaction(Transaction(ENVELOPE_DELETE,f"Deleted envelope: {e.name}", e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, "", None, 0, e.user_id, False))
 
             # 2. Fill the unallocated envelope
-            insert_transaction(Transaction(ENVELOPE_DELETE,f"Deleted envelope: {e.name}", -1*e.balance, datetime.combine(date.today(), datetime.min.time()), UNALLOCATED, None, grouping, "", None, 0, USER_ID, False))
+            insert_transaction(Transaction(ENVELOPE_DELETE,f"Deleted envelope: {e.name}", -1*e.balance, datetime.combine(date.today(), datetime.min.time()), u.unallocated_e_id, None, grouping, "", None, 0, e.user_id, False))
 
             # 3. Mark the envelope as deleted
             c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
@@ -799,8 +818,9 @@ def restore_envelope(envelope_id):
     Restores an envelope by setting its deleted flag to false
     * Does NOT adjust the envelope balances, since this is done at the transaction level
     """
+    e = get_envelope(envelope_id)
     with conn:
-        c.execute("SELECT MAX(display_order) FROM envelopes WHERE user_id=?", (USER_ID,))
+        c.execute("SELECT MAX(display_order) FROM envelopes WHERE user_id=?", (e.user_id,))
         max_disp_order = c.fetchone()[0]
         if max_disp_order is not None:
             new_disp_order = max_disp_order + 1
@@ -836,15 +856,19 @@ def edit_envelope(id, new_name, new_budget, new_order):
         c.execute("UPDATE envelopes SET name=?, budget=?, display_order=? WHERE id=?",(new_name, new_budget, new_order, id))
     log_write('E EDIT: ' + str(get_envelope(id)))
 
-def edit_envelopes(envelopes_to_edit, new_envelopes, present_ids):
+def edit_envelopes(uuid, envelopes_to_edit, new_envelopes, present_ids):
     """
     Inputs:
     1.  envelopes_to_edit: A list of envelope objects that have different names, budgets, or orders than what is stored in the database
     2.  new_envelopes: A lit of brand new envelope objects to be inserted into the database
     3.  present_ids: A list of all id's present in the envelope editor modal (notably missing any that were deleted by the user)
     """
+    u = get_user_by_uuid(uuid)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {uuid}")
+    
     done_something = False
-    c.execute("SELECT id FROM envelopes WHERE deleted=0")
+    c.execute("SELECT id FROM envelopes WHERE deleted=0 AND user_id=?",(uuid,))
     original_envelope_ids = unpack(c.fetchall())
 
     # 1. Updates info for envelopes
@@ -857,7 +881,7 @@ def edit_envelopes(envelopes_to_edit, new_envelopes, present_ids):
         done_something = True
     # 3. Deletes any envelopes in the database that are no longer in the present_ids submitted from the form
     for id in original_envelope_ids:
-        if not id in present_ids and id != UNALLOCATED:
+        if not id in present_ids and id != u.unallocated_e_id:
             delete_envelope(id)
             done_something = True
     if done_something:
@@ -877,13 +901,17 @@ def envelope_fill(t):
     """
     Takes an ENVELOPE_FILL transaction with an array of envelope ids and amounts and creates sub-transactions to fill the envelopes
     """
+    u = get_user_by_uuid(t.user_id)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {t.user_id}")
+    
     if t.type == ENVELOPE_FILL:
         grouping = gen_grouping_num()
         amts = t.amt
         envelopes = t.envelope_id
         for i in range(len(amts)):
             # Empty the unallocated envelope
-            insert_transaction(Transaction(ENVELOPE_FILL, t.name, amts[i], t.date, UNALLOCATED, None, grouping, t.note, t.schedule, False, t.user_id, t.pending))
+            insert_transaction(Transaction(ENVELOPE_FILL, t.name, amts[i], t.date, u.unallocated_e_id, None, grouping, t.note, t.schedule, False, t.user_id, t.pending))
             # Fill the other envelopes
             insert_transaction(Transaction(ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id, t.pending))
     else:
@@ -928,20 +956,20 @@ def insert_user(u):
 
 # TODO: This will probably need to delete all the user's transactions also.
         # Possibly include a hard_delete_user function or a soft_delete_user function if you want to retain user data somehow
-def delete_user(email):
+def delete_user(uuid):
     with conn:
-        c.execute("DELETE FROM users WHERE email=?", (email,))
+        c.execute("DELETE FROM users WHERE uuid=?", (uuid,))
         
 
 # endregion USER FUNCTIONS
 
 # region ---------------OTHER FUNCTIONS---------------
 
-def get_total(user_id):
+def get_total(uuid):
     """
     Sums the account balances for display
     """
-    c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (user_id,))
+    c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (uuid,))
     total = c.fetchone()[0]
     if total is not None:
         return total/100
@@ -990,7 +1018,6 @@ def get_grouped_json(uuid, t_id):
     Given a transaction id, return a json with the transaction data necessary to fill the transaction editor
     This function is called for displaying ENVELOPE_TRANSFER's, ACCOUNT_TRANSFER's, SPLIT_TRANSACTION's, and ENVELOPE_FILL's
     """
-    # TODO: This error should probably get raised in the get_transaction() function which should probably take in the uuid
     if get_transaction(t_id).user_id != uuid:
         raise UnauthorizedAccessError(f"ERROR: User {uuid} attempted to get grouped transaction data for id={t_id} which belongs to user {get_transaction(t_id).user_id}.")
 
@@ -1241,7 +1268,6 @@ def print_database(print_all=0,reverse=1):
     for row in c:
         print(row)
     print()
-    print("TOTAL FUNDS: ", get_total(USER_ID))
     print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
 
     print('USERS:')

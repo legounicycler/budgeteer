@@ -69,7 +69,5 @@ c.execute("""
 
 c.close()
 
-insert_envelope(Envelope('Unallocated', 0, 0, 0, USER_ID, None))
-
 print("New database has been created!")
 log_write('\n\n\nNEW DATABASE HAS BEEN CREATED \n\n\n')

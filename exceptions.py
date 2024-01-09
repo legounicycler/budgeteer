@@ -17,6 +17,12 @@ class EnvelopeNotFoundError(CustomException):
 class AccountNotFoundError(CustomException):
     pass
 
+class UserNotFoundError(CustomException):
+    pass
+
 class UserIdCookieNotFound(CustomException):
     def __init__(self):
         super().__init__("User ID cookie not found")
+
+class OtherError(CustomException):
+    pass
