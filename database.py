@@ -2,13 +2,18 @@
 This file contains functions relevant to actually manipulating values in the database
 """
 
+# Library imports
 import sqlite3, datetime, platform, hashlib, secrets
 from datetime import datetime
 from datetime import date
 from flask_login import UserMixin
 
-platform = platform.system()
-if platform == 'Windows':
+# Custom Imports
+from exceptions import *
+from logging import *
+
+app_platform = platform.system()
+if app_platform == 'Windows':
     database = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
 else:
     database = '/home/opc/database.sqlite'
@@ -262,7 +267,7 @@ def get_home_transactions(uuid, start, amount):
         limit = False
     return tlist, offset, limit
 
-def get_envelope_transactions(envelope_id, start, amount):
+def get_envelope_transactions(uuid, envelope_id, start, amount):
     """
     For displaying transactions on the ENVELOPE PAGE ONLY
     Given a start number and an amount of transactions to fetch, returns for a particular envelope:
@@ -273,7 +278,16 @@ def get_envelope_transactions(envelope_id, start, amount):
     Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
     with its summed total
     """
-    # TODO: (ADD LATER?) If the envelope is unallocated, group envelope fill transactions
+    # TODO: (ADD LATER?) If the envelope is unallocated, group envelope_fill transactions
+
+    # Make sure envelope exists and uuid matches envelope uuid
+    c.execute("SELECT user_id FROM envelopes WHERE envelope_id=?",(envelope_id,))
+    db_uuid = c.fetchone()
+    if not db_uuid:
+        raise EnvelopeNotFoundError(f"Envelope with ID {envelope_id} not found!")
+    if uuid != db_uuid:
+        raise UnauthorizedAccessError("Provided uuid does not match requested envelope uuid!")
+
     c.execute("SELECT id FROM transactions WHERE envelope_id=? ORDER by day DESC, id DESC LIMIT ? OFFSET ?", (envelope_id, amount, start))
     ids = unpack(c.fetchall())
     tlist = []
@@ -309,7 +323,7 @@ def get_envelope_transactions(envelope_id, start, amount):
         limit = False
     return tlist, offset, limit
 
-def get_account_transactions(account_id, start, amount):
+def get_account_transactions(uuid, account_id, start, amount):
     """
     For displaying transactions on the ACCOUNTS PAGE ONLY
     Given a start number and an amount of transactions to fetch, returns for a particular account:
@@ -320,6 +334,14 @@ def get_account_transactions(account_id, start, amount):
     Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
     with its summed total
     """
+    # Make sure account exists and uuid matches account uuid
+    c.execute("SELECT user_id FROM accounts WHERE account_id=?",(account_id,))
+    db_uuid = c.fetchone()
+    if not db_uuid:
+        raise AccountNotFoundError(f"Account with ID {account_id} not found!")
+    if uuid != db_uuid:
+        raise UnauthorizedAccessError("Provided uuid does not match requested account uuid!")
+
     c.execute("SELECT id, SUM(amount) FROM transactions WHERE account_id=? GROUP BY grouping ORDER by day DESC, id DESC LIMIT ? OFFSET ?", (account_id,amount,start))
     ids = c.fetchall()
     tlist = []
@@ -368,6 +390,7 @@ def get_scheduled_transactions(user_id):
         tlist.append(t)
     return tlist
 
+# TODO: Figure out which exception to throw here
 def delete_transaction(uuid, t_id):
     """
     Deletes transaction and associated grouped transactions and updates appropriate envelope/account balances
@@ -960,9 +983,9 @@ def get_grouped_json(uuid, t_id):
     Given a transaction id, return a json with the transaction data necessary to fill the transaction editor
     This function is called for displaying ENVELOPE_TRANSFER's, ACCOUNT_TRANSFER's, SPLIT_TRANSACTION's, and ENVELOPE_FILL's
     """
+    # TODO: This error should probably get raised in the get_transaction() function which should probably take in the uuid
     if get_transaction(t_id).user_id != uuid:
-        log_write(f"ERROR: User {uuid} attempted to get grouped transaction data for id={t_id} which belongs to user {get_transaction(t_id).user_id}.")
-        return {'success', False}
+        raise UnauthorizedAccessError(f"ERROR: User {uuid} attempted to get grouped transaction data for id={t_id} which belongs to user {get_transaction(t_id).user_id}.")
 
     ids = get_grouped_ids_from_id(t_id)
     data = {'transactions': [], 'success': True}
@@ -1166,12 +1189,6 @@ def health_check(interactive=False):
 # endregion OTHER FUNCTIONS
 
 # region ---------------DEBUGGING FUNCTIONS---------------
-def log_write(text):
-    """
-    Writes a message to an EventLog.txt file
-    """
-    with open("EventLog.txt",'a') as f:
-        f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " " + text+"\n")
 
 def print_database(print_all=0,reverse=1):
     """
