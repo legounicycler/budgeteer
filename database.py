@@ -92,19 +92,20 @@ class Envelope:
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id,self.display_order)
 
 class User(UserMixin):
-    def __init__(self, uuid, email, password_hash, password_salt, first_name, last_name):
+    def __init__(self, uuid, email, password_hash, password_salt, first_name, last_name, unallocated_e_id=None):
         self.id = uuid
         self.email = email
         self.password_hash = password_hash
         self.password_salt = password_salt
         self.first_name = first_name
         self.last_name = last_name
+        self.unallocated_e_id = unallocated_e_id
     def check_password(self, password):
         return hash_password(password, self.password_salt)[0] == self.password_hash
     def __repr__(self):
-        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name)
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, U_EID: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.unallocated_e_id)
     def __str__(self):
-        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name)
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, U_EID: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.unallocated_e_id)
 
 # endregion CLASS DEFINITIONS
 
@@ -899,7 +900,7 @@ def get_user_by_email(email):
         c.execute("SELECT * FROM users WHERE email=?",(email,))
         u = c.fetchone()
         if u is not None:
-            user = User(u[0], u[1], u[2], u[3], u[4], u[5])
+            user = User(*u)
             return user
         else:
             return None
@@ -912,15 +913,21 @@ def get_user_by_uuid(uuid):
         c.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
         u = c.fetchone()
         if u is not None:
-            user = User(u[0], u[1], u[2], u[3], u[4], u[5])
+            user = User(*u)
             return user
         else:
             return None
 
 def insert_user(u):
     with conn:
-        c.execute("INSERT INTO users (uuid, email, password_hash, password_salt, first_name, last_name) VALUES (?,?,?,?,?,?)", (u.id, u.email, u.password_hash, u.password_salt, u.first_name, u.last_name))
+        # 1. Create a new unallocated envelope for the user
+        insert_envelope(Envelope("Unallocated", 0, 0, False, u.id, 0))
 
+        # 2. Insert the new user into the database referencing the ID of the newly created unallocated envelope
+        c.execute("INSERT INTO users (uuid, email, password_hash, password_salt, first_name, last_name, unallocated_e_id) VALUES (?,?,?,?,?,?, (SELECT id FROM envelopes WHERE user_id=? LIMIT 1))", (u.id, u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.id))
+
+# TODO: This will probably need to delete all the user's transactions also.
+        # Possibly include a hard_delete_user function or a soft_delete_user function if you want to retain user data somehow
 def delete_user(email):
     with conn:
         c.execute("DELETE FROM users WHERE email=?", (email,))

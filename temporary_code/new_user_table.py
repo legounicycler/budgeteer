@@ -23,6 +23,10 @@ with conn:
         password_hash TEXT NOT NULL,
         password_salt TEXT NOT NULL,
         first_name TEXT NOT NULL,
-        last_name TEXT NOT NULL
+        last_name TEXT NOT NULL,
+        unallocated_e_id INTEGER NOT NULL,
+        FOREIGN KEY (unallocated_e_id) REFERENCES envelopes(id)
         )
     """)
+
+    c.close()
