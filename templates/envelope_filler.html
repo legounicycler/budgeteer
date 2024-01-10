@@ -52,7 +52,7 @@
               </div>
             {% else %}
               {% for id, envelope in envelopes_data.items() %}
-                {% if envelope.deleted == false and envelope.id != 1 %}
+                {% if envelope.deleted == false and envelope.id != unallocated_e_id %}
                   <li class="row edit-envelope-row collection-item flex">
                     <div class="col m1 hide-on-small-only valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div>
                     <div class="col s5 valign-wrapper envelope-name left-align editor-col input-field">

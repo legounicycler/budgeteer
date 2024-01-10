@@ -514,6 +514,7 @@ def check_pending_transactions(timestamp):
     Returns: "needs_reload" which indicates whether the page needs to reload the data on the $(document).ready() function in jQuery
     TODO: When the login system is implemented, this will NOT need to return anything, since there will be no reloading happening on document ready
           Instead, this function will only be called from the /home page and the /data-reload page before their templates render.
+          Add uuid to this function since you only want to update transactions for one user at a time.
     """
     needs_reload = False
     with conn:
@@ -545,12 +546,13 @@ def insert_account(a):
     """
     Inserts new account and creates "initial account balance" transaction
     """
+    u = get_user_by_uuid(a.user_id)
     with conn:
         c.execute("INSERT INTO accounts (name, balance, user_id, display_order) VALUES (?, ?, ?, ?)", (a.name, 0, a.user_id, a.display_order))
     account_id = c.lastrowid
     income_name = 'Initial Account Balance: ' + a.name
     log_write('A INSERT: ' + str(get_account(account_id)))
-    insert_transaction(Transaction(INCOME, income_name, -1 * a.balance, datetime.combine(date.today(), datetime.min.time()), 1, account_id, gen_grouping_num(), '', None, False, a.user_id, False))
+    insert_transaction(Transaction(INCOME, income_name, -1 * a.balance, datetime.combine(date.today(), datetime.min.time()), u.unallocated_e_id, account_id, gen_grouping_num(), '', None, False, a.user_id, False))
 
 def get_account(id):
     """
@@ -751,6 +753,9 @@ def get_envelope_dict(uuid):
     2. A tuple with a dictionary with keys of envelope_id and values of envelope objects.
     3. A string displaying the total budget for all envelopes
     """
+    u = get_user_by_uuid(uuid)
+    if u is None:
+        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     c.execute("SELECT id FROM envelopes WHERE user_id=? ORDER by display_order ASC, id ASC", (uuid,))
     ids = unpack(c.fetchall())
     e_dict = {}
@@ -761,7 +766,7 @@ def get_envelope_dict(uuid):
         e.balance = e.balance/100
         e.budget = e.budget/100
         e_dict[id] = e
-        if e.deleted == 0 and e.id != 1:
+        if e.deleted == 0 and e.id != u.unallocated_e_id:
             active_envelopes = True
             budget_total = budget_total + e.budget
     return (active_envelopes, e_dict, budget_total)
@@ -937,14 +942,16 @@ def get_user_by_uuid(uuid):
     """
     Given a uuid address, return a User object if the uuid is in the database, or return none if not
     """
-    with conn:
-        c.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
-        u = c.fetchone()
-        if u is not None:
-            user = User(*u)
-            return user
-        else:
-            return None
+    conn = sqlite3.connect(database, check_same_thread=False)
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
+    u = c.fetchone()
+    c.close()
+    if u is not None:
+        user = User(*u)
+        return user
+    else:
+        return None
 
 def insert_user(u):
     with conn:

@@ -215,7 +215,7 @@ def home():
     (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
     (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
     (active_accounts, accounts_data) = get_account_dict(uuid)
-    unallocated_balance = get_envelope_balance(u.unallocated_e_id)
+    unallocated_balance = get_envelope_balance(u.unallocated_e_id)/100
     total_funds = get_total(uuid)
     return render_template(
       'layout.html',
@@ -234,7 +234,8 @@ def home():
       limit=limit,
       email=current_user.email,
       first_name=current_user.first_name,
-      last_name=current_user.last_name
+      last_name=current_user.last_name,
+      unallocated_e_id = u.unallocated_e_id
     )
   except CustomException as e:
     return jsonify({"error": str(e)})
@@ -466,7 +467,7 @@ def new_income(edited=False):
         if scheduled and not pending:
           insert_transaction(t)
           nextdate = schedule_date_calc(date, schedule, timestamp)
-          scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, 1, account_id, gen_grouping_num(), note, schedule, False, uuid, is_pending(nextdate, timestamp))
+          scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, u.unallocated_e_id, account_id, gen_grouping_num(), note, schedule, False, uuid, is_pending(nextdate, timestamp))
           insert_transaction(scheduled_t)
           sched_t_submitted = True
         elif scheduled and pending:
@@ -865,14 +866,14 @@ def data_reload():
     if reload_transactions:
       data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
     data['total'] = get_total(uuid)
-    data['unallocated'] = get_envelope_balance(u.unallocated_e_id)
+    data['unallocated'] = get_envelope_balance(u.unallocated_e_id)/100
     data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
-    data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
+    data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
     data['account_selector_html'] = render_template('account_selector.html', accounts_data=accounts_data)
     data['envelope_selector_html'] = render_template('envelope_selector.html', envelopes_data=envelopes_data)
-    data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total)
+    data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total,  unallocated_e_id=u.unallocated_e_id)
     data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
-    data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data)
+    data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
     data['page_total'] = page_total
     data['success'] = True
     return jsonify(data)
