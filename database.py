@@ -281,12 +281,12 @@ def get_envelope_transactions(uuid, envelope_id, start, amount):
             # Me from the future: Why would you be getting the unallocated envelope transactions? Should this be possible?
 
     # Make sure envelope exists and uuid matches envelope uuid
-    c.execute("SELECT user_id FROM envelopes WHERE envelope_id=?",(envelope_id,))
+    c.execute("SELECT user_id FROM envelopes WHERE id=?",(envelope_id,))
     db_uuid = c.fetchone()
     if not db_uuid:
         raise EnvelopeNotFoundError(f"Envelope with ID {envelope_id} not found!")
-    if uuid != db_uuid:
-        raise UnauthorizedAccessError("Provided uuid does not match requested envelope uuid!")
+    if uuid != db_uuid[0]:
+        raise UnauthorizedAccessError(f"Provided uuid '{uuid}' does not match requested envelope uuid '{db_uuid}'!")
 
     c.execute("SELECT id FROM transactions WHERE envelope_id=? ORDER by day DESC, id DESC LIMIT ? OFFSET ?", (envelope_id, amount, start))
     ids = unpack(c.fetchall())
@@ -335,12 +335,12 @@ def get_account_transactions(uuid, account_id, start, amount):
     with its summed total
     """
     # Make sure account exists and uuid matches account uuid
-    c.execute("SELECT user_id FROM accounts WHERE account_id=?",(account_id,))
+    c.execute("SELECT user_id FROM accounts WHERE id=?",(account_id,))
     db_uuid = c.fetchone()
     if not db_uuid:
         raise AccountNotFoundError(f"Account with ID {account_id} not found!")
-    if uuid != db_uuid:
-        raise UnauthorizedAccessError("Provided uuid does not match requested account uuid!")
+    if uuid != db_uuid[0]:
+        raise UnauthorizedAccessError(f"Provided uuid '{uuid}' does not match requested account uuid '{db_uuid}'!")
 
     c.execute("SELECT id, SUM(amount) FROM transactions WHERE account_id=? GROUP BY grouping ORDER by day DESC, id DESC LIMIT ? OFFSET ?", (account_id,amount,start))
     ids = c.fetchall()

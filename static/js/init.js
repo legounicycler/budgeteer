@@ -283,6 +283,7 @@
           data: JSON.stringify({"envelope_id": envelope_id}),
           contentType: 'application/json'
         }).done(function( o ) {
+          if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
           new SimpleBar($("#transactions-scroller")[0]); //Re-initialize the transactions-scroller
           $('#page-total').text(o['page_total']);
@@ -302,6 +303,7 @@
           data: JSON.stringify({"account_id": account_id}),
           contentType: 'application/json'
         }).done(function( o ) {
+          if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
           new SimpleBar($("#transactions-scroller")[0]); //Re-initialize the transactions-scroller
           $('#page-total').text(o['page_total']);
@@ -336,6 +338,7 @@
         // data: JSON.stringify({"timestamp": "2023-07-12 00:00:00"}),
         contentType: 'application/json'
       }).done( function(o) {
+        if (o['error']) { M.toast({html: o['error']}); return; }
         should_reload = o['should_reload'];
         if (should_reload) {
           data_reload(current_page,false);

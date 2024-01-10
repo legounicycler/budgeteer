@@ -257,7 +257,7 @@ def get_envelope_page():
     data['envelope_name'] = get_envelope(envelope_id).name
     return jsonify(data)
   except CustomException as e:
-    return jsonify({"error": str(e)})
+    return jsonify({"error": "ERROR: Something went wrong and your envelope data could not be loaded!"})
 
 @app.route("/get_account_page", methods=["POST"])
 @login_required
@@ -276,7 +276,7 @@ def get_account_page():
     data['account_name'] = get_account(account_id).name
     return jsonify(data)
   except CustomException as e:
-    return jsonify({"error": str(e)})
+    return jsonify({"error": "ERROR: Something went wrong and your account data could not be loaded!"})
 
 @app.route('/new_expense', methods=['POST'])
 @login_required
