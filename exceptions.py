@@ -20,9 +20,12 @@ class AccountNotFoundError(CustomException):
 class UserNotFoundError(CustomException):
     pass
 
-class UserIdCookieNotFound(CustomException):
+class UserIdCookieNotFoundError(CustomException):
     def __init__(self):
         super().__init__("User ID cookie not found")
+
+class InvalidFormDataError(CustomException):
+    pass
 
 class OtherError(CustomException):
     pass

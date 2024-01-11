@@ -394,7 +394,6 @@ def get_scheduled_transactions(user_id):
 def delete_transaction(uuid, t_id):
     """
     Deletes transaction and associated grouped transactions and updates appropriate envelope/account balances
-    Returns True if the transaction was actually deleted, False if it was not deleted (i.e. if the user did not have permission to delete it)
     """
     u = get_user_by_uuid(uuid)
     if u is None:
@@ -402,8 +401,7 @@ def delete_transaction(uuid, t_id):
 
     with conn:
         if get_transaction(t_id).user_id != uuid:
-            log_write(f"ERROR: User {uuid} attempted to delete transaction {t_id} which belongs to user {get_transaction(t_id).user_id}.")
-            return False
+            raise UnauthorizedAccessError(f"User with uuid {uuid} does not have permission to delete transaction with id {t_id}")
 
         # 1. Get all the grouped transactions to delete
         ids = get_grouped_ids_from_id(t_id)
@@ -479,8 +477,6 @@ def delete_transaction(uuid, t_id):
             # 6. Delete the actual transaction from the database
             c.execute("DELETE FROM transactions WHERE id=?", (id,))
             log_write('T DELETE: ' + str(t))
-
-            return True
 
 def new_split_transaction(t):
     """
