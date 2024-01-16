@@ -96,7 +96,7 @@
           <div class="col s6">
             <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!" form="edit-expense-form">Update</button>
           </div>
-          <form class="col s6 deleter-form" action="{{ url_for('delete_transaction_page') }}" method="post">
+          <form class="col s6 deleter-form" action="{{ url_for('api_delete_transaction') }}" method="post">
             <input id="dtid" name="delete-id" type="hidden" required>
             <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light red darken-3">DELETE</button>
           </form>
@@ -223,7 +223,7 @@
           <div class="col s6">
             <button id="editor-submit-button" class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!" form="edit-transfer-form">Update</button>
           </div>
-          <form class="col s6 deleter-form" action="{{ url_for('delete_transaction_page') }}" method="post">
+          <form class="col s6 deleter-form" action="{{ url_for('api_delete_transaction') }}" method="post">
             <input id="dtid" name="delete-id" type="hidden" required>
             <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light red darken-3">DELETE</button>
           </form>
@@ -306,7 +306,7 @@
           <div class="col s6">
             <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!" form="edit-income-form">Update</button>
           </div>
-          <form class="col s6 deleter-form" action="{{ url_for('delete_transaction_page') }}" method="post">
+          <form class="col s6 deleter-form" action="{{ url_for('api_delete_transaction') }}" method="post">
             <input id="dtid" name="delete-id" type="hidden" required>
             <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light red darken-3">DELETE</button>
           </form>
@@ -428,7 +428,7 @@
           <div class="col s6">
             <button class="btn waves-effect waves-light yellow darken-4" name="action" type="submit" href="#!" form="edit-envelope-fill-form">Update</button>
           </div>
-          <form class="col s6 deleter-form" action="{{ url_for('delete_transaction_page') }}" method="post">
+          <form class="col s6 deleter-form" action="{{ url_for('api_delete_transaction') }}" method="post">
             <input id="dtid" name="delete-id" type="hidden" required>
             <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light red darken-3">DELETE</button>
           </form>
@@ -474,7 +474,7 @@
           <div class="col s6">
             <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!" form="edit-envelope-delete-form">Update</button>
           </div>
-          <form class="col s6 deleter-form"action="{{ url_for('delete_transaction_page') }}"  method="post">
+          <form class="col s6 deleter-form"action="{{ url_for('api_delete_transaction') }}"  method="post">
             <input id="dtid" name="delete-id" type="hidden" required>
             <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light red darken-3">DELETE</button>
           </form>
@@ -520,7 +520,7 @@
           <div class="col s6">
             <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!" form="edit-account-delete-form">Update</button>
           </div>
-          <form class="col s6 deleter-form" action="{{ url_for('delete_transaction_page') }}" method="post">
+          <form class="col s6 deleter-form" action="{{ url_for('api_delete_transaction') }}" method="post">
             <input id="dtid" name="delete-id" type="hidden" required>
             <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light red darken-3">DELETE</button>
           </form>
@@ -565,7 +565,7 @@
           <div class="col s6">
             <button class="btn waves-effect waves-light yellow darken-4" type="submit" name="action" href="#!" form="edit-account-adjust-form">Update</button>
           </div>
-          <form class="col s6 deleter-form" action="{{ url_for('delete_transaction_page') }}" method="post">
+          <form class="col s6 deleter-form" action="{{ url_for('api_delete_transaction') }}" method="post">
               <input id="dtid" name="delete-id" type="hidden" required>
               <button type="submit" id="delete-transaction-button" class="btn waves-effect waves-light red darken-3">DELETE</button>
           </form>

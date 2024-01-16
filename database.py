@@ -139,10 +139,7 @@ def date_parse(date_str):
     elif len(date_str)==26:
         date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S.%f")
     else:
-        # TODO: Change to actually throw an error instead of just crashing things by
-        # returning the wrong data type
-        date = None
-        print("DATE PARSE ERROR: ", date_str)
+        raise TimestampParseError(f"ERROR: Timestamp {date_str} could not be parsed!")
     return date
 
 # endregion HELPER FUNCTIONS
@@ -192,6 +189,8 @@ def get_transaction(id):
     """
     c.execute("SELECT * FROM transactions WHERE id=?", (id,))
     tdata = c.fetchone()
+    if tdata is None:
+        raise TransactionNotFoundError(f"Transaction with ID {id} not found!")
     t = Transaction(tdata[1],tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11],tdata[14]) #Last is 14 because e_reconcile and a_reconcile columns exist in table
     t.date = date_parse(t.date) # Convert string to datetime object
     t.id = tdata[0]
@@ -275,8 +274,6 @@ def get_envelope_transactions(uuid, envelope_id, start, amount):
     Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
     with its summed total
     """
-    # TODO: (ADD LATER?) If the envelope is unallocated, group envelope_fill transactions
-            # Me from the future: Why would you be getting the unallocated envelope transactions? Should this be possible?
 
     # Make sure envelope exists and uuid matches envelope uuid
     c.execute("SELECT user_id FROM envelopes WHERE id=?",(envelope_id,))
@@ -388,7 +385,6 @@ def get_scheduled_transactions(user_id):
         tlist.append(t)
     return tlist
 
-# TODO: Figure out which exception to throw here
 def delete_transaction(uuid, t_id):
     """
     Deletes transaction and associated grouped transactions and updates appropriate envelope/account balances
@@ -551,7 +547,7 @@ def get_account(id):
     a = Account(*adata)
     return a
 
-def get_account_dict(uuid):
+def get_user_account_dict(uuid):
     """
     Used for displaying the accounts in the side panel and selects.
     Returns:
@@ -570,7 +566,7 @@ def get_account_dict(uuid):
             active_accounts = True
     return (active_accounts, a_dict)
 
-def get_account_order(uuid):
+def get_user_account_order(uuid):
     """
     Used for determining when the account order has changed within the account editor.
     Returns:
@@ -631,8 +627,7 @@ def get_account_balance(id):
     if balance is not None:
         return balance[0]
     else:
-        #TODO: Figure out where to log this and how to throw errors
-        log_write(f"ERROR: Account id {id} doesn't exist, you twit!")
+        raise AccountNotFoundError(f"Account with ID {id} not found!")
         
 def update_account_balance(id, balance):
     """
@@ -731,7 +726,7 @@ def get_envelope(id):
     e = Envelope(*edata)
     return e
 
-def get_envelope_dict(uuid):
+def get_user_envelope_dict(uuid):
     """
     Used for displaying the envelopes in the side panel and selects.
     Returns:
@@ -755,7 +750,7 @@ def get_envelope_dict(uuid):
             budget_total = budget_total + e.budget
     return (active_envelopes, e_dict, budget_total)
 
-def get_envelope_order(uuid):
+def get_user_envelope_order(uuid):
     """
     Used for determining when the envelope order has changed within the envelope editor.
     Returns:
@@ -950,8 +945,7 @@ def insert_user(u):
         # 2. Insert the new user into the database referencing the ID of the newly created unallocated envelope
         c.execute("INSERT INTO users (uuid, email, password_hash, password_salt, first_name, last_name, unallocated_e_id) VALUES (?,?,?,?,?,?, (SELECT id FROM envelopes WHERE user_id=? LIMIT 1))", (u.id, u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.id))
 
-# TODO: This will probably need to delete all the user's transactions also.
-        # Possibly include a hard_delete_user function or a soft_delete_user function if you want to retain user data somehow
+# TODO: Implement soft and hard user deletes (hard deletes delete all user data, soft deletes sets a deleted flag to true)
 def delete_user(uuid):
     with conn:
         c.execute("DELETE FROM users WHERE uuid=?", (uuid,))

@@ -11,6 +11,9 @@ class CustomException(Exception):
 class UnauthorizedAccessError(CustomException):
     pass
 
+class TransactionNotFoundError(CustomException):
+    pass
+
 class EnvelopeNotFoundError(CustomException):
     pass
 
@@ -25,6 +28,9 @@ class UserIdCookieNotFoundError(CustomException):
         super().__init__("User ID cookie not found")
 
 class InvalidFormDataError(CustomException):
+    pass
+
+class TimestampParseError(CustomException):
     pass
 
 class OtherError(CustomException):

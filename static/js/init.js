@@ -36,8 +36,8 @@
     var account_adjust;
 
     // Some other variables
-    var current_page = "All Transactions";   //TODO: Add description
-    var none_checked = true; //TODO: Add description
+    var current_page = "All Transactions";   //Used to determine which transactions to reload on a data reload (also used in transactions.html to properly color transaction amount)
+    var none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
 
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){

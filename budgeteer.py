@@ -182,8 +182,7 @@ def schedule_date_calc(tdate, schedule, timestamp):
     elif (schedule=="anually"):
       nextdate = add_months(tdate,12)
     else:
-      log_write("ERROR: Invalid schedule option!")
-      return False #TODO: Throw error here instead
+      raise InvalidFormDataError("ERROR: Invalid schedule option!")
     
     nextdate = datetime.combine(nextdate, datetime.min.time())
     if nextdate > timestamp:
@@ -218,8 +217,8 @@ def home():
       u = get_user_by_uuid(uuid)
       check_pending_transactions(uuid, timestamp)
       (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
-      (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
-      (active_accounts, accounts_data) = get_account_dict(uuid)
+      (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+      (active_accounts, accounts_data) = get_user_account_dict(uuid)
       unallocated_balance = get_envelope_balance(u.unallocated_e_id)/100
       total_funds = get_total(uuid)
       return render_template(
@@ -253,8 +252,8 @@ def get_envelope_page():
     envelope_id = request.get_json()['envelope_id']
     current_page = f'envelope/{envelope_id}'
     (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,0,50)
-    (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_account_dict(uuid)
+    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+    (active_accounts, accounts_data) = get_user_account_dict(uuid)
     page_total = balanceformat(get_envelope(envelope_id).balance/100)
     data = {}
     data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
@@ -272,8 +271,8 @@ def get_account_page():
     account_id = request.get_json()['account_id']
     current_page = f'account/{account_id}'
     (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,0,50)
-    (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_account_dict(uuid)
+    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+    (active_accounts, accounts_data) = get_user_account_dict(uuid)
     page_total = balanceformat(get_account(account_id).balance/100)
     data = {}
     data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
@@ -689,17 +688,16 @@ def edit_transaction():
   except CustomException as e:
     return jsonify({"error": str(e)})
 
-@app.route('/delete_transaction_page', methods=['POST'])
+@app.route('/api/delete_transaction', methods=['POST'])
 @login_required
-# TODO: Change this to use an <id> in the URL instead of using the hidden form thing (SEE get_grouped_transaction_data). Also probably rename this to not say "page" and instead use the api prefix
-def delete_transaction_page():
+def api_delete_transaction():
   try: 
     uuid = get_uuid_from_cookie()
     id = int(request.form['delete-id'])
     # timestamp = date_parse(request.form['timestamp']) #Don't need to check timestamp in this function
     
     delete_transaction(uuid, id)
-
+    return jsonify({'toasts': ["Transaction deleted!"]})
   except CustomException as e:
     return jsonify({"error": str(e)})
 
@@ -732,7 +730,7 @@ def edit_accounts_page():
     new_names = request.form.getlist('new-account-name')
     new_a_order = list(map(int, request.form.getlist('new-account-order'))) # Turn the list of strings into a list of ints
 
-    original_a_order = get_account_order(uuid)
+    original_a_order = get_user_account_order(uuid)
     accounts_to_edit = []
     new_accounts = []
     for i in range(len(present_ids)):
@@ -770,7 +768,7 @@ def edit_envelopes_page():
     new_budgets = request.form.getlist('new-envelope-budget')
     new_e_order = list(map(int, request.form.getlist('new-envelope-order'))) # Turn the list of strings into a list of ints
 
-    original_e_order = get_envelope_order(uuid)
+    original_e_order = get_user_envelope_order(uuid)
     envelopes_to_edit = []
     new_envelopes = []
     for i in range(len(present_ids)):
@@ -816,8 +814,8 @@ def data_reload():
       current_page = 'All Transactions'
       (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
       page_total = balanceformat(get_total(uuid))
-    (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_account_dict(uuid)
+    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+    (active_accounts, accounts_data) = get_user_account_dict(uuid)
     data = {}
     if reload_transactions:
       data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
@@ -853,9 +851,8 @@ def load_more():
     else:
       (transactions_data, offset, limit) = get_home_transactions(uuid,current_offset,50)
 
-    # TODO: these 2 lines shouldn't be necessary here after updating to a join clause
-    (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_account_dict(uuid)
+    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+    (active_accounts, accounts_data) = get_user_account_dict(uuid)
     more_transactions = render_template('more_transactions.html', t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, accounts_data=accounts_data, envelopes_data=envelopes_data, current_page=current_page)
     return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions})
   
