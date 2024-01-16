@@ -504,35 +504,29 @@ def new_split_transaction(t):
         for i in range(len(compressed_e_ids)):
             insert_transaction(Transaction(SPLIT_TRANSACTION, t.name, compressed_amts[i], t.date, compressed_e_ids[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.pending))
 
-def check_pending_transactions(timestamp):
+def check_pending_transactions(uuid, timestamp):
     """
     Given a timestamp passed in from the user's browser, apply or unapply the pending transactions in the database and set the pending flag accordingly
-    Returns: "needs_reload" which indicates whether the page needs to reload the data on the $(document).ready() function in jQuery
-    TODO: When the login system is implemented, this will NOT need to return anything, since there will be no reloading happening on document ready
-          Instead, this function will only be called from the /home page and the /data-reload page before their templates render.
-          Add uuid to this function since you only want to update transactions for one user at a time.
     """
-    needs_reload = False
     with conn:
 
         # 1. Apply pending transactions that are before the timestamp
-        c.execute("SELECT id,account_id,envelope_id,amount FROM transactions WHERE pending=1 AND date(day) <= date(?)",(timestamp[0:10],)) 
+        c.execute("SELECT id,account_id,envelope_id,amount FROM transactions WHERE pending=1 AND user_id=? AND date(day) <= date(?)",(uuid, timestamp[0:10],)) 
         t_data_list = c.fetchall()
         if len(t_data_list) != 0:
             for (id, a_id, e_id, amt) in t_data_list:
                 apply_transaction(a_id, e_id, amt)
                 c.execute("UPDATE transactions SET pending=0 WHERE id=?",(id,))
-            needs_reload = True
         
         # 2. Unapply pending transactions that are after the timestamp
-        c.execute("SELECT id,account_id,envelope_id,amount FROM transactions WHERE pending=0 AND date(day) > date(?)",(timestamp[0:10],))
+        c.execute("SELECT id,account_id,envelope_id,amount FROM transactions WHERE pending=0 AND user_id=? AND date(day) > date(?)",(uuid, timestamp[0:10],))
         t_data_list = c.fetchall()
         if len(t_data_list) != 0:
             for (id, a_id, e_id, amt) in t_data_list:
                 unapply_transaction(a_id, e_id, amt)
                 c.execute("UPDATE transactions SET pending=1 WHERE id=?",(id,))
-            needs_reload = True
-        return needs_reload
+    
+    return None
 
 # endregion TRANSACTION FUNCTIONS
 

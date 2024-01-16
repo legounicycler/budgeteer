@@ -69,7 +69,7 @@ def api_login():
     user = get_user_by_email(email)
     if user is not None:
       if user.check_password(password):
-        login_user(user, remember=False) # Swap to this eventually: login_user(user, remember=form.remember_me.data)
+        login_user(user, remember=False) # TODO: Swap to this eventually: login_user(user, remember=form.remember_me.data) *and ctrl+f for this comment*
         response = make_response(jsonify({'login_success': True}))
         return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
       else:
@@ -207,38 +207,45 @@ app.jinja_env.filters['inputformat'] = inputformat
 @app.route("/home", methods=['GET'])
 @login_required
 def home():
-  try:
-    uuid = get_uuid_from_cookie()
-    u = get_user_by_uuid(uuid)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {uuid}")
-    (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
-    (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_account_dict(uuid)
-    unallocated_balance = get_envelope_balance(u.unallocated_e_id)/100
-    total_funds = get_total(uuid)
-    return render_template(
-      'layout.html',
-      current_page='All transactions',
-      t_type_dict=t_type_dict,
-      t_type_icon_dict=t_type_icon_dict,
-      active_envelopes=active_envelopes,
-      unallocated_balance=unallocated_balance,
-      envelopes_data=envelopes_data,
-      budget_total=budget_total,
-      active_accounts=active_accounts,
-      accounts_data=accounts_data,
-      transactions_data=transactions_data,
-      total_funds=total_funds,
-      offset=offset,
-      limit=limit,
-      email=current_user.email,
-      first_name=current_user.first_name,
-      last_name=current_user.last_name,
-      unallocated_e_id = u.unallocated_e_id
-    )
-  except CustomException as e:
-    return jsonify({"error": str(e)})
+  # Check for the presence of a timestamp in the query parameters
+  timestamp = request.args.get('timestamp', request.headers.get('Referer'))
+  if not timestamp:
+      return render_template('get_timestamp.html')
+  else:
+    # Render the home transaction page
+    try: 
+      uuid = get_uuid_from_cookie()
+      u = get_user_by_uuid(uuid)
+      if u is None:
+          raise UserNotFoundError(f"No user exists with uuid {uuid}")
+      check_pending_transactions(uuid, timestamp)
+      (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
+      (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
+      (active_accounts, accounts_data) = get_account_dict(uuid)
+      unallocated_balance = get_envelope_balance(u.unallocated_e_id)/100
+      total_funds = get_total(uuid)
+      return render_template(
+        'layout.html',
+        current_page='All transactions',
+        t_type_dict=t_type_dict,
+        t_type_icon_dict=t_type_icon_dict,
+        active_envelopes=active_envelopes,
+        unallocated_balance=unallocated_balance,
+        envelopes_data=envelopes_data,
+        budget_total=budget_total,
+        active_accounts=active_accounts,
+        accounts_data=accounts_data,
+        transactions_data=transactions_data,
+        total_funds=total_funds,
+        offset=offset,
+        limit=limit,
+        email=current_user.email,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
+        unallocated_e_id = u.unallocated_e_id
+      )
+    except CustomException as e:
+      return jsonify({"error": str(e)})
 
 @app.route("/get_envelope_page", methods=["POST"])
 @login_required
@@ -694,7 +701,7 @@ def edit_transaction():
 
 @app.route('/delete_transaction_page', methods=['POST'])
 @login_required
-# TODO: Change this to use an <id> in the URL instead of using the hidden form thing (SEE get_grouped_transaction_data). Also probably rename this to not say "page"
+# TODO: Change this to use an <id> in the URL instead of using the hidden form thing (SEE get_grouped_transaction_data). Also probably rename this to not say "page" and instead use the api prefix
 def delete_transaction_page():
   try: 
     uuid = get_uuid_from_cookie()
@@ -705,13 +712,6 @@ def delete_transaction_page():
 
   except CustomException as e:
     return jsonify({"error": str(e)})
-
-# TODO: Once the login system is implemented, this whole page will no longer be needed, since all check_pending_request() calls will be in /home or /data-reload
-@app.route('/api/check_pending_transactions', methods=['POST'])
-@login_required
-def check_pending_request():
-  timestamp = request.get_json()['timestamp']
-  return jsonify({'should_reload': check_pending_transactions(timestamp)})
 
 @app.route('/api/transaction/<id>/group', methods=['GET'])
 @login_required
@@ -813,10 +813,8 @@ def data_reload():
     js_data = request.get_json()
     current_page = js_data['current_page']
     timestamp = js_data['timestamp']
-    check_pending = js_data['check_pending']
     reload_transactions = js_data['reload_transactions']
-    if check_pending:
-      check_pending_transactions(timestamp) #Apply any pending transactions that need to before rendering the template
+    check_pending_transactions(uuid, timestamp) #Apply any pending transactions that need to before rendering the template
     if 'account/' in current_page:
       regex = re.compile('account/(\d+)')
       account_id = int(regex.findall(current_page)[0])

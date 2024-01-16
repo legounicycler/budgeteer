@@ -327,25 +327,6 @@
       // Refresh the reconcile balances
       refresh_reconcile();
 
-      //Check status of pending transactions, and update if necessary
-      // TODO: Revisit this when login is implemented. The login page can accept a timestamp from the user when they submit a login request on the form
-      //       This page will then redirect to the /home page in budgeteer.py, and the first thing that the /home page does can be running check_pending_transactions()
-      //       before it renders any templates. This means that you won't need an /api/check_pending_transactions, since checking for pending transactions will happen automatically
-      //       on every /data_reload and /home pages in budgeteer.py. Not sure how this will work if you can navigate directly to the /home page with a "keep me logged in" functionality
-      $.ajax({
-        type: 'POST',
-        url: '/api/check_pending_transactions',
-        data: JSON.stringify({"timestamp": gen_timestamp()}),
-        // data: JSON.stringify({"timestamp": "2023-07-12 00:00:00"}),
-        contentType: 'application/json'
-      }).done( function(o) {
-        if (o['error']) { M.toast({html: o['error']}); return; }
-        should_reload = o['should_reload'];
-        if (should_reload) {
-          data_reload(current_page,false);
-        }
-      });
-
     $("body").on("input", ".special-input", function() {
       $span =  $(this).parent().siblings().find("span");
       try {
@@ -374,14 +355,6 @@
 
 
     //------------- FUNCTIONAL JS -------------//
-
-    function pad2(n) {return n < 10 ? '0' + n : n}
-
-    function gen_timestamp() {
-      date = new Date();
-      return date.getFullYear()+'-'+pad2(date.getMonth()+1)+'-'+pad2(date.getDate())+' '+pad2(date.getHours())+':'+pad2(date.getMinutes())+':'+pad2(date.getSeconds());
-    }
-
     function refresh_reconcile() {
       var page_total = text_to_num($("#page-total").text());
       var reconcile_balance = page_total;
@@ -1153,12 +1126,11 @@
 
 
     // Retrieves updated data from database and updates the necessary html
-    // TODO: Remove the check_pending flag when the login system is implemented and this function will always check pending transactions
-    function data_reload(current_page, check_pending=true, reload_transactions=true) {
+    function data_reload(current_page, reload_transactions=true) {
       return $.ajax({
         type: "POST",
         url: "/api/data-reload",
-        data: JSON.stringify({"current_page": current_page, "timestamp": gen_timestamp(), "check_pending": check_pending, "reload_transactions": reload_transactions}),
+        data: JSON.stringify({"current_page": current_page, "timestamp": gen_timestamp(), "reload_transactions": reload_transactions}),
         contentType: 'application/json'
       }).done(function( o ) {
         if (o['error']) { M.toast({html: o['error']}); return; }
@@ -1379,7 +1351,7 @@
         if (o['error']) { M.toast({html: o['error']}); return; }
         $parentModal.modal("close");
         $parentModal.find(".new-envelope-row").remove(); //Removes the new-envelope-row(s) from split transactions
-        data_reload(current_page, true, false).then(function() {
+        data_reload(current_page, false).then(function() {
           $(`.transaction[data-id='${dtid}']`).parent().animate({height: "0px"}, 250).promise().done(function() {
             $(`.transaction[data-id='${dtid}']`).parent().remove();
             $(".date-bucket").show();
@@ -1404,7 +1376,7 @@
         if (o['error']) { M.toast({html: o['error']}); return; }
         $("#multi-select-col").hide();
         none_checked = true;
-        data_reload(current_page, true, false).then(function() {
+        data_reload(current_page, false).then(function() {
           $(".t-delete-checkbox:checked").closest(".transaction-row").animate({height: "0px"}, 250).promise().done(function() {
             $(".t-delete-checkbox:checked").closest(".transaction-row").remove();
             $(".date-bucket").show();
