@@ -45,7 +45,7 @@ login_manager.login_view = "login"
 
 @login_manager.user_loader
 def load_user(uuid):
-  return get_user_by_uuid(uuid)
+  return get_user_for_flask(uuid)
 
 @app.route("/")
 @app.route('/login', methods=["POST", "GET"])
@@ -216,8 +216,6 @@ def home():
     try: 
       uuid = get_uuid_from_cookie()
       u = get_user_by_uuid(uuid)
-      if u is None:
-          raise UserNotFoundError(f"No user exists with uuid {uuid}")
       check_pending_transactions(uuid, timestamp)
       (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
       (active_envelopes, envelopes_data, budget_total) = get_envelope_dict(uuid)
@@ -440,8 +438,6 @@ def new_income(edited=False):
   try:
     uuid = get_uuid_from_cookie()
     u = get_user_by_uuid(uuid)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     timestamp = date_parse(request.form['timestamp'])
@@ -567,8 +563,6 @@ def edit_delete_envelope():
   try:
     uuid = get_uuid_from_cookie()
     u = get_user_by_uuid(uuid)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     name = request.form['name']
     note = request.form['note']
     date = datetime.strptime(request.form['date'], "%m/%d/%Y")
@@ -608,8 +602,6 @@ def edit_delete_account():
   try:
     uuid = get_uuid_from_cookie()
     u = get_user_by_uuid(uuid)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     name = request.form['name']
     note = request.form['note']
     date = datetime.strptime(request.form['date'], "%m/%d/%Y")
@@ -642,8 +634,6 @@ def edit_account_adjust():
   try:
     uuid = get_uuid_from_cookie()
     u = get_user_by_uuid(uuid)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     name = request.form['name']
     date = datetime.strptime(request.form['date'], "%m/%d/%Y")
     note = request.form['note']
@@ -747,11 +737,10 @@ def edit_accounts_page():
     new_accounts = []
     for i in range(len(present_ids)):
       if (edit_names[i] != original_names[i] or edit_balances[i] != original_balances[i] or edit_a_order[i] != original_a_order[present_ids[i]]):
-        a = Account(edit_names[i], int(round(float(edit_balances[i])*100)), False, uuid, edit_a_order[i])
-        a.id = present_ids[i]
+        a = Account(present_ids[i], edit_names[i], int(round(float(edit_balances[i])*100)), False, uuid, edit_a_order[i])
         accounts_to_edit.append(a)
     for i in range(len(new_names)):
-      new_accounts.append(Account(new_names[i], int(round(float(new_balances[i])*100)), False, uuid, new_a_order[i]))
+      new_accounts.append(Account(None, new_names[i], int(round(float(new_balances[i])*100)), False, uuid, new_a_order[i]))
 
     toasts = []
     toasts.append(edit_accounts(uuid, accounts_to_edit, new_accounts, present_ids, timestamp)) #From the account editor form, there is no date field, so use timestamp for date of transaction
@@ -786,11 +775,11 @@ def edit_envelopes_page():
     new_envelopes = []
     for i in range(len(present_ids)):
       if (edit_names[i] != original_names[i] or edit_budgets[i] != original_budgets[i] or edit_e_order[i] != original_e_order[present_ids[i]]): #
-        e = Envelope(edit_names[i], int(round(float(envelope_balances[i])*100)), int(round(float(edit_budgets[i])*100)), False, uuid, edit_e_order[i])
+        e = Envelope(present_ids[i], edit_names[i], int(round(float(envelope_balances[i])*100)), int(round(float(edit_budgets[i])*100)), False, uuid, edit_e_order[i])
         e.id = present_ids[i]
         envelopes_to_edit.append(e)
     for i in range(len(new_names)):
-      new_envelopes.append(Envelope(new_names[i], 0, int(round(float(new_budgets[i])*100)), False, uuid, new_e_order[i]))
+      new_envelopes.append(Envelope(None, new_names[i], 0, int(round(float(new_budgets[i])*100)), False, uuid, new_e_order[i]))
 
     toasts = []
     toasts.append(edit_envelopes(uuid, envelopes_to_edit, new_envelopes, present_ids))
@@ -808,8 +797,6 @@ def data_reload():
   try:
     uuid = get_uuid_from_cookie()
     u = get_user_by_uuid(uuid)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     js_data = request.get_json()
     current_page = js_data['current_page']
     timestamp = js_data['timestamp']

@@ -59,8 +59,8 @@ class Transaction:
         return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, PENDING:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.pending)
 
 class Account:
-    def __init__(self, name, balance, deleted, user_id, display_order):
-        self.id = None
+    def __init__(self, id, name, balance, deleted, user_id, display_order):
+        self.id = id
         self.name = name
         self.balance = balance
         self.deleted = deleted
@@ -72,8 +72,8 @@ class Account:
         return "ID:{}, NAME:{}, BAL:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.deleted,self.user_id,self.display_order)
 
 class Envelope:
-    def __init__(self, name, balance, budget, deleted, user_id, display_order):
-        self.id = None
+    def __init__(self, id, name, balance, budget, deleted, user_id, display_order):
+        self.id = id
         self.name = name
         self.balance = balance
         self.budget = budget
@@ -209,8 +209,6 @@ def get_home_transactions(uuid, start, amount):
     with its summed total
     """
     u = get_user_by_uuid(uuid)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     
     c.execute("SELECT id from TRANSACTIONS WHERE user_id=? GROUP BY grouping ORDER BY day DESC, id DESC LIMIT ? OFFSET ?", (uuid, amount, start))
     groupings = c.fetchall()
@@ -396,8 +394,6 @@ def delete_transaction(uuid, t_id):
     Deletes transaction and associated grouped transactions and updates appropriate envelope/account balances
     """
     u = get_user_by_uuid(uuid)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {uuid}")
 
     with conn:
         if get_transaction(t_id).user_id != uuid:
@@ -550,8 +546,9 @@ def get_account(id):
     """
     c.execute("SELECT * FROM accounts WHERE id=?", (id,))
     adata = c.fetchone()
-    a = Account(adata[1], adata[2], adata[3], adata[4], adata[5])
-    a.id = adata[0]
+    if adata is None:
+        raise AccountNotFoundError(f"Account with ID {id} not found!")
+    a = Account(*adata)
     return a
 
 def get_account_dict(uuid):
@@ -702,8 +699,6 @@ def adjust_account_balance(a_id, balance_diff, name, date):
     """
     a = get_account(a_id)
     u = get_user_by_uuid(a.user_id)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {a.user_id}")
 
     # 1. Create the transaction note
     if balance_diff > 0:
@@ -731,8 +726,9 @@ def get_envelope(id):
     """
     c.execute("SELECT * FROM envelopes WHERE id=?", (id,))
     edata = c.fetchone()
-    e = Envelope(edata[1], edata[2], edata[3], edata[4], edata[5], edata[6])
-    e.id = edata[0]
+    if edata is None:
+        raise EnvelopeNotFoundError(f"Envelope with ID {id} not found!")
+    e = Envelope(*edata)
     return e
 
 def get_envelope_dict(uuid):
@@ -744,8 +740,6 @@ def get_envelope_dict(uuid):
     3. A string displaying the total budget for all envelopes
     """
     u = get_user_by_uuid(uuid)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {uuid}")
     c.execute("SELECT id FROM envelopes WHERE user_id=? ORDER by display_order ASC, id ASC", (uuid,))
     ids = unpack(c.fetchall())
     e_dict = {}
@@ -769,8 +763,6 @@ def get_envelope_order(uuid):
     """
     with conn:
         u = get_user_by_uuid(uuid)
-        if u is None:
-            raise UserNotFoundError(f"No user exists with uuid {uuid}")
         c.execute("SELECT id,display_order FROM envelopes WHERE (deleted=0 AND user_id=? AND id!=?) ORDER BY id ASC", (uuid, u.unallocated_e_id,))
         tuple_array = c.fetchall()
         if tuple_array is None:
@@ -858,10 +850,7 @@ def edit_envelopes(uuid, envelopes_to_edit, new_envelopes, present_ids):
     2.  new_envelopes: A lit of brand new envelope objects to be inserted into the database
     3.  present_ids: A list of all id's present in the envelope editor modal (notably missing any that were deleted by the user)
     """
-    u = get_user_by_uuid(uuid)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {uuid}")
-    
+    u = get_user_by_uuid(uuid) 
     done_something = False
     c.execute("SELECT id FROM envelopes WHERE deleted=0 AND user_id=?",(uuid,))
     original_envelope_ids = unpack(c.fetchall())
@@ -897,9 +886,6 @@ def envelope_fill(t):
     Takes an ENVELOPE_FILL transaction with an array of envelope ids and amounts and creates sub-transactions to fill the envelopes
     """
     u = get_user_by_uuid(t.user_id)
-    if u is None:
-        raise UserNotFoundError(f"No user exists with uuid {t.user_id}")
-    
     if t.type == ENVELOPE_FILL:
         grouping = gen_grouping_num()
         amts = t.amt
@@ -928,9 +914,10 @@ def get_user_by_email(email):
         else:
             return None
     
-def get_user_by_uuid(uuid):
+def get_user_for_flask(uuid):
     """
-    Given a uuid address, return a User object if the uuid is in the database, or return none if not
+    Given a uuid, return a User object if the uuid is in the database, or return None if not
+    Note: Must return None, and not throw an exception
     """
     conn = sqlite3.connect(database, check_same_thread=False)
     c = conn.cursor()
@@ -943,10 +930,22 @@ def get_user_by_uuid(uuid):
     else:
         return None
 
+def get_user_by_uuid(uuid):
+    """
+    Given a uuid address, return a User object if the uuid is in the database, or return none if not
+    """
+    c.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
+    udata = c.fetchone()
+    if udata is not None:
+        user = User(*udata)
+        return user
+    else:
+        raise UserNotFoundError(f"No user exists with uuid {uuid}")
+
 def insert_user(u):
     with conn:
         # 1. Create a new unallocated envelope for the user
-        insert_envelope(Envelope("Unallocated", 0, 0, False, u.id, 0))
+        insert_envelope(Envelope(None, "Unallocated", 0, 0, False, u.id, 0))
 
         # 2. Insert the new user into the database referencing the ID of the newly created unallocated envelope
         c.execute("INSERT INTO users (uuid, email, password_hash, password_salt, first_name, last_name, unallocated_e_id) VALUES (?,?,?,?,?,?, (SELECT id FROM envelopes WHERE user_id=? LIMIT 1))", (u.id, u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.id))
