@@ -109,33 +109,6 @@ def logout():
     logout_user()
   return redirect(url_for('login'))
 
-
-# TODO: Make this a global filter instead
-t_type_dict = {
-  0: 'Basic Transaction',
-  1: 'Envelope Transfer',
-  2: 'Account Transfer',
-  3: 'Income',
-  4: 'Split Transaction',
-  5: 'Envelope Fill',
-  6: 'Envelope Delete',
-  7: 'Account Delete',
-  8: 'Account Adjust'
-}
-
-# TODO: Make this a global filter instead
-t_type_icon_dict = {
-  0: 'local_atm',
-  1: 'swap_horiz',
-  2: 'swap_vert',
-  3: 'vertical_align_bottom',
-  4: 'call_split',
-  5: 'input',
-  6: 'layers_clear',
-  7: 'money_off',
-  8: 'build'
-}
-
 def datetimeformat(value, format='%m/%d/%Y'):
   return value.strftime(format)
 
@@ -224,8 +197,6 @@ def home():
       return render_template(
         'layout.html',
         current_page='All transactions',
-        t_type_dict=t_type_dict,
-        t_type_icon_dict=t_type_icon_dict,
         active_envelopes=active_envelopes,
         unallocated_balance=unallocated_balance,
         envelopes_data=envelopes_data,
@@ -239,7 +210,8 @@ def home():
         email=current_user.email,
         first_name=current_user.first_name,
         last_name=current_user.last_name,
-        unallocated_e_id = u.unallocated_e_id
+        unallocated_e_id = u.unallocated_e_id,
+        TType = TType
       )
     except CustomException as e:
       return jsonify({"error": str(e)})
@@ -256,9 +228,19 @@ def get_envelope_page():
     (active_accounts, accounts_data) = get_user_account_dict(uuid)
     page_total = balanceformat(get_envelope(envelope_id).balance/100)
     data = {}
-    data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict=t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
     data['page_total'] = page_total
     data['envelope_name'] = get_envelope(envelope_id).name
+    data['transactions_html'] = render_template(
+      'transactions.html',
+      current_page=current_page,
+      transactions_data=transactions_data,
+      active_envelopes=active_envelopes,
+      envelopes_data=envelopes_data,
+      active_accounts=active_accounts,
+      accounts_data=accounts_data,
+      offset=offset, limit=limit,
+      TType = TType
+    )
     return jsonify(data)
   except CustomException as e:
     return jsonify({"error": "ERROR: Something went wrong and your envelope data could not be loaded!"})
@@ -275,9 +257,19 @@ def get_account_page():
     (active_accounts, accounts_data) = get_user_account_dict(uuid)
     page_total = balanceformat(get_account(account_id).balance/100)
     data = {}
-    data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
     data['page_total'] = page_total
     data['account_name'] = get_account(account_id).name
+    data['transactions_html'] = render_template(
+      'transactions.html',
+      current_page=current_page,
+      transactions_data=transactions_data,
+      active_envelopes=active_envelopes,
+      envelopes_data=envelopes_data,
+      active_accounts=active_accounts,
+      accounts_data=accounts_data,
+      offset=offset,
+      limit=limit,
+      TType = TType)
     return jsonify(data)
   except CustomException as e:
     return jsonify({"error": "ERROR: Something went wrong and your account data could not be loaded!"})
@@ -308,11 +300,11 @@ def new_expense(edited=False):
       raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for new_expense!")
     
     for name in names:
-      t = Transaction(BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, uuid, pending)
+      t = Transaction(TType.BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, uuid, pending)
       if scheduled and not pending:
         # Create pending scheduled transaction
         nextdate = schedule_date_calc(date, schedule, timestamp)
-        scheduled_t = Transaction(BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, uuid, is_pending(nextdate, timestamp))
+        scheduled_t = Transaction(TType.BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, uuid, is_pending(nextdate, timestamp))
       elif scheduled and pending:
         t.schedule = schedule
 
@@ -328,10 +320,10 @@ def new_expense(edited=False):
           insert_transaction(scheduled_t)
           sched_t_submitted = True
       else: # If it is a SPLIT_TRANSACTION
-        t.type = SPLIT_TRANSACTION
+        t.type = TType.SPLIT_TRANSACTION
         new_split_transaction(t)
         if scheduled and not pending:
-          scheduled_t.type = SPLIT_TRANSACTION
+          scheduled_t.type = TType.SPLIT_TRANSACTION
           new_split_transaction(scheduled_t)
           sched_t_submitted = True
     if edited:
@@ -454,11 +446,11 @@ def new_income(edited=False):
       raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for new_income!")
     
     for name in names:
-      t = Transaction(INCOME, name, -1 * amount, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, pending)
+      t = Transaction(TType.INCOME, name, -1 * amount, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, pending)
       if scheduled and not pending:
         insert_transaction(t)
         nextdate = schedule_date_calc(date, schedule, timestamp)
-        scheduled_t = Transaction(INCOME, name, -1 * amount, nextdate, u.unallocated_e_id, account_id, gen_grouping_num(), note, schedule, False, uuid, is_pending(nextdate, timestamp))
+        scheduled_t = Transaction(TType.INCOME, name, -1 * amount, nextdate, u.unallocated_e_id, account_id, gen_grouping_num(), note, schedule, False, uuid, is_pending(nextdate, timestamp))
         insert_transaction(scheduled_t)
         sched_t_submitted = True
       elif scheduled and pending:
@@ -521,11 +513,11 @@ def fill_envelopes(edited=False):
     
     if amounts:
       for name in names:
-        t = Transaction(ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, uuid, pending)
+        t = Transaction(TType.ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, uuid, pending)
         if scheduled and not pending:
           envelope_fill(t)
           nextdate = schedule_date_calc(date, schedule, timestamp)
-          scheduled_t = Transaction(ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, uuid, is_pending(nextdate, timestamp))
+          scheduled_t = Transaction(TType.ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, uuid, is_pending(nextdate, timestamp))
           envelope_fill(scheduled_t)
           sched_t_submitted = True
         elif scheduled and pending:
@@ -575,10 +567,10 @@ def edit_delete_envelope():
         e = get_envelope(envelope_id)
         grouping = gen_grouping_num()
         # 1. Empty the deleted envelope
-        t_envelope = Transaction(ENVELOPE_DELETE, name, e.balance, date, envelope_id, None, grouping, note, None, 0, uuid, False)
+        t_envelope = Transaction(TType.ENVELOPE_DELETE, name, e.balance, date, envelope_id, None, grouping, note, None, 0, uuid, False)
         insert_transaction(t_envelope)
         # 2. Fill the unallocated envelope
-        t_unallocated = Transaction(ENVELOPE_DELETE, name, -1*e.balance, date, u.unallocated_e_id, None, grouping, note, None, 0, uuid, False)
+        t_unallocated = Transaction(TType.ENVELOPE_DELETE, name, -1*e.balance, date, u.unallocated_e_id, None, grouping, note, None, 0, uuid, False)
         insert_transaction(t_unallocated)
         # 3. Mark the envelope as deleted
         c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
@@ -614,7 +606,7 @@ def edit_delete_account():
       a = get_account(account_id)
       
       # 1. Empty the deleted account
-      insert_transaction(Transaction(ACCOUNT_DELETE, name, a.balance, date, u.unallocated_e_id, a.id, gen_grouping_num(), note, None, 0, uuid, False))
+      insert_transaction(Transaction(TType.ACCOUNT_DELETE, name, a.balance, date, u.unallocated_e_id, a.id, gen_grouping_num(), note, None, 0, uuid, False))
 
       # 2. Mark the account as deleted
       c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
@@ -645,7 +637,7 @@ def edit_account_adjust():
     except:
       raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for edit_account_adjust!")
     
-    insert_transaction(Transaction(ACCOUNT_ADJUST, name, -1*balance_diff, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, is_pending(date, timestamp)))
+    insert_transaction(Transaction(TType.ACCOUNT_ADJUST, name, -1*balance_diff, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, is_pending(date, timestamp)))
     toasts.append("Transaction updated!")
 
     if (health_check() is False):
@@ -661,26 +653,26 @@ def edit_transaction():
   try:
     uuid = get_uuid_from_cookie()
     id = int(request.form['edit-id'])
-    type = int(request.form['type'])
+    type = TType.from_int(int(request.form['type']))
       
-    if (type == BASIC_TRANSACTION):
+    if (type == TType.BASIC_TRANSACTION):
       response = new_expense(True)
-    elif (type == ENVELOPE_TRANSFER or type == ACCOUNT_TRANSFER):
+    elif (type == TType.ENVELOPE_TRANSFER or type == TType.ACCOUNT_TRANSFER):
       response =  new_transfer(True)
-    elif (type == INCOME):
+    elif (type == TType.INCOME):
       response = new_income(True)
-    elif (type == SPLIT_TRANSACTION):
+    elif (type == TType.SPLIT_TRANSACTION):
       response = new_expense(True)
-    elif (type == ENVELOPE_FILL):
+    elif (type == TType.ENVELOPE_FILL):
       response = fill_envelopes(True)
-    elif (type == ENVELOPE_DELETE):
+    elif (type == TType.ENVELOPE_DELETE):
       response = edit_delete_envelope()
-    elif (type == ACCOUNT_DELETE):
+    elif (type == TType.ACCOUNT_DELETE):
       response = edit_delete_account()
-    elif (type == ACCOUNT_ADJUST):
+    elif (type == TType.ACCOUNT_ADJUST):
       response =  edit_account_adjust()
 
-    if not response.json['error']:
+    if not response.json.get('error'):
       delete_transaction(uuid, id) #Only delete the original transaction if you were successful in creating the replacement edited transaction
       
     return response
@@ -817,8 +809,6 @@ def data_reload():
     (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
     (active_accounts, accounts_data) = get_user_account_dict(uuid)
     data = {}
-    if reload_transactions:
-      data['transactions_html'] = render_template('transactions.html', current_page=current_page, t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, active_envelopes=active_envelopes, envelopes_data=envelopes_data, active_accounts=active_accounts, accounts_data=accounts_data, offset=offset, limit=limit)
     data['total'] = get_total(uuid)
     data['unallocated'] = get_envelope_balance(u.unallocated_e_id)/100
     data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
@@ -829,6 +819,19 @@ def data_reload():
     data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
     data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
     data['page_total'] = page_total
+    if reload_transactions:
+      data['transactions_html'] = render_template(
+        'transactions.html',
+        current_page=current_page,
+        transactions_data=transactions_data,
+        active_envelopes=active_envelopes,
+        envelopes_data=envelopes_data,
+        active_accounts=active_accounts,
+        accounts_data=accounts_data,
+        offset=offset,
+        limit=limit,
+        TType=TType
+      )
     return jsonify(data)
   except CustomException as e:
     return jsonify({"error": str(e)})
@@ -853,7 +856,14 @@ def load_more():
 
     (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
     (active_accounts, accounts_data) = get_user_account_dict(uuid)
-    more_transactions = render_template('more_transactions.html', t_type_dict=t_type_dict, t_type_icon_dict = t_type_icon_dict, transactions_data=transactions_data, accounts_data=accounts_data, envelopes_data=envelopes_data, current_page=current_page)
+    more_transactions = render_template(
+      'more_transactions.html',
+      transactions_data=transactions_data,
+      accounts_data=accounts_data,
+      envelopes_data=envelopes_data,
+      current_page=current_page,
+      TType = TType
+    )
     return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions})
   
   except CustomException as e:

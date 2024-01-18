@@ -14,13 +14,13 @@
     <div class="transaction"
         data-id="{{transaction.id}}"
         data-name="{{transaction.name}}"
-        data-type="{{transaction.type}}"
+        data-type="{{transaction.type.id}}"
         data-date="{{transaction.date|datetimeformat}}"
         data-amt="{{transaction.amt}}"
         data-account_id="{{transaction.account_id}}"
-        data-account_name = "{% if transaction.account_id is not none and transaction.type != 1 %}{{ accounts_data[transaction.account_id].name }}{% endif %}"
+        data-account_name = "{% if transaction.account_id is not none and transaction.type != TType.ENVELOPE_TRANSFER %}{{ accounts_data[transaction.account_id].name }}{% endif %}"
         data-envelope_id="{{transaction.envelope_id}}"
-        data-envelope_name = "{% if transaction.envelope_id is not none and transaction.type != 2 %}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}"
+        data-envelope_name = "{% if transaction.envelope_id is not none and transaction.type != TType.ACCOUNT_TRANSFER %}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}"
         data-grouping="{{transaction.grouping}}"
         data-note="{{transaction.note}}"
         data-schedule="{{transaction.schedule}}"
@@ -28,60 +28,60 @@
         data-pending="{{transaction.pending}}"
         data-user_id="{{transaction.user_id}}">
 
-      <div class="col m1 hide-on-small-only valign-wrapper transaction-type"><i class="material-icons" title="{{t_type_dict[transaction.type]}}">{{t_type_icon_dict[transaction.type]}}</i></div>
+      <div class="col m1 hide-on-small-only valign-wrapper transaction-type"><i class="material-icons" title="{{transaction.type.name}}">{{transaction.type.icon}}</i></div>
       <div class="col s7 transaction-name left-align" title="{{transaction.note}}">
         <div class="row">
           <h5 class="truncate no-margin non-selectable">{{transaction.name}}</h5>
         </div>
         <div class="row valign-wrapper transaction-details">
           <i class="no-margin tiny truncate non-selectable
-                {% if transaction.type == 1 %}
+                {% if transaction.type == TType.ENVELOPE_TRANSFER %}
                   {% if envelopes_data[transaction.envelope_id].deleted == true %}
                     strikethrough
                   {% endif %}
                 {% endif %}
-                {% if transaction.type == 2 %}
+                {% if transaction.type == TType.ACCOUNT_TRANSFER %}
                   {% if accounts_data[transaction.envelope_id].deleted == true %}
                     strikethrough
                   {% endif %}
                 {% endif %}
-                {% if transaction.envelope_id is not none and transaction.type != 1 and transaction.type != 2 and transaction.type != 4 and transaction.type !=5 %}
+                {% if transaction.envelope_id is not none and transaction.type != TType.ENVELOPE_TRANSFER and transaction.type != TType.ACCOUNT_TRANSFER and transaction.type != TType.SPLIT_TRANSACTION and transaction.type != TType.ENVELOPE_FILL %}
                   {% if envelopes_data[transaction.envelope_id].deleted == true %}
                     strikethrough
                   {% endif %}
                 {% endif %}">
-                {% if transaction.type == 1 %} {# Envelope transfer #}
+                {% if transaction.type == TType.ENVELOPE_TRANSFER %}
                   <i class="material-icons tiny non-selectable">mail_outline</i>{{ envelopes_data[transaction.envelope_id].name }}
-                {% elif transaction.type == 2 %} {# Account transfer #}
+                {% elif transaction.type == TType.ACCOUNT_TRANSFER %}
                   <i class="material-icons tiny non-selectable">account_balance</i>{{ accounts_data[transaction.envelope_id].name}}
-                {% elif transaction.type == 4 %} {# Split transaction #}
+                {% elif transaction.type == TType.SPLIT_TRANSACTION %}
                   <i class="material-icons tiny non-selectable">mail_outline</i>Multiple
-                {% elif transaction.type == 5%} {# Envelope fill #}
+                {% elif transaction.type == TType.ENVELOPE_FILL%}
                   Unallocated distribution
                 {% else %}
                   <i class="material-icons tiny non-selectable">mail_outline</i>{{ envelopes_data[transaction.envelope_id].name }}
                 {% endif %}
           </i>
 
-                {% if transaction.type == 1 or transaction.type == 2 %} {# Envelope or Account transfer #}
+                {% if transaction.type == TType.ENVELOPE_TRANSFER or transaction.type == TType.ACCOUNT_TRANSFER %}
                   <i class="no-margin tiny non-selectable"><pre> -> </pre></i>
-                  {% elif transaction.type == 0 or transaction.type == 3 or transaction.type == 4 or transaction.type == 7 or transaction.type == 8 %}
-                  <i class="no-margin tiny non-selectable"><pre> / </pre></i> {# Basic transaction, income, split transaction, account delete, or account_adjust #}
+                  {% elif transaction.type == TType.BASIC_TRANSACTION or transaction.type == TType.INCOME or transaction.type == TType.SPLIT_TRANSACTION or transaction.type == TType.ACCOUNT_DELETE or transaction.type == TType.ACCOUNT_ADJUST %}
+                  <i class="no-margin tiny non-selectable"><pre> / </pre></i>
                 {% endif %}
 
                 <i class="no-margin tiny truncate non-selectable 
-                {% if transaction.type == 1 %}
+                {% if transaction.type == TType.ENVELOPE_TRANSFER %}
                   {% if envelopes_data[transaction.envelope_id].deleted == true %}
                     strikethrough
                   {% endif %}
                 {% endif %}
-                {% if transaction.account_id is not none and transaction.type != 1 and transaction.type != 4 and transaction.type !=5 %}
+                {% if transaction.account_id is not none and transaction.type != TType.ENVELOPE_TRANSFER and transaction.type != TType.SPLIT_TRANSACTION and transaction.type !=TType.ENVELOPE_FILL %}
                   {% if accounts_data[transaction.account_id].deleted == true %}
                     strikethrough
                   {% endif %}
                 {% endif %}">
 
-                  {% if transaction.type == 1 %} {# Envelope transfer #}
+                  {% if transaction.type == TType.ENVELOPE_TRANSFER %}
                     <i class="material-icons tiny non-selectable">mail_outline</i>{{ envelopes_data[transaction.account_id].name}}
                   {% elif transaction.account_id is not none %}
                     <i class="material-icons tiny non-selectable">account_balance</i>{{ accounts_data[transaction.account_id].name}}
@@ -91,7 +91,7 @@
       </div>
       <div class="col s3 m2 transaction-amount">
         <div class='row balance-row'>
-          <span class="{{'neutral' if (transaction.amt == 0) or ((transaction.type == 1 or transaction.type == 2 or transaction.type == 5 or transaction.type == 6) and current_page == 'All Transactions')}} {{'negative' if transaction.amt < 0}} balance non-selectable">{{transaction.amt|balanceformat}}</span>
+          <span class="{{'neutral' if (transaction.amt == 0) or ((transaction.type == TType.ENVELOPE_TRANSFER or transaction.type == TType.ACCOUNT_TRANSFER or transaction.type == TType.ENVELOPE_FILL or transaction.type == TType.ENVELOPE_DELETE) and current_page == 'All Transactions')}} {{'negative' if transaction.amt < 0}} balance non-selectable">{{transaction.amt|balanceformat}}</span>
         </div>
         <div class='row reconcile-row'>
           <span class="tiny reconcile-span">$0.00</span>
