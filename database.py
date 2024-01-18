@@ -804,7 +804,7 @@ def delete_envelope(envelope_id):
             # 4. Set display_order of deleted envelope to NULL
             c.execute("UPDATE envelopes SET display_order=NULL WHERE id=?", (envelope_id,))
         else:
-            log_write("ERROR: You can't delete the 'Unallocated' envelope you moron")
+            raise OtherError(f"ERROR: User {u.uuid} tried to delete unallocated envelope with id {envelope_id}")
 
 def restore_envelope(envelope_id):
     """
@@ -831,7 +831,7 @@ def get_envelope_balance(id):
     if balance is not None:
         return balance[0]
     else:
-        log_write(f"ERROR Envelope {id} doesn't exist, you imbicil!")
+        raise EnvelopeNotFoundError(f"Envelope with ID {id} not found!")
 
 def update_envelope_balance(id, balance):
     """
@@ -902,7 +902,7 @@ def envelope_fill(t):
             # Fill the other envelopes
             insert_transaction(Transaction(TType.ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id, t.pending))
     else:
-        log_write("ERROR: You can't pass a transaction into envelope_fill() that's not an ENVELOPE_FILL, you absolute numbskull!")
+        raise OtherError(f"ERROR: Transaction type mismatch. Expected TType.ENVELOPE_FILL, got {t.type}")
 
 # endregion ENVELOPE FUNCTIONS
 
