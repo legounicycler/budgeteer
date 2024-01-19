@@ -1,2 +1,2 @@
 from database import *
-health_check(True)
+health_check([],True)

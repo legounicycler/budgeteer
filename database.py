@@ -1034,7 +1034,7 @@ def get_grouped_json(uuid, t_id):
         })
     return data
 
-def health_check(interactive=False):
+def health_check(toasts, interactive=False):
     """
     1. Compares the sum of all account balances to the sum of all envelope balances
     2. Ensures that all deleted envelopes and accounts have a balance of zero
@@ -1189,6 +1189,7 @@ def health_check(interactive=False):
         hidden_print("---------------------\n")
 
         if (not healthy):
+            toasts.append("HEALTH ERROR!")
             hidden_print("STATUS -> UNHEALTHY")
             log_write(log_message)
             if not interactive:

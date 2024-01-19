@@ -234,9 +234,7 @@ def get_envelope_page():
       'transactions.html',
       current_page=current_page,
       transactions_data=transactions_data,
-      active_envelopes=active_envelopes,
       envelopes_data=envelopes_data,
-      active_accounts=active_accounts,
       accounts_data=accounts_data,
       offset=offset, limit=limit,
       TType = TType
@@ -263,9 +261,7 @@ def get_account_page():
       'transactions.html',
       current_page=current_page,
       transactions_data=transactions_data,
-      active_envelopes=active_envelopes,
       envelopes_data=envelopes_data,
-      active_accounts=active_accounts,
       accounts_data=accounts_data,
       offset=offset,
       limit=limit,
@@ -340,8 +336,7 @@ def new_expense(edited=False):
       else:
         raise OtherError("ERROR: No transaction name was submitted for new_expense!")
 
-    if (health_check() is False):
-      toasts.append("HEALTH ERROR!")
+    health_check(toasts)
     return jsonify({'toasts': toasts})
   
   except CustomException as e:
@@ -416,8 +411,7 @@ def new_transfer(edited=False):
         else:
           raise InvalidFormDataError("ERROR: No transaction name was submitted for new_transfer!")
 
-    if (health_check() is False):
-      toasts.append("HEALTH ERROR!")
+    health_check(toasts)
     return jsonify({'toasts': toasts})
   
   except CustomException as e:
@@ -473,8 +467,7 @@ def new_income(edited=False):
         else:
           raise InvalidFormDataError("ERROR: No transaction name was submitted for new_income!")
 
-    if (health_check() is False):
-      toasts.append("HEALTH ERROR!")
+    health_check(toasts)
     return jsonify({'toasts': toasts})
   
   except CustomException as e:
@@ -542,8 +535,7 @@ def fill_envelopes(edited=False):
     else:
       toasts.append("No envelope fill was created!")
 
-    if (health_check() is False):
-      toasts.append("HEALTH ERROR!")
+    health_check(toasts)
     return jsonify({'toasts': toasts})
 
   except CustomException as e:
@@ -579,8 +571,7 @@ def edit_delete_envelope():
       else:
         raise InvalidFormDataError("ERROR: You cannot delete the unallocated envelope!")
 
-    if (health_check() is False):
-      toasts.append("HEALTH ERROR!")
+    health_check(toasts)
     return jsonify({'toasts': toasts})
   
   except CustomException as e:
@@ -613,8 +604,7 @@ def edit_delete_account():
       toasts.append("Transaction updated!")
       log_write('A DELETE: ' + str(get_account(account_id)))
 
-    if (health_check() is False):
-      toasts.append("HEALTH ERROR!")
+    health_check(toasts)
     return jsonify({'toasts': toasts})
   
   except CustomException as e:
@@ -640,8 +630,7 @@ def edit_account_adjust():
     insert_transaction(Transaction(TType.ACCOUNT_ADJUST, name, -1*balance_diff, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, is_pending(date, timestamp)))
     toasts.append("Transaction updated!")
 
-    if (health_check() is False):
-      toasts.append("HEALTH ERROR!")
+    health_check(toasts)
     return jsonify({'toasts': toasts})
 
   except CustomException as e:
@@ -735,8 +724,7 @@ def edit_accounts_page():
     toasts = []
     toasts.append(edit_accounts(uuid, accounts_to_edit, new_accounts, present_ids, timestamp)) #From the account editor form, there is no date field, so use timestamp for date of transaction
 
-    if (health_check() is False):
-      toasts.append(" HEALTH ERROR!!!")
+    health_check(toasts)
     return jsonify({'toasts': toasts})
   
   except CustomException as e:
@@ -774,8 +762,7 @@ def edit_envelopes_page():
     toasts = []
     toasts.append(edit_envelopes(uuid, envelopes_to_edit, new_envelopes, present_ids))
 
-    if (health_check() is False):
-      toasts.append("HEALTH ERROR!")
+    health_check(toasts)
     return jsonify({'toasts': toasts})
   
   except CustomException as e:
@@ -824,9 +811,7 @@ def data_reload():
         'transactions.html',
         current_page=current_page,
         transactions_data=transactions_data,
-        active_envelopes=active_envelopes,
         envelopes_data=envelopes_data,
-        active_accounts=active_accounts,
         accounts_data=accounts_data,
         offset=offset,
         limit=limit,
@@ -886,8 +871,7 @@ def multi_delete():
     else:
       toasts.append(f'{len(delete_ids)} transactions deleted!')
     
-    if (health_check() is False):
-      toasts.append("HEALTH ERROR!")
+    health_check(toasts)
     return jsonify({'toasts': toasts})
     
   except CustomException as e:
