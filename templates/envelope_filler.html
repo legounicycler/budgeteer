@@ -24,7 +24,7 @@
           <div class="row envelope-fill-orange-div">
             <div class="col s5 offset-1">
               <h6>Unallocated:</h6>
-              <h6><span id="unallocated-balance-envelope-filler" class="{{'negative' if envelopes_data[1].balance < 0}} balance">{{envelopes_data[1].balance|balanceformat}}</span></h6>
+              <h6><span id="unallocated-balance-envelope-filler" class="{{'negative' if unallocated_balance < 0}} balance">{{unallocated_balance|balanceformat}}</span></h6>
             </div>
             <div class="col s2 envelope-fill-arrow-col">
               <i class="medium material-icons blue-grey-text text-darken-2">arrow_forward</i>
@@ -52,7 +52,7 @@
               </div>
             {% else %}
               {% for id, envelope in envelopes_data.items() %}
-                {% if envelope.deleted == false and envelope.id != 1 %}
+                {% if envelope.deleted == false and envelope.id != unallocated_e_id %}
                   <li class="row edit-envelope-row collection-item flex">
                     <div class="col m1 hide-on-small-only valign-wrapper envelope-icon editor-col"><i class="material-icons">mail_outline</i></div>
                     <div class="col s5 valign-wrapper envelope-name left-align editor-col input-field">

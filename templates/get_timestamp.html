@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+  <title>Budgeteer</title>
+</head>
+
+<body>
+
+    <script src="{{url_for('static', filename='js/gen_timestamp.js')}}"></script>
+    <script>
+        // Use pushState to add the timestamp to the browser history without reloading the page
+        history.pushState({ timestamp: gen_timestamp() }, document.title, '/home');
+        window.location.href = '/home';
+    </script>
+
+</body>
+
+</html>

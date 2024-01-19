@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+  <title>Budgeteer</title>
+
+  <!-- CSS  -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="{{url_for('static', filename='css/materialize.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/style.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/main.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/login.css')}}" type = text/css rel="stylesheet" media="screen,projection"/>
+  <link rel="icon" href="/static/img/icon.png">
+</head>
+
+<body>
+
+    <!-- Main Nav -->
+    <div class="navbar-fixed">
+      <nav class="yellow darken-4">
+        <div class="nav-wrapper">
+          <ul class="left">
+            <li><a href="#" data-target="slide-out" class="sidenav-trigger"><i class="material-icons">menu</i></a></li>
+          </ul>
+            <a id="logo-container" href="{{url_for('home')}}" class="brand-logo center"><img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo"></a>
+          <!-- <ul class="right">
+            <li><a href="#"><i class="material-icons white-text" id="new_plan">add</i></a></li>
+          </ul> -->
+        </div>
+      </nav>
+    </div>
+
+  <!-- Content -->
+  <main>
+
+    <div id="loading-div-div">
+      <div id="loading-div">
+        <div class="preloader-wrapper big active">
+          <div class="spinner-layer spinner-blue-only">
+            <div class="circle-clipper left">
+              <div class="circle"></div>
+            </div><div class="gap-patch">
+              <div class="circle"></div>
+            </div><div class="circle-clipper right">
+              <div class="circle"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row content">
+      <div id="orange-div" class=" col l5 m12 main-content-col">
+        <div class="row main-content-row valign-wrapper">
+          <div class="col s12">
+            <img id="budgeteer-main-logo" src="{{url_for('static',filename='img/Budgeteer_White_And_Red.png')}}"/>
+          </div>
+        </div>
+      </div>
+      <div class="col l6 offset-l1 m12 s12 main-content-col">
+        <div class="row main-content-row valign-wrapper">
+          <div class="container">
+            <div id="login-card" class="card hoverable">
+              <div class="card-content">
+                <div class="row">
+                  <span class="card-title"><h3>Welcome to Budgeteer!</h3></span>
+                </div>
+                <div class="divider"></div>
+                <div class="row">
+                  <h4>Log in</h4>
+                </div>
+                <form id="login-form" action="{{ url_for('api_login') }}" method="post">
+                  <div class='row'>
+                    <div class='input-field col s12'>
+                      {{login_form.email.label}} {{login_form.email(class="validate")}}
+                    </div>
+                  </div>
+                  <div class='row'>
+                    <div class='input-field col s12'>
+                      {{login_form.password.label}} {{login_form.password(class="validate")}}
+                    </div>
+                  </div>
+                  <div class='row'>
+                    <div class="col s12 m8 push-m2">
+                      {{login_form.submit(class="btn waves-effect waves-light btn")}}
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col s12">
+                      <div class="section">
+                        <a class="tiny" href="#!">Forgot your password?</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="divider"></div>
+                  <div class="row">
+                    <h6 class="activator" id="no-account">Don't have an account yet?</h6>
+                  </div>
+                </form>
+              </div>
+
+              <div class="card-reveal">
+                <span class="card-title grey-text text-darken-4"><i id="login-card-close" class="material-icons right">close</i></span>
+                <div class="row">
+                  <h4>Create your account</h4>
+                </div>
+                <form id="register-form" action="{{ url_for('register') }}" method="post">
+                  <div class="row">
+                    <div class='input-field col s6'>
+                      {{register_form.new_first_name.label}} {{register_form.new_first_name(class="validate")}}
+                    </div>
+                    <div class='input-field col s6'>
+                      {{register_form.new_last_name.label}} {{register_form.new_last_name(class="validate")}}                      
+                    </div>
+                  </div>
+                  <div class='row'>
+                    <div class='input-field col s12'>
+                      {{register_form.new_email.label}} {{register_form.new_email(class="validate")}}
+                    </div>
+                  </div>
+                  <div class='row'>
+                    <div class='input-field col s12'>
+                      {{register_form.new_password.label}} {{register_form.new_password(class="validate")}}
+                    </div>
+                  </div>
+                  <div class='row'>
+                    <div class='input-field col s12'>
+                      {{register_form.confirm_password.label}} {{register_form.confirm_password(class="validate")}}
+                    </div>
+                  </div>
+                  <div class='row'>
+                    <div class="col s12 m8 push-m2">
+                      {{register_form.submit(class="btn waves-effect waves-light btn")}}
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="{{url_for('static', filename='node_modules/jquery/dist/jquery.min.js')}}"></script>
+  <script src="{{url_for('static', filename='node_modules/jquery-ui/dist/jquery-ui.min.js')}}"></script>
+  <script src="{{url_for('static', filename='js/materialize.js')}}"></script>
+  <script src="{{url_for('static', filename='js/login.js')}}"></script>
+</body>
+</html>

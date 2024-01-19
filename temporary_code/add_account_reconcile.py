@@ -46,9 +46,3 @@ def create_a_reconcile_bal():
                 t_id = t_ids[i]
                 t_r_bal = t_r_bals[i]
                 c.execute("UPDATE transactions SET a_reconcile_bal=? WHERE id=?", (t_r_bal,t_id))
-
-def main():
-    # Do something here, idk. I didn't actually use this file, it's just for show
-
-if __name__ == "__main__":
-    main()

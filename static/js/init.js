@@ -36,8 +36,8 @@
     var account_adjust;
 
     // Some other variables
-    var current_page = "All Transactions";   //TODO: Add description
-    var none_checked = true; //TODO: Add description
+    var current_page = "All Transactions";   //Used to determine which transactions to reload on a data reload (also used in transactions.html to properly color transaction amount)
+    var none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
 
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
@@ -283,6 +283,7 @@
           data: JSON.stringify({"envelope_id": envelope_id}),
           contentType: 'application/json'
         }).done(function( o ) {
+          if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
           new SimpleBar($("#transactions-scroller")[0]); //Re-initialize the transactions-scroller
           $('#page-total').text(o['page_total']);
@@ -302,6 +303,7 @@
           data: JSON.stringify({"account_id": account_id}),
           contentType: 'application/json'
         }).done(function( o ) {
+          if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
           new SimpleBar($("#transactions-scroller")[0]); //Re-initialize the transactions-scroller
           $('#page-total').text(o['page_total']);
@@ -315,6 +317,7 @@
         type: 'POST',
         url: '/api/load-static-html',
       }).done( function(o) {
+        if (o['error']) { M.toast({html: o['error']}); return; }
         new_edit_envelope_row_html = o['edit_envelope_row'];
         new_edit_account_row_html = o['edit_account_row'];
         t_editor_new_env_row_html = o['t_editor_new_env_row'];
@@ -323,24 +326,6 @@
 
       // Refresh the reconcile balances
       refresh_reconcile();
-
-      //Check status of pending transactions, and update if necessary
-      // TODO: Revisit this when login is implemented. The login page can accept a timestamp from the user when they submit a login request on the form
-      //       This page will then redirect to the /home page in budgeteer.py, and the first thing that the /home page does can be running check_pending_transactions()
-      //       before it renders any templates. This means that you won't need an /api/check_pending_transactions, since checking for pending transactions will happen automatically
-      //       on every /data_reload and /home pages in budgeteer.py. Not sure how this will work if you can navigate directly to the /home page with a "keep me logged in" functionality
-      $.ajax({
-        type: 'POST',
-        url: '/api/check_pending_transactions',
-        data: JSON.stringify({"timestamp": gen_timestamp()}),
-        // data: JSON.stringify({"timestamp": "2023-07-12 00:00:00"}),
-        contentType: 'application/json'
-      }).done( function(o) {
-        should_reload = o['should_reload'];
-        if (should_reload) {
-          data_reload(current_page,false);
-        }
-      });
 
     $("body").on("input", ".special-input", function() {
       $span =  $(this).parent().siblings().find("span");
@@ -366,18 +351,14 @@
       }
     });
 
+    $("#settings, #help-and-feedback, #about").click(function() {
+      M.toast({html: "Coming soon!"})
+    });
+
     }); // end of document ready
 
 
     //------------- FUNCTIONAL JS -------------//
-
-    function pad2(n) {return n < 10 ? '0' + n : n}
-
-    function gen_timestamp() {
-      date = new Date();
-      return date.getFullYear()+'-'+pad2(date.getMonth()+1)+'-'+pad2(date.getDate())+' '+pad2(date.getHours())+':'+pad2(date.getMinutes())+':'+pad2(date.getSeconds());
-    }
-
     function refresh_reconcile() {
       var page_total = text_to_num($("#page-total").text());
       var reconcile_balance = page_total;
@@ -636,6 +617,7 @@
           url: url,
           data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
         }).done(function( o ) {
+          if (o['error']) { M.toast({html: o['error']}); return; }
           data_reload(current_page);
           o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
         });
@@ -1057,6 +1039,7 @@
         data: JSON.stringify({"offset": parseInt($(this).attr('data-offset')), "current_page": current_page}),
         contentType: 'application/json'
       }).done(function( o ) {
+        if (o['error']) { M.toast({html: o['error']}); return; }
         $('#load-more').before(o['transactions'])
         if (o['limit']) {
           $('#load-more').remove()
@@ -1147,15 +1130,14 @@
 
 
     // Retrieves updated data from database and updates the necessary html
-    // TODO: Remove the check_pending flag when the login system is implemented and this function will always check pending transactions
-    function data_reload(current_page, check_pending=true, reload_transactions=true) {
+    function data_reload(current_page, reload_transactions=true) {
       return $.ajax({
         type: "POST",
         url: "/api/data-reload",
-        data: JSON.stringify({"current_page": current_page, "timestamp": gen_timestamp(), "check_pending": check_pending, "reload_transactions": reload_transactions}),
+        data: JSON.stringify({"current_page": current_page, "timestamp": gen_timestamp(), "reload_transactions": reload_transactions}),
         contentType: 'application/json'
       }).done(function( o ) {
-        
+        if (o['error']) { M.toast({html: o['error']}); return; }
         // 1. Reload the HTML
         $('#page-total').text(o['page_total']);
         $('#accounts-bin').replaceWith(o['accounts_html']);
@@ -1237,10 +1219,11 @@
         url: url,
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
-        $parentModal.modal("close")
+        if (o['error']) { M.toast({html: o['error']}); return; }
+        $parentModal.modal("close");
         //Removes the new-envelope-row(s) from split transactions in the specific form so that the next time you open
         //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
-        $form.find('.new-envelope-row').remove() //Only used on #new-expense-form
+        $form.find('.new-envelope-row').remove(); //Only used on #new-expense-form
         $form[0].reset(); //Clears the data from the form fields
         data_reload(current_page);
         o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
@@ -1288,6 +1271,7 @@
         url: url,
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
+        if (o['error']) { M.toast({html: o['error']}); return; }
         if (remain_open == 1) { // RESET NAME FIELD, STAY OPEN
           // If the form was submitted with the submit and new button
           $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
@@ -1300,7 +1284,7 @@
             $form.find('input[name="amount"]').removeClass('valid');
 
             //Fill the date field
-            $form.find('input[name="date"]').val(selected_date)
+            $form.find('input[name="date"]').val(selected_date);
             $form.find('.datepicker').datepicker('setDate', new Date(selected_date));
 
             //Select the previously selected envelopes and their respective dropdowns
@@ -1368,9 +1352,10 @@
         url: url,
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
+        if (o['error']) { M.toast({html: o['error']}); return; }
         $parentModal.modal("close");
         $parentModal.find(".new-envelope-row").remove(); //Removes the new-envelope-row(s) from split transactions
-        data_reload(current_page, true, false).then(function() {
+        data_reload(current_page, false).then(function() {
           $(`.transaction[data-id='${dtid}']`).parent().animate({height: "0px"}, 250).promise().done(function() {
             $(`.transaction[data-id='${dtid}']`).parent().remove();
             $(".date-bucket").show();
@@ -1392,9 +1377,10 @@
         url: url,
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
+        if (o['error']) { M.toast({html: o['error']}); return; }
         $("#multi-select-col").hide();
         none_checked = true;
-        data_reload(current_page, true, false).then(function() {
+        data_reload(current_page, false).then(function() {
           $(".t-delete-checkbox:checked").closest(".transaction-row").animate({height: "0px"}, 250).promise().done(function() {
             $(".t-delete-checkbox:checked").closest(".transaction-row").remove();
             $(".date-bucket").show();
@@ -1434,6 +1420,7 @@
           type: "GET",
           url: "/api/transaction/" + id + "/group",
         }).done(function( o ) {
+          if (o['error']) { M.toast({html: o['error']}); return; }
           var t_data = o["transactions"];
 
           // depending on the type, get/format different transaction data
@@ -1475,7 +1462,7 @@
                   amounts.push(t['amt'] * -1);
                 }
             });
-          };
+          };          
         });
       }
 

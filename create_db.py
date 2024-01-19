@@ -56,15 +56,18 @@ c.execute("""
 
 c.execute("""
     CREATE TABLE users (
-        user_id INTEGER PRIMARY KEY,
+        uuid TEXT PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL
+        password_hash TEXT NOT NULL,
+        password_salt TEXT NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        unallocated_e_id INTEGER NOT NULL,
+        FOREIGN KEY (unallocated_e_id) REFERENCES envelopes(id)
         )
     """)
 
 c.close()
-
-insert_envelope(Envelope('Unallocated', 0, 0, 0, USER_ID, None))
 
 print("New database has been created!")
 log_write('\n\n\nNEW DATABASE HAS BEEN CREATED \n\n\n')
