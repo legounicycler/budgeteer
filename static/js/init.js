@@ -351,6 +351,10 @@
       }
     });
 
+    $("#settings, #help-and-feedback, #about").click(function() {
+      M.toast({html: "Coming soon!"})
+    });
+
     }); // end of document ready
 
 

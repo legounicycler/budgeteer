@@ -38,15 +38,15 @@
         <div class="background">
           <img src="{{url_for('static', filename='img/user-background.jpg')}}">
         </div>
-        <a href="#user"><img class="circle" src="{{url_for('static', filename='img/default-user-image.png')}}"></a>
-        <a href="#name"><span class="white-text name">{{first_name}} {{last_name}}</span></a>
-        <a href="#email"><span class="white-text email">{{email}}</span></a>
+        <img class="circle" src="{{url_for('static', filename='img/default-user-image.png')}}">
+        <span class="white-text name">{{first_name}} {{last_name}}</span>
+        <span class="white-text email">{{email}}</span>
       </div>
     </li>
-    <li><a href="#" class="waves-effect"><i class="material-icons">settings</i>Settings</a></li>
-    <li><a href="#" class="waves-effect"><i class="material-icons">live_help</i>Help & Feedback</a></li>
-    <li><a href="#" class="waves-effect"><i class="material-icons">info</i>About Budgeteer</a></li>
-    <li><a href="{{url_for('logout')}}" class="waves-effect"><i class="material-icons">vpn_key</i>Log Out</a></li>
+    <li id="settings"><a href="#" class="waves-effect"><i class="material-icons">settings</i>Settings</a></li>
+    <li id="help-and-feedback"><a href="#" class="waves-effect"><i class="material-icons">live_help</i>Help & Feedback</a></li>
+    <li id="about"><a href="#" class="waves-effect"><i class="material-icons">info</i>About Budgeteer</a></li>
+    <li id="logout"><a href="{{url_for('logout')}}" class="waves-effect"><i class="material-icons">vpn_key</i>Log Out</a></li>
   </ul>
 
 	<!-- Main Nav -->
