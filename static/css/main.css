@@ -203,11 +203,11 @@
   padding-bottom: .1em;
 }
 
-input[type="text"]:not(.special-fill-input, .special-input-envelope-editor) {
+input[type="text"]:not(.special-fill-input, .special-input-envelope-editor, .special-input-account-editor) {
   margin-bottom: 0px !important;
 }
 
-.special-fill-input, .special-input-envelope-editor {
+.special-fill-input, .special-input-envelope-editor, .special-input-account-editor {
   margin-bottom: 10px !important;
 }
 

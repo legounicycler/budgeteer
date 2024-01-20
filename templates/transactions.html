@@ -121,7 +121,11 @@
         <a id="load-more" href="#!" data-offset="{{offset}}"><span >Load more transactions</span></a>
       {% endif %}
     {% else %}
-      <h5 style="margin: .5em 0">Whoops! There aren't any transactions here yet!</h5>
+      <ul class="collection">
+        <li class="row collection-item">
+          <h5 style="margin: .5em 0">There aren't any transactions here yet!</h5>
+        </li>
+      </ul>
     </ul>
   {% endif %}
 </div>
