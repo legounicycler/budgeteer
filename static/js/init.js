@@ -1381,6 +1381,13 @@
         $("#multi-select-col").hide();
         none_checked = true;
         data_reload(current_page, false).then(function() {
+
+          // 1. Update the data offset
+          num_deleted = $(".t-delete-checkbox:checked").length
+          original_offset = $("#load-more").attr('data-offset');
+          $("#load-more").attr('data-offset', parseInt(original_offset) - num_deleted);
+
+          // 2. Remove the deleted transactions rows
           $(".t-delete-checkbox:checked").closest(".transaction-row").animate({height: "0px"}, 250).promise().done(function() {
             $(".t-delete-checkbox:checked").closest(".transaction-row").remove();
             $(".date-bucket").show();
@@ -1388,6 +1395,7 @@
             refresh_reconcile();
             o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
           });
+          
         });
       });
     })

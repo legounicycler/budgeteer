@@ -828,6 +828,8 @@ def load_more():
     uuid = get_uuid_from_cookie()
     current_offset = request.get_json()['offset']
     current_page = request.get_json()['current_page']
+    # TODO: When implementing unit test framework, test what happens if the user somehow manually changes the current_page variable so that it doesn't include a valid account or envelope id
+    # TODO: When implementing unit test framework, if the user manually changes the offset variable to something other than a valid integer, the app will crash. Test for this.
     if 'account/' in current_page:
       regex = re.compile('account/(\d+)')
       account_id = int(regex.findall(current_page)[0])

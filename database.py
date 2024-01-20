@@ -207,6 +207,7 @@ def get_transaction(id):
     t.id = tdata[0]
     return t
 
+# TODO: When start or amount isn't a valid integer, this should throw an error and not crash because of a bad sqlite3.IntegrityError: datatype mismatch
 def get_home_transactions(uuid, start, amount):
     """
     For displaying transactions on the HOME PAGE ONLY
