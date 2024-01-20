@@ -285,7 +285,7 @@
         }).done(function( o ) {
           if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
-          new SimpleBar($("#transactions-scroller")[0]); //Re-initialize the transactions-scroller
+          if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
           $('#page-total').text(o['page_total']);
           $('#current-view').text(o['envelope_name']);
           refresh_reconcile()
@@ -305,7 +305,7 @@
         }).done(function( o ) {
           if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
-          new SimpleBar($("#transactions-scroller")[0]); //Re-initialize the transactions-scroller
+          if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the account has transactions
           $('#page-total').text(o['page_total']);
           $('#current-view').text(o['account_name']);
           refresh_reconcile()
