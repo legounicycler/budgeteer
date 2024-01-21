@@ -508,6 +508,7 @@ def new_split_transaction(t):
         for i in range(len(compressed_e_ids)):
             insert_transaction(Transaction(TType.SPLIT_TRANSACTION, t.name, compressed_amts[i], t.date, compressed_e_ids[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.pending))
 
+# TODO: When implementing unit testing, test what happens if the timestamp is not in the correct format
 def check_pending_transactions(uuid, timestamp):
     """
     Given a timestamp passed in from the user's browser, apply or unapply the pending transactions in the database and set the pending flag accordingly

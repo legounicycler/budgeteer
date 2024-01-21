@@ -10,9 +10,8 @@
 
     <script src="{{url_for('static', filename='js/gen_timestamp.js')}}"></script>
     <script>
-        // Use pushState to add the timestamp to the browser history without reloading the page
-        history.pushState({ timestamp: gen_timestamp() }, document.title, '/home');
-        window.location.href = '/home';
+      document.cookie = "timestamp=" + gen_timestamp();
+      window.location.href = '/home';
     </script>
 
 </body>

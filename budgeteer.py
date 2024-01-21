@@ -179,12 +179,10 @@ app.jinja_env.filters['inputformat'] = inputformat
 @app.route("/home", methods=['GET'])
 @login_required
 def home():
-  # Check for the presence of a timestamp in the query parameters
-  timestamp = request.args.get('timestamp', request.headers.get('Referer'))
-  if not timestamp:
-      return render_template('get_timestamp.html')
+  timestamp = request.cookies.get('timestamp')
+  if timestamp is None:
+    return render_template('get_timestamp.html')
   else:
-    # Render the home transaction page
     try: 
       uuid = get_uuid_from_cookie()
       u = get_user_by_uuid(uuid)
@@ -194,7 +192,7 @@ def home():
       (active_accounts, accounts_data) = get_user_account_dict(uuid)
       unallocated_balance = get_envelope_balance(u.unallocated_e_id)/100
       total_funds = get_total(uuid)
-      return render_template(
+      response = make_response(render_template(
         'layout.html',
         current_page='All transactions',
         active_envelopes=active_envelopes,
@@ -210,9 +208,11 @@ def home():
         email=current_user.email,
         first_name=current_user.first_name,
         last_name=current_user.last_name,
-        unallocated_e_id = u.unallocated_e_id,
-        TType = TType
-      )
+        unallocated_e_id=u.unallocated_e_id,
+        TType=TType
+      ))
+      response.delete_cookie('timestamp')
+      return response
     except CustomException as e:
       return jsonify({"error": str(e)})
 
