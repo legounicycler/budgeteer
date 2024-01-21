@@ -280,7 +280,7 @@
         $.ajax({
           type: "post",
           url: url,
-          data: JSON.stringify({"envelope_id": envelope_id}),
+          data: JSON.stringify({"envelope_id": envelope_id, "timestamp": gen_timestamp()}),
           contentType: 'application/json'
         }).done(function( o ) {
           if (o['error']) { M.toast({html: o['error']}); return; }
@@ -300,7 +300,7 @@
         $.ajax({
           type: "post",
           url: url,
-          data: JSON.stringify({"account_id": account_id}),
+          data: JSON.stringify({"account_id": account_id, "timestamp": gen_timestamp()}),
           contentType: 'application/json'
         }).done(function( o ) {
           if (o['error']) { M.toast({html: o['error']}); return; }
@@ -1395,7 +1395,7 @@
             refresh_reconcile();
             o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
           });
-          
+
         });
       });
     })

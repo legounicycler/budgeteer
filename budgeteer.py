@@ -11,8 +11,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from itsdangerous import URLSafeSerializer
 import uuid
 from forms import *
-from datetime import datetime, timedelta
-import calendar, re, platform
+import re, platform
 
 # Custom imports
 from database import *
@@ -118,59 +117,6 @@ def datetimeformatshort(value, format='%b %d\n%Y'):
 def inputformat(num):
   return '%.2f' % num
 
-def add_months(sourcedate, months):
-  """
-  Adds an integer amount of months to a given date.
-  Returns the new date.
-  """
-  month = sourcedate.month - 1 + months
-  year = sourcedate.year + month // 12
-  month = month % 12 + 1
-  day = min(sourcedate.day, calendar.monthrange(year,month)[1])
-  return date(year, month, day)
-
-def schedule_date_calc(tdate, schedule, timestamp):
-  """
-  Calculates the upcoming transaction date for a scheduled transaction based on its frequency and the user's timestamp.
-  Returns the date of the next transaction.
-  """
-  date_is_pending = False
-  while not date_is_pending:
-    if (schedule=="daily"):
-      nextdate = tdate + timedelta(days=1)
-    elif (schedule=="weekly"):
-      nextdate = tdate + timedelta(days=7)
-    elif (schedule=="biweekly"):
-      nextdate = tdate + timedelta(days=14)
-    elif (schedule=="monthly"):
-      nextdate = add_months(tdate,1)
-    elif (schedule=="endofmonth"):
-      lastmonthday = calendar.monthrange(tdate.year, tdate.month)[1]
-      if (tdate.day == lastmonthday):
-        nextdate = add_months(tdate,1)
-      else:
-        nextdate = date(tdate.year, tdate.month, lastmonthday)
-    elif (schedule=="semianually"):
-      nextdate = add_months(tdate,6)
-    elif (schedule=="anually"):
-      nextdate = add_months(tdate,12)
-    else:
-      raise InvalidFormDataError("ERROR: Invalid schedule option!")
-    
-    nextdate = datetime.combine(nextdate, datetime.min.time())
-    if nextdate > timestamp:
-      date_is_pending = True
-    else:
-      tdate = nextdate
-
-  return nextdate
-
-def is_pending(date, timestamp):
-  if date > timestamp:
-    return True
-  else:
-    return False
-
 app.jinja_env.filters['datetimeformat'] = datetimeformat
 app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
 app.jinja_env.filters['balanceformat'] = balanceformat
@@ -221,8 +167,11 @@ def home():
 def get_envelope_page():
   try:
     uuid = get_uuid_from_cookie()
-    envelope_id = request.get_json()['envelope_id']
+    js_data = request.get_json()
+    envelope_id = js_data['envelope_id']
+    timestamp = js_data['timestamp']
     current_page = f'envelope/{envelope_id}'
+    check_pending_transactions(uuid, timestamp)
     (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,0,50)
     (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
     (active_accounts, accounts_data) = get_user_account_dict(uuid)
@@ -248,8 +197,11 @@ def get_envelope_page():
 def get_account_page():
   try:
     uuid = get_uuid_from_cookie()
-    account_id = request.get_json()['account_id']
+    js_data = request.get_json()
+    account_id = js_data['account_id']
+    timestamp = js_data['timestamp']
     current_page = f'account/{account_id}'
+    check_pending_transactions(uuid, timestamp)
     (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,0,50)
     (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
     (active_accounts, accounts_data) = get_user_account_dict(uuid)
@@ -299,7 +251,7 @@ def new_expense(edited=False):
       t = Transaction(TType.BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, uuid, pending)
       if scheduled and not pending:
         # Create pending scheduled transaction
-        nextdate = schedule_date_calc(date, schedule, timestamp)
+        nextdate = schedule_date_calc(date, schedule, timestamp, True)
         scheduled_t = Transaction(TType.BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, uuid, is_pending(nextdate, timestamp))
       elif scheduled and pending:
         t.schedule = schedule
@@ -373,7 +325,7 @@ def new_transfer(edited=False):
         elif scheduled and not pending:
           # Create transfer WITHOUT schedule, then pending transfer WITH schedule
           account_transfer(name, amount, date, to_account, from_account, note, None, uuid, pending)
-          nextdate = schedule_date_calc(date, schedule, timestamp)
+          nextdate = schedule_date_calc(date, schedule, timestamp, True)
           account_transfer(name, amount, nextdate, to_account, from_account, note, schedule, uuid, is_pending(nextdate, timestamp))
           sched_t_submitted = True
         else:
@@ -388,7 +340,7 @@ def new_transfer(edited=False):
         elif scheduled and not pending:
           # Create transfer WITHOUT schedule, then pending transfer WITH schedule
           envelope_transfer(name, amount, date, to_envelope, from_envelope, note, None, uuid, pending)
-          nextdate = schedule_date_calc(date, schedule, timestamp)
+          nextdate = schedule_date_calc(date, schedule, timestamp, True)
           envelope_transfer(name, amount, nextdate, to_envelope, from_envelope, note, schedule, uuid, is_pending(nextdate, timestamp))
           sched_t_submitted = True
         else:
@@ -443,7 +395,7 @@ def new_income(edited=False):
       t = Transaction(TType.INCOME, name, -1 * amount, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, pending)
       if scheduled and not pending:
         insert_transaction(t)
-        nextdate = schedule_date_calc(date, schedule, timestamp)
+        nextdate = schedule_date_calc(date, schedule, timestamp, True)
         scheduled_t = Transaction(TType.INCOME, name, -1 * amount, nextdate, u.unallocated_e_id, account_id, gen_grouping_num(), note, schedule, False, uuid, is_pending(nextdate, timestamp))
         insert_transaction(scheduled_t)
         sched_t_submitted = True
@@ -509,7 +461,7 @@ def fill_envelopes(edited=False):
         t = Transaction(TType.ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, uuid, pending)
         if scheduled and not pending:
           envelope_fill(t)
-          nextdate = schedule_date_calc(date, schedule, timestamp)
+          nextdate = schedule_date_calc(date, schedule, timestamp, True)
           scheduled_t = Transaction(TType.ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, uuid, is_pending(nextdate, timestamp))
           envelope_fill(scheduled_t)
           sched_t_submitted = True

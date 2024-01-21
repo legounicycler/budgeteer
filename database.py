@@ -3,8 +3,8 @@ This file contains functions relevant to actually manipulating values in the dat
 """
 
 # Library imports
-import sqlite3, datetime, platform, hashlib, secrets
-from datetime import datetime
+import sqlite3, datetime, platform, hashlib, secrets, calendar, copy
+from datetime import datetime, timedelta
 from datetime import date
 from flask_login import UserMixin
 from enum import Enum
@@ -152,6 +152,61 @@ def date_parse(date_str):
     else:
         raise TimestampParseError(f"ERROR: Timestamp {date_str} could not be parsed!")
     return date
+
+def add_months(sourcedate, months):
+  """
+  Adds an integer amount of months to a given date.
+  Returns the new date.
+  """
+  month = sourcedate.month - 1 + months
+  year = sourcedate.year + month // 12
+  month = month % 12 + 1
+  day = min(sourcedate.day, calendar.monthrange(year,month)[1])
+  return date(year, month, day)
+
+def schedule_date_calc(tdate, schedule, timestamp, should_consider_timestamp):
+  """
+  Calculates the upcoming transaction date for a scheduled transaction based on its frequency and the user's timestamp.
+  Returns the date of the next transaction.
+  If should_consider_timestamp is true, the next date will be the first valid date after the timestamp. Otherwise, it will be the first valid date after the transaction date.
+  """
+  date_is_pending = False
+  while not date_is_pending:
+    if (schedule=="daily"):
+      nextdate = tdate + timedelta(days=1)
+    elif (schedule=="weekly"):
+      nextdate = tdate + timedelta(days=7)
+    elif (schedule=="biweekly"):
+      nextdate = tdate + timedelta(days=14)
+    elif (schedule=="monthly"):
+      nextdate = add_months(tdate,1)
+    elif (schedule=="endofmonth"):
+      lastmonthday = calendar.monthrange(tdate.year, tdate.month)[1]
+      if (tdate.day == lastmonthday):
+        nextdate = add_months(tdate,1)
+      else:
+        nextdate = date(tdate.year, tdate.month, lastmonthday)
+    elif (schedule=="semianually"):
+      nextdate = add_months(tdate,6)
+    elif (schedule=="anually"):
+      nextdate = add_months(tdate,12)
+    else:
+      raise InvalidFormDataError("ERROR: Invalid schedule option!")
+    
+    nextdate = datetime.combine(nextdate, datetime.min.time())
+    if nextdate > timestamp:
+      date_is_pending = True
+    else:
+      tdate = nextdate
+      if not should_consider_timestamp:
+        break
+  return nextdate
+
+def is_pending(date, timestamp):
+  if date > timestamp:
+    return True
+  else:
+    return False
 
 # endregion HELPER FUNCTIONS
 
@@ -385,18 +440,6 @@ def get_account_transactions(uuid, account_id, start, amount):
         limit = False
     return tlist, offset, limit
 
-def get_scheduled_transactions(user_id):
-    """
-    Returns a list of ALL scheduled transactions
-    """
-    c.execute("SELECT id FROM transactions WHERE schedule IS NOT NULL AND user_id=? ORDER by day DESC, id DESC", (user_id,))
-    ids = c.fetchall()
-    tlist = []
-    for id in ids:
-        t = get_transaction(id[0])
-        tlist.append(t)
-    return tlist
-
 def delete_transaction(uuid, t_id):
     """
     Deletes transaction and associated grouped transactions and updates appropriate envelope/account balances
@@ -516,12 +559,28 @@ def check_pending_transactions(uuid, timestamp):
     with conn:
 
         # 1. Apply pending transactions that are before the timestamp
-        c.execute("SELECT id,account_id,envelope_id,amount FROM transactions WHERE pending=1 AND user_id=? AND date(day) <= date(?)",(uuid, timestamp[0:10],)) 
-        t_data_list = c.fetchall()
-        if len(t_data_list) != 0:
-            for (id, a_id, e_id, amt) in t_data_list:
-                apply_transaction(a_id, e_id, amt)
-                c.execute("UPDATE transactions SET pending=0 WHERE id=?",(id,))
+        c.execute("SELECT id FROM transactions WHERE pending=1 AND user_id=? AND date(day) <= date(?)",(uuid, timestamp[0:10],)) 
+        t_ids = c.fetchall()
+        if len(t_ids) != 0:
+            for id in t_ids:
+                t = get_transaction(id[0])
+                apply_transaction(t.account_id, t.envelope_id, t.amt)
+                c.execute("UPDATE transactions SET pending=0,schedule=null WHERE id=?",(t.id,))
+                
+                # 1.1 Create scheduled transactions if the transaction is scheduled
+                if (t.schedule is not None):
+                    
+                    isPending = False
+                    next_t = t
+                    
+                    # Keep creating scheduled transactions until you create one with a date after the timestamp
+                    while isPending == False:
+                        scheduled_t = create_scheduled_transaction(next_t, date_parse(timestamp), False)
+                        isPending = scheduled_t.pending
+                        next_t = copy.deepcopy(scheduled_t)
+                        if isPending == False:
+                            scheduled_t.schedule = None  # Clear out the schedule field if it's not a pending transaction
+                        insert_transaction(scheduled_t)
         
         # 2. Unapply pending transactions that are after the timestamp
         c.execute("SELECT id,account_id,envelope_id,amount FROM transactions WHERE pending=0 AND user_id=? AND date(day) > date(?)",(uuid, timestamp[0:10],))
@@ -532,6 +591,13 @@ def check_pending_transactions(uuid, timestamp):
                 c.execute("UPDATE transactions SET pending=1 WHERE id=?",(id,))
     
     return None
+
+def create_scheduled_transaction(t, timestamp, should_consider_timestamp):
+    """
+    Given a transaction, create a new transaction with the same parameters, but with a new date
+    """
+    nextdate = schedule_date_calc(t.date, t.schedule, timestamp, should_consider_timestamp)
+    return Transaction(t.type, t.name, t.amt, nextdate, t.envelope_id, t.account_id, gen_grouping_num(), t.note, t.schedule, t.status, t.user_id, is_pending(nextdate, timestamp))
 
 # endregion TRANSACTION FUNCTIONS
 
