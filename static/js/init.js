@@ -272,6 +272,24 @@
       // Calculate budget bar color/area etc.
       budget_bars()
 
+      // AJAX request to load all transactions
+      $(document).on('click', '#total', function() {
+        var url = $(this).data('url');
+        $.ajax({
+          type: "post",
+          url: url,
+          data: JSON.stringify({"timestamp": gen_timestamp()}),
+          contentType: 'application/json'
+        }).done(function( o ) {
+          if (o['error']) { M.toast({html: o['error']}); return; }
+          $('#transactions-bin').replaceWith(o['transactions_html']);
+          if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
+          $('#page-total').text(o['page_total']);
+          $('#current-view').text(o['page_title']);
+          refresh_reconcile()
+        });
+      });
+
       // AJAX request to load envelope transactions
       $(document).on('click', '.envelope-link', function() {
         var url = $(this).data('url');

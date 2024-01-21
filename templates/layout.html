@@ -56,7 +56,7 @@
       <ul class="left">
 			<li><a href="#" data-target="slide-out" class="sidenav-trigger"><i class="material-icons">menu</i></a></li>
 		  </ul>
-			<a id="logo-container" href="{{url_for('home')}}" class="brand-logo center"><img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo"></a>
+			<div id="logo-container" class="brand-logo center"><img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo"></div>
       <!-- <ul class="right">
         <li><a href="#"><i class="material-icons white-text">add</i></a></li>
       </ul> -->
@@ -81,13 +81,23 @@
       <!--LEFT CONTENT-->
       <div class="col m12 l4 s12 left-content blue-grey">
         <div class="row" id="left-header">
-          <div class="row" id="total">
-            <h4 class="col s4 white-text bold">Total:</h4>
-            <h4 class="col s8"><span class="{{'negative' if total_funds < 0}} balance">{{total_funds|balanceformat}}</span></h4>
-          </div>
-          <div class="row" id="unallocated">
-            <h6 class="col s4 white-text bold">Unallocated:</h6>
-            <h6 class="col s8"><span id="unallocated-balance" class="{{'negative' if unallocated_balance < 0}} balance" data-amt="{{unallocated_balance}}">{{unallocated_balance|balanceformat}}</span></h6>
+          <div id="total-container" class="collection">
+            <a id="total" class="row collection-item waves-effect" data-url="/get_home_transactions_page">
+              <div class="col s4 valign-wrapper">
+                <h4 class="blue-gray-text text-darken-4 bold">Total:</h4>
+              </div>
+              <div class="col s8 valign-wrapper">
+                <h4><span class="{{'negative' if total_funds < 0}} balance">{{total_funds|balanceformat}}</span></h4>
+              </div>
+            </a>
+            <div id="unallocated" class="row collection-item">
+              <div class="col s4 valign-wrapper">
+                <h6 class="blue-gray-text text-darken-4 bold">Unallocated:</h6>
+              </div>
+              <div class="col s8 valign-wrapper">
+                <h6><span id="unallocated-balance" class="{{'negative' if unallocated_balance < 0}} balance" data-amt="{{unallocated_balance}}">{{unallocated_balance|balanceformat}}</span></h6>
+              </div>
+            </div>
           </div>
         </div>
 

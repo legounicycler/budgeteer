@@ -162,6 +162,34 @@ def home():
     except CustomException as e:
       return jsonify({"error": str(e)})
 
+@app.route("/get_home_transactions_page", methods=["POST"])
+@login_required
+def get_all_transactions_page():
+  try:
+    uuid = get_uuid_from_cookie()
+    timestamp = request.get_json()['timestamp']
+    current_page = 'All Transactions'
+    check_pending_transactions(uuid, timestamp)
+    (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
+    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+    (active_accounts, accounts_data) = get_user_account_dict(uuid)
+    page_total = balanceformat(get_total(uuid))
+    data = {}
+    data['page_total'] = page_total
+    data['page_title'] = current_page
+    data['transactions_html'] = render_template(
+      'transactions.html',
+      current_page=current_page,
+      transactions_data=transactions_data,
+      envelopes_data=envelopes_data,
+      accounts_data=accounts_data,
+      offset=offset, limit=limit,
+      TType = TType
+    )
+    return jsonify(data)
+  except CustomException as e:
+    return jsonify({"error": "ERROR: Something went wrong and your envelope data could not be loaded!"})
+
 @app.route("/get_envelope_page", methods=["POST"])
 @login_required
 def get_envelope_page():

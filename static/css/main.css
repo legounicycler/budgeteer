@@ -13,6 +13,38 @@
   height: calc(100% - 90px);
 }
 
+#left-header {
+  justify-content: center;
+  display: flex;
+}
+
+#total-container {
+  margin: 5px 10px;
+  width: 100%;
+}
+
+#total {
+  height: 50px;
+}
+
+#total .col {
+  justify-content: center;
+  height: 50px;
+}
+
+#unallocated {
+  height: 30px;
+}
+
+#unallocated .col {
+  height: 30px;
+  justify-content: center;
+}
+
+#total h4, #unallocated h6 {
+  margin: .25em 0;
+}
+
 .scroller {
   overflow-y: scroll;
   overflow-x: hidden;
@@ -302,10 +334,6 @@ input[type="text"]:not(.special-fill-input, .special-input-envelope-editor, .spe
   color: gray;
 }
 
-#total h4, #unallocated h4 {
-  margin: .25em 0;
-}
-
 #envelopes-bin, #accounts-bin {
   margin-top: 5px;
   height: calc(100% - 56px);
@@ -495,6 +523,11 @@ h5 {
 }
 
 @media only screen and (max-width: 992px) {
+  #total-container {
+    width: fit-content;
+    min-width: 75%;
+  }
+  
   .left-content {
     height: auto;
   }
