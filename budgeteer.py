@@ -6,22 +6,33 @@ This file interacts a lot with the javascript/jQuery running on the site
 # Flask imports
 from flask import Flask, render_template, url_for, request, redirect, jsonify, make_response
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from flask_mail import Mail, Message
 
 # Library imports
 from itsdangerous import URLSafeSerializer
 import uuid
 from forms import *
-import re, platform
+import re
 
 # Custom imports
 from database import *
 from exceptions import *
 from textLogging import log_write
-from secret import SECRET_KEY
+from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
 serializer = URLSafeSerializer(app.config['SECRET_KEY'])
+
+# Configure Flask-Mail settings
+app.config['MAIL_SERVER'] = 'smtp.zoho.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USERNAME'] = MAIL_USERNAME
+app.config['MAIL_PASSWORD'] = MAIL_PASSWORD
+
+mail = Mail(app)
 
 def generate_uuid():
   return str(uuid.uuid4())
@@ -860,12 +871,41 @@ def multi_delete():
     return jsonify({"error": str(e)})
   
 @app.route('/api/load-static-html', methods=["POST"])
+@login_required
 def load_static_html():
   return jsonify({
     'edit_envelope_row': render_template('edit_envelope_row.html'),
     'edit_account_row': render_template('edit_account_row.html'),
     't_editor_new_env_row': render_template('transaction_editor_new_envelope_row.html')
   })
+
+
+@app.route('/bug-report', methods=['POST'])
+@login_required
+def bug_report():
+  try:
+    uuid = get_uuid_from_cookie()
+    name = request.form.get('bug_reporter_name')
+    email = request.form.get('bug_reporter_email')
+    desc = request.form.get('bug_description')
+    timestamp = request.form.get('timestamp')
+    bug_report_id = generate_uuid()
+    send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp)  # Send bug report email to the developer
+    send_bug_report_email_user(name, email, bug_report_id) # Send confirmation email to the user
+    return jsonify({'toasts': ["Thank you! Your bug report has been submitted!"]})
+  except CustomException as e:
+    return jsonify({"error": str(e)})
+
+
+def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp):
+  msg = Message(f'Budgeteer: Bug Report from {email}', sender=MAIL_USERNAME, recipients=[MAIL_USERNAME])
+  msg.html = render_template("emails/bug_report_developer.html", uuid=uuid, name=name, email=email, desc=desc, bug_report_id=bug_report_id, timestamp=timestamp)
+  mail.send(msg)
+
+def send_bug_report_email_user(name, email, bug_report_id):
+  msg = Message('Budgeteer: Your Bug Report Has Been Received', sender=MAIL_USERNAME, recipients=[email])
+  msg.html = render_template("emails/bug_report_user.html", name=name, email=email, bug_report_id=bug_report_id)
+  mail.send(msg)
 
 #MAKES SURE DEBUG IS TURNED OFF FOR MAIN DEPLOYMENT
 if __name__ == '__main__':

@@ -1,0 +1,44 @@
+<div id="bug-report-modal" class="modal">
+    <div class="modal-content">
+  
+        <div class="row">
+            <h1>Report a bug!</h1>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+            <div class="col s8 push-s2">
+                <p>Budgeteer is still under development, so thank you for helping by reporting any bugs you may find! Please include as many details as you can, such as what browser you are using, if you are on mobile or desktop, and what actions you took leading the unexpected behavior.</p>
+                <p>You will be sent a confirmation email that your message was received, and you may receive an email asking you for more details.</p>
+            </div>
+        </div>
+        <div class="divider"></div>
+    
+        <form id="bug-report-form" method="POST" action="{{ url_for('bug_report') }}">
+            <div class="row">
+                <div class="input-field col s6">
+                    <input id="bug_reporter_name" type="text" name="bug_reporter_name" required>
+                    <label for="bug_reporter_name">Name</label>
+                    <span class="helper-text" data-error="Please include your name"></span>
+                </div>
+                <div class="input-field col s6">
+                    <input id="bug_reporter_email" class="validate" type="email" name="bug_reporter_email" required>
+                    <label for="bug_reporter_email">Email</label>
+                    <span class="helper-text" data-error="Invalid email address"></span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="input-field col s12">
+                    <textarea id="bug_description" class="materialize-textarea" name="bug_description" required></textarea>
+                    <label for="bug_description">Describe the bug:</label>
+                    <span class="helper-text" data-error="Please include a description"></span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col s6 push-s3">
+                    <button class="btn waves-effect waves-light yellow darken-4 standard-submit" type="submit" name="action" href="#!">Submit</button>
+                </div>
+            </div>
+        </form>
+
+    </div>
+  </div>

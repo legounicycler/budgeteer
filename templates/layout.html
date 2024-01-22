@@ -44,7 +44,7 @@
       </div>
     </li>
     <li id="settings"><a href="#" class="waves-effect"><i class="material-icons">settings</i>Settings</a></li>
-    <li id="help-and-feedback"><a href="#" class="waves-effect"><i class="material-icons">live_help</i>Help & Feedback</a></li>
+    <li id="bug-report"><a href="#bug-report-modal" class="waves-effect modal-trigger"><i class="material-icons">bug_report</i>Report a bug</a></li>
     <li id="about"><a href="#" class="waves-effect"><i class="material-icons">info</i>About Budgeteer</a></li>
     <li id="logout"><a href="{{url_for('logout')}}" class="waves-effect"><i class="material-icons">vpn_key</i>Log Out</a></li>
   </ul>
@@ -152,6 +152,7 @@
   {% include 'transaction_editor.html' %}
   {% include 'envelope_filler.html' %}
   {% include 'delete_modal.html' %}
+  {% include 'bug_report_modal.html' %}
 
   <script src="{{url_for('static', filename='node_modules/jquery/dist/jquery.min.js')}}"></script>
   <script src="{{url_for('static', filename='node_modules/jquery-ui/dist/jquery-ui.min.js')}}"></script>

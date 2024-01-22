@@ -60,7 +60,7 @@
       // Prevent content from flashing content for a second on document load
       $('#envelopes, #accounts, #bin').removeClass('hide');
       
-      $('#envelope-modal, #account-modal, #editor-modal, #envelope-fill-modal').modal();
+      $('#envelope-modal, #account-modal, #editor-modal, #envelope-fill-modal, #bug-report-modal').modal();
 
       $('#delete-modal').modal({
         dismissible: false,
@@ -369,7 +369,7 @@
       }
     });
 
-    $("#settings, #help-and-feedback, #about").click(function() {
+    $("#settings, #about").click(function() {
       M.toast({html: "Coming soon!"})
     });
 
@@ -1416,7 +1416,26 @@
 
         });
       });
-    })
+    });
+
+    $('#bug-report-form').submit(function(e) {
+      e.preventDefault();
+      var url = $(this).attr('action');
+      var method = $(this).attr('method');
+      $form = $(this);
+      var $parentModal = $("#bug-report-modal");
+
+      $.ajax({
+        type: method,
+        url: url,
+        data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
+      }).done(function( o ) {
+        if (o['error']) { M.toast({html: o['error']}); return; }
+        $parentModal.modal("close");
+        o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+        $form[0].reset(); //Clears the data from the form fields
+      });
+    });
 
     // Opens transaction editor modal
     function t_editor_modal_open(e) {
