@@ -7,3 +7,5 @@ EventLog.txt
 *.ppk
 *.key
 secret.py
+uploads/*
+!uploads/.gitkeep

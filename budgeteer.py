@@ -10,13 +10,13 @@ from flask_mail import Mail, Message
 
 # Library imports
 from itsdangerous import URLSafeSerializer
-import uuid
-from forms import *
-import re
+import uuid, re, os
+from werkzeug.utils import secure_filename
 
 # Custom imports
 from database import *
 from exceptions import *
+from forms import *
 from textLogging import log_write
 from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME
 
@@ -31,6 +31,7 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = MAIL_USERNAME
 app.config['MAIL_PASSWORD'] = MAIL_PASSWORD
+app.config['UPLOAD_FOLDER'] = 'uploads'
 
 mail = Mail(app)
 
@@ -885,20 +886,37 @@ def load_static_html():
 def bug_report():
   try:
     uuid = get_uuid_from_cookie()
+    bug_report_id = generate_uuid()
     name = request.form.get('bug_reporter_name')
     email = request.form.get('bug_reporter_email')
     desc = request.form.get('bug_description')
     timestamp = request.form.get('timestamp')
-    bug_report_id = generate_uuid()
-    send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp)  # Send bug report email to the developer
+    screenshot = request.files['screenshot']
+    if screenshot.filename == '':
+        screenshot = None
+    if screenshot:
+        allowed_file_extension(screenshot)
+        allowed_file_size(screenshot)
+        filename = secure_filename(screenshot.filename)
+        screenshot.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    else:
+        raise InvalidFormDataError("ERROR: Invalid file type for bug report screenshot!")
+    
+    send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot)  # Send bug report email to the developer
     send_bug_report_email_user(name, email, bug_report_id) # Send confirmation email to the user
+    
     return jsonify({'toasts': ["Thank you! Your bug report has been submitted!"]})
   except CustomException as e:
     return jsonify({"error": str(e)})
 
 
-def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp):
+def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot):
   msg = Message(f'Budgeteer: Bug Report from {email}', sender=MAIL_USERNAME, recipients=[MAIL_USERNAME])
+  if screenshot:
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], screenshot.filename)
+    with app.open_resource(file_path) as fp:
+      msg.attach(screenshot.filename, "image/png", fp.read())
+    os.remove(file_path)
   msg.html = render_template("emails/bug_report_developer.html", uuid=uuid, name=name, email=email, desc=desc, bug_report_id=bug_report_id, timestamp=timestamp)
   mail.send(msg)
 
@@ -906,6 +924,21 @@ def send_bug_report_email_user(name, email, bug_report_id):
   msg = Message('Budgeteer: Your Bug Report Has Been Received', sender=MAIL_USERNAME, recipients=[email])
   msg.html = render_template("emails/bug_report_user.html", name=name, email=email, bug_report_id=bug_report_id)
   mail.send(msg)
+
+def allowed_file_extension(file):
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    file_extension = file.filename.rsplit('.', 1)[1].lower()
+    if '.' in file.filename and file_extension in ALLOWED_EXTENSIONS:
+      return True
+    else:
+      raise InvalidFileTypeError(f"ERROR: Invalid file type .{file_extension} for bug report screenshot!")
+
+def allowed_file_size(file):
+    MAX_FILE_SIZE = 1024*1024*10 # 10Mb
+    file_data = file.read()
+    file_size = len(file_data) # in bytes
+    if file_size >= MAX_FILE_SIZE:
+      raise InvalidFileSizeError(f"The file you uploaded is too large! ({round(file_size/(1024*1024), 2)}Mb). Please upload a file smaller than {round(MAX_FILE_SIZE/(1024*1024), 0)}Mb.")
 
 #MAKES SURE DEBUG IS TURNED OFF FOR MAIN DEPLOYMENT
 if __name__ == '__main__':

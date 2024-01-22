@@ -33,5 +33,11 @@ class InvalidFormDataError(CustomException):
 class TimestampParseError(CustomException):
     pass
 
+class InvalidFileSizeError(CustomException):
+    pass
+
+class InvalidFileTypeError(CustomException):
+    pass
+
 class OtherError(CustomException):
     pass

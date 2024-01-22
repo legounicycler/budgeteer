@@ -1422,13 +1422,17 @@
       e.preventDefault();
       var url = $(this).attr('action');
       var method = $(this).attr('method');
-      $form = $(this);
+      var $form = $(this);
       var $parentModal = $("#bug-report-modal");
-
+      var formData = new FormData(this);
+      formData.append('timestamp', gen_timestamp());
       $.ajax({
         type: method,
         url: url,
-        data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
+        cache: false,
+        contentType: false,
+        processData: false,
+        data: formData
       }).done(function( o ) {
         if (o['error']) { M.toast({html: o['error']}); return; }
         $parentModal.modal("close");
