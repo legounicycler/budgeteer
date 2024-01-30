@@ -897,8 +897,8 @@ def bug_report():
     if screenshot:
         allowed_file_extension(screenshot)
         allowed_file_size(screenshot)
-        filename = secure_filename(screenshot.filename)
-        screenshot.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        screenshot.filename = secure_filename(screenshot.filename)
+        screenshot.save(os.path.join(app.config['UPLOAD_FOLDER'], screenshot.filename))
     else:
         raise InvalidFormDataError("ERROR: Invalid file type for bug report screenshot!")
     
@@ -937,6 +937,7 @@ def allowed_file_size(file):
     MAX_FILE_SIZE = 1024*1024*10 # 10Mb
     file_data = file.read()
     file_size = len(file_data) # in bytes
+    file.seek(0) # Reset the file pointer to the beginning of the file so it can be saved properly
     if file_size >= MAX_FILE_SIZE:
       raise InvalidFileSizeError(f"The file you uploaded is too large! ({round(file_size/(1024*1024), 2)}Mb). Please upload a file smaller than {round(MAX_FILE_SIZE/(1024*1024), 0)}Mb.")
 
