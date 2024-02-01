@@ -63,6 +63,9 @@ c.execute("""
         first_name TEXT NOT NULL,
         last_name TEXT NOT NULL,
         unallocated_e_id INTEGER NOT NULL,
+        registered_on TEXT NOT NULL,
+        confirmed BOOLEAN NOT NULL DEFAULT 0,
+        confirmed_on TEXT,
         FOREIGN KEY (unallocated_e_id) REFERENCES envelopes(id)
         )
     """)

@@ -9,19 +9,21 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from flask_mail import Mail, Message
 
 # Library imports
-from itsdangerous import URLSafeSerializer
+from itsdangerous import URLSafeTimedSerializer, URLSafeSerializer
 import uuid, re, os
 from werkzeug.utils import secure_filename
+from functools import wraps
 
 # Custom imports
 from database import *
 from exceptions import *
 from forms import *
 from textLogging import log_write
-from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME
+from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME, SECURITY_PASSWORD_SALT
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
+timed_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 serializer = URLSafeSerializer(app.config['SECRET_KEY'])
 
 # Configure Flask-Mail settings
@@ -32,8 +34,32 @@ app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = MAIL_USERNAME
 app.config['MAIL_PASSWORD'] = MAIL_PASSWORD
 app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['SECURITY_PASSWORD_SALT'] = SECURITY_PASSWORD_SALT
 
 mail = Mail(app)
+
+def datetimeformat(value, format='%m/%d/%Y'):
+  return value.strftime(format)
+
+def datetimeformatshort(value, format='%b %d\n%Y'):
+  return value.strftime(format)
+
+def inputformat(num):
+  return '%.2f' % num
+
+app.jinja_env.filters['datetimeformat'] = datetimeformat
+app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
+app.jinja_env.filters['balanceformat'] = balanceformat
+app.jinja_env.filters['inputformat'] = inputformat
+
+def check_confirmed(func):
+  @wraps(func)
+  def decorated_function(*args, **kwargs):
+      if current_user.confirmed is False:
+          return redirect(url_for('unconfirmed'))
+      return func(*args, **kwargs)
+
+  return decorated_function
 
 def generate_uuid():
   return str(uuid.uuid4())
@@ -50,6 +76,16 @@ def get_uuid_from_cookie():
   else:
     raise UserIdCookieNotFoundError()
 
+def generate_token(email):
+  return timed_serializer.dumps(email, salt=SECURITY_PASSWORD_SALT)
+
+def confirm_token(token, expiration=3600):
+  try:
+    email = timed_serializer.loads(token, salt=app.config["SECURITY_PASSWORD_SALT"], max_age=expiration)
+    return email
+  except Exception as e:
+    raise e
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
@@ -61,7 +97,7 @@ def load_user(uuid):
 @app.route("/")
 @app.route('/login', methods=["POST", "GET"])
 def login():
-  if current_user.is_authenticated:
+  if current_user.is_authenticated and current_user.confirmed:
     return redirect(url_for('home'))
   else:
     login_form = LoginForm()
@@ -70,49 +106,93 @@ def login():
   
 @app.route('/api/login', methods=["POST", "GET"])
 def api_login():
-  if current_user.is_authenticated:
-    return jsonify({'login_success': True})
-  
+
+  # 1. Fetch the form data
   form = LoginForm()
   email = form.email.data
   password = form.password.data
+  
+  # 2. Check if there is a user with the submitted email
   if email is not None:
     user = get_user_by_email(email)
-    if user is not None:
-      if user.check_password(password):
-        login_user(user, remember=False) # TODO: Swap to this eventually: login_user(user, remember=form.remember_me.data) *and ctrl+f for this comment*
-        response = make_response(jsonify({'login_success': True}))
-        return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
-      else:
-        return jsonify({'message': 'Incorrect password!', 'login_success': False})
-    else:
+    if user is None:
       return jsonify({'message': 'No user with that email exists!', 'login_success': False})
   else:
-    return jsonify({'message': "FORM VALIDATION ERROR (Shouldn't be possible)", 'login_success': False})
+    return jsonify({'message': 'No email was submitted!', 'login_success': False})
+
+
+  # # 3. If the user is not confirmed, redirect to the confirm page
+  # if user.confirmed is False:
+  #   return jsonify({'unconfirmed': True, 'login_success': False})
+
+  # 4. If the user is already authenticated (logged in), return a success message (which will redirect to the home page)
+  if current_user.is_authenticated:
+    return jsonify({'login_success': True})
+  
+  # 5. Check the submitted password against the hashed password in the database
+  if user.check_password(password):
+    login_user(user, remember=False) # TODO: Swap to this eventually: login_user(user, remember=form.remember_me.data) *and ctrl+f for this comment*
+    response = make_response(jsonify({'login_success': True}))
+    return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
+  else:
+    return jsonify({'message': 'Incorrect password!', 'login_success': False})
 
 @app.route("/register", methods=["POST", "GET"])
 def register():
-  form = RegisterForm()
-  new_email = form.new_email.data
-  new_password = form.new_password.data
-  new_first_name = form.new_first_name.data
-  new_last_name = form.new_last_name.data
+  try:
+    form = RegisterForm()
+    new_email = form.new_email.data
+    new_password = form.new_password.data
+    new_first_name = form.new_first_name.data
+    new_last_name = form.new_last_name.data
 
-  # 1. Check if user with that email already exists
-  if get_user_by_email(new_email) is not None:
-    return jsonify({'message': 'A user with that email already exists!', 'login_success': False})
+    # 1. Check if user with that email already exists
+    if get_user_by_email(new_email) is not None:
+      return jsonify({'message': 'A user with that email already exists!'})
 
-  # 2. Check the password validation
-  if form.new_password.validate(form) and form.confirm_password.validate(form):
-    uuid = generate_uuid()
-    (new_password_hash, new_password_salt) = hash_password(new_password)
-    new_user = User(uuid, new_email, new_password_hash, new_password_salt, new_first_name, new_last_name)
-    insert_user(new_user)
-    login_user(new_user, remember=False) # Swap to this eventually: login_user(user, remember=form.remember_me.data)
-    response = make_response(jsonify({'login_success': True}))
-    return set_secure_cookie(response, 'uuid', new_user.id) # Set the encrypted uuid cookie on the user's browser
-  else:
-    return jsonify({'message': 'Passwords must match!', 'login_success': False})
+    # 2. Check the password validation
+    if form.new_password.validate(form) and form.confirm_password.validate(form):
+      uuid = generate_uuid()
+      (new_password_hash, new_password_salt) = hash_password(new_password)
+      new_user = User(uuid, new_email, new_password_hash, new_password_salt, new_first_name, new_last_name, datetime.now())
+      insert_user(new_user)
+    else:
+      return jsonify({'message': 'Passwords must match!'})
+    
+    #3. Generate confirmation token and send email
+    token = generate_token(new_email)
+    confirm_url = url_for('confirm_email', token=token, _external=True)
+    msg = Message('Budgeteer: Confirm your email address', sender=MAIL_USERNAME, recipients=[new_email])
+    msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
+    mail.send(msg)
+    return jsonify({'message': 'A confirmation email has been sent to your email address!'})
+  except:
+    return jsonify({'message': 'An unknown error occurred during registration!'})
+
+@app.route('/confirm/<token>')
+def confirm_email(token):
+  try:
+    email = confirm_token(token)
+  except:
+    return render_template("error_page.html", message="The confirmation link is invalid or has expired.")
+  
+  user = get_user_by_email(email)
+  if user is None:
+    return render_template("error_page.html", message="Something went wrong with the confirmation process. Please try again.")
+
+  if user.confirmed is False:
+    confirm_user(user)
+  
+  login_user(user)
+  response = make_response(redirect(url_for('home')))
+  return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
+
+@app.route('/unconfirmed')
+@login_required
+def unconfirmed():
+  if current_user.confirmed:
+    return redirect(url_for('home'))
+  return render_template('unconfirmed.html')
 
 @app.route('/logout')
 def logout():
@@ -120,22 +200,9 @@ def logout():
     logout_user()
   return redirect(url_for('login'))
 
-def datetimeformat(value, format='%m/%d/%Y'):
-  return value.strftime(format)
-
-def datetimeformatshort(value, format='%b %d\n%Y'):
-  return value.strftime(format)
-
-def inputformat(num):
-  return '%.2f' % num
-
-app.jinja_env.filters['datetimeformat'] = datetimeformat
-app.jinja_env.filters['datetimeformatshort'] = datetimeformatshort
-app.jinja_env.filters['balanceformat'] = balanceformat
-app.jinja_env.filters['inputformat'] = inputformat
-
 @app.route("/home", methods=['GET'])
 @login_required
+@check_confirmed
 def home():
   timestamp = request.cookies.get('timestamp')
   if timestamp is None:
@@ -176,6 +243,7 @@ def home():
 
 @app.route("/get_home_transactions_page", methods=["POST"])
 @login_required
+@check_confirmed
 def get_all_transactions_page():
   try:
     uuid = get_uuid_from_cookie()
@@ -204,6 +272,7 @@ def get_all_transactions_page():
 
 @app.route("/get_envelope_page", methods=["POST"])
 @login_required
+@check_confirmed
 def get_envelope_page():
   try:
     uuid = get_uuid_from_cookie()
@@ -234,6 +303,7 @@ def get_envelope_page():
 
 @app.route("/get_account_page", methods=["POST"])
 @login_required
+@check_confirmed
 def get_account_page():
   try:
     uuid = get_uuid_from_cookie()
@@ -264,6 +334,7 @@ def get_account_page():
 
 @app.route('/new_expense', methods=['POST'])
 @login_required
+@check_confirmed
 def new_expense(edited=False):
   try:
     uuid = get_uuid_from_cookie()
@@ -336,6 +407,7 @@ def new_expense(edited=False):
 
 @app.route('/new_transfer', methods=['POST'])
 @login_required
+@check_confirmed
 def new_transfer(edited=False):
   try:
     uuid = get_uuid_from_cookie()
@@ -411,6 +483,7 @@ def new_transfer(edited=False):
 
 @app.route('/new_income', methods=['POST'])
 @login_required
+@check_confirmed
 def new_income(edited=False):
   try:
     uuid = get_uuid_from_cookie()
@@ -467,6 +540,7 @@ def new_income(edited=False):
 
 @app.route('/fill_envelopes', methods=['POST'])
 @login_required
+@check_confirmed
 def fill_envelopes(edited=False):
   try:
     uuid = get_uuid_from_cookie()
@@ -534,6 +608,8 @@ def fill_envelopes(edited=False):
     return jsonify({"error": str(e)})
 
 @app.route('/edit_delete_envelope', methods=['POST'])
+@login_required
+@check_confirmed
 def edit_delete_envelope():
   try:
     uuid = get_uuid_from_cookie()
@@ -572,6 +648,8 @@ def edit_delete_envelope():
 # TODO: Revisit this. There's probably no need to delete and recreate the transaction. Test to see what happens if you directly
 #       update the transaction details in the database
 @app.route('/edit_delete_account', methods=['POST'])
+@login_required
+@check_confirmed
 def edit_delete_account():
   try:
     uuid = get_uuid_from_cookie()
@@ -603,6 +681,8 @@ def edit_delete_account():
     return jsonify({"error": str(e)})
 
 @app.route('/edit_account_adjust', methods=['POST'])
+@login_required
+@check_confirmed
 def edit_account_adjust():
   try:
     uuid = get_uuid_from_cookie()
@@ -630,6 +710,7 @@ def edit_account_adjust():
 
 @app.route('/edit_transaction', methods=['POST'])
 @login_required
+@check_confirmed
 def edit_transaction():
   try:
     uuid = get_uuid_from_cookie()
@@ -663,6 +744,7 @@ def edit_transaction():
 
 @app.route('/api/delete_transaction', methods=['POST'])
 @login_required
+@check_confirmed
 def api_delete_transaction():
   try: 
     uuid = get_uuid_from_cookie()
@@ -676,6 +758,7 @@ def api_delete_transaction():
 
 @app.route('/api/transaction/<id>/group', methods=['GET'])
 @login_required
+@check_confirmed
 def get_grouped_json_page(id):
   try:
     uuid = get_uuid_from_cookie()
@@ -688,6 +771,7 @@ def get_grouped_json_page(id):
 
 @app.route('/api/edit-accounts', methods=['POST'])
 @login_required
+@check_confirmed
 def edit_accounts_page():
   try:
     uuid = get_uuid_from_cookie()
@@ -724,6 +808,7 @@ def edit_accounts_page():
 
 @app.route('/api/edit-envelopes', methods=['POST'])
 @login_required
+@check_confirmed
 def edit_envelopes_page():
   try:
     uuid = get_uuid_from_cookie()
@@ -762,6 +847,7 @@ def edit_envelopes_page():
 
 @app.route('/api/data-reload', methods=['POST'])
 @login_required
+@check_confirmed
 def data_reload():
   try:
     uuid = get_uuid_from_cookie()
@@ -815,6 +901,7 @@ def data_reload():
 
 @app.route('/api/load-more', methods=['POST'])
 @login_required
+@check_confirmed
 def load_more():
   try:
     uuid = get_uuid_from_cookie()
@@ -850,6 +937,7 @@ def load_more():
 
 @app.route('/api/multi-delete', methods=['POST'])
 @login_required
+@check_confirmed
 def multi_delete():
   try:
     uuid = get_uuid_from_cookie()
@@ -873,6 +961,7 @@ def multi_delete():
   
 @app.route('/api/load-static-html', methods=["POST"])
 @login_required
+@check_confirmed
 def load_static_html():
   return jsonify({
     'edit_envelope_row': render_template('edit_envelope_row.html'),
@@ -883,6 +972,7 @@ def load_static_html():
 
 @app.route('/bug-report', methods=['POST'])
 @login_required
+@check_confirmed
 def bug_report():
   try:
     uuid = get_uuid_from_cookie()
@@ -908,7 +998,6 @@ def bug_report():
     return jsonify({'toasts': ["Thank you! Your bug report has been submitted!"]})
   except CustomException as e:
     return jsonify({"error": str(e)})
-
 
 def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot):
   msg = Message(f'Budgeteer: Bug Report from {email}', sender=MAIL_USERNAME, recipients=[MAIL_USERNAME])

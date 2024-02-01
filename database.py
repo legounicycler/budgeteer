@@ -4,8 +4,7 @@ This file contains functions relevant to actually manipulating values in the dat
 
 # Library imports
 import sqlite3, datetime, platform, hashlib, secrets, calendar, copy
-from datetime import datetime, timedelta
-from datetime import date
+from datetime import datetime, timedelta, date
 from flask_login import UserMixin
 from enum import Enum
 
@@ -97,20 +96,23 @@ class Envelope:
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id,self.display_order)
 
 class User(UserMixin):
-    def __init__(self, uuid, email, password_hash, password_salt, first_name, last_name, unallocated_e_id=None):
+    def __init__(self, uuid, email, password_hash, password_salt, first_name, last_name, registered_on, unallocated_e_id=None, confirmed=False, confirmed_on=None):
         self.id = uuid
         self.email = email
         self.password_hash = password_hash
         self.password_salt = password_salt
         self.first_name = first_name
         self.last_name = last_name
+        self.registered_on = registered_on
         self.unallocated_e_id = unallocated_e_id
+        self.confirmed = confirmed
+        self.confirmed_on = confirmed_on
     def check_password(self, password):
         return hash_password(password, self.password_salt)[0] == self.password_hash
     def __repr__(self):
-        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, U_EID: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.unallocated_e_id)
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, U_EID: {}, REG_ON: {}, CONF: {}, CONF_ON: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.unallocated_e_id, self.registered_on, self.confirmed, self.confirmed_on)
     def __str__(self):
-        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, U_EID: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.unallocated_e_id)
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, U_EID: {}, REG_ON: {}, CONF: {}, CONF_ON: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.unallocated_e_id, self.registered_on, self.confirmed, self.confirmed_on)
 
 # endregion CLASS DEFINITIONS
 
@@ -974,7 +976,7 @@ def envelope_fill(t):
 
 # endregion ENVELOPE FUNCTIONS
 
-# region USER FUNCTIONS ------ #
+# region ---------------USER FUNCTIONS---------------
 def get_user_by_email(email):
     """
     Given an email address, return a User object if the email is in the database, or return none if not
@@ -984,6 +986,7 @@ def get_user_by_email(email):
         u = c.fetchone()
         if u is not None:
             user = User(*u)
+            user.confirmed = bool(user.confirmed)
             return user
         else:
             return None
@@ -1000,6 +1003,7 @@ def get_user_for_flask(uuid):
     c.close()
     if u is not None:
         user = User(*u)
+        user.confirmed = bool(user.confirmed)
         return user
     else:
         return None
@@ -1012,6 +1016,7 @@ def get_user_by_uuid(uuid):
     udata = c.fetchone()
     if udata is not None:
         user = User(*udata)
+        user.confirmed = bool(user.confirmed)
         return user
     else:
         raise UserNotFoundError(f"No user exists with uuid {uuid}")
@@ -1022,7 +1027,11 @@ def insert_user(u):
         insert_envelope(Envelope(None, "Unallocated", 0, 0, False, u.id, 0))
 
         # 2. Insert the new user into the database referencing the ID of the newly created unallocated envelope
-        c.execute("INSERT INTO users (uuid, email, password_hash, password_salt, first_name, last_name, unallocated_e_id) VALUES (?,?,?,?,?,?, (SELECT id FROM envelopes WHERE user_id=? LIMIT 1))", (u.id, u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.id))
+        c.execute("INSERT INTO users (uuid, email, password_hash, password_salt, first_name, last_name, registered_on, unallocated_e_id) VALUES (?,?,?,?,?,?,?, (SELECT id FROM envelopes WHERE user_id=? LIMIT 1))", (u.id, u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.registered_on, u.id))
+
+def confirm_user(u):
+    with conn:
+        c.execute("UPDATE users SET confirmed=1, confirmed_on=? WHERE uuid=?", (datetime.now(), u.id))
 
 # TODO: Implement soft and hard user deletes (hard deletes delete all user data, soft deletes sets a deleted flag to true)
 def delete_user(uuid):
