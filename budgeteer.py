@@ -4,7 +4,7 @@ This file interacts a lot with the javascript/jQuery running on the site
 """
 
 # Flask imports
-from flask import Flask, render_template, url_for, request, redirect, jsonify, make_response
+from flask import Flask, render_template, url_for, request, redirect, jsonify, make_response, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
 
@@ -193,6 +193,17 @@ def unconfirmed():
   if current_user.confirmed:
     return redirect(url_for('home'))
   return render_template('unconfirmed.html')
+
+@app.route('/resend-confirmation')
+@login_required
+def resend_confirmation():
+  token = generate_token(current_user.email)
+  confirm_url = url_for('confirm_email', token=token, _external=True)
+  msg = Message('Budgeteer: Confirm your email address', sender=MAIL_USERNAME, recipients=[current_user.email])
+  msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
+  mail.send(msg)
+  flash('A new confirmation email has been sent to your email address.', 'success')
+  return redirect('login')
 
 @app.route('/logout')
 def logout():

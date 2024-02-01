@@ -42,6 +42,10 @@ body {
     cursor: pointer
 }
 
+.hidden {
+    display: none;
+}
+
 @media only screen and (max-width: 992px) {
     
     #orange-div {
