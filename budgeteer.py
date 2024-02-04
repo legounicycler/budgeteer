@@ -102,7 +102,8 @@ def login():
   else:
     login_form = LoginForm()
     register_form = RegisterForm()
-    return render_template('login.html',login_form=login_form, register_form=register_form)
+    forgot_form = ForgotPasswordForm()
+    return render_template('login.html',login_form=login_form, register_form=register_form, forgot_form=forgot_form)
   
 @app.route('/api/login', methods=["POST", "GET"])
 def api_login():
@@ -193,6 +194,56 @@ def unconfirmed():
   if current_user.confirmed:
     return redirect(url_for('home'))
   return render_template('unconfirmed.html')
+
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+  try:
+    email = request.form.get('email')
+    user = get_user_by_email(email)
+
+    if user is None:
+      return jsonify({'message': 'No user found with that email!', 'success': False})
+
+    token = generate_token(email)
+    reset_url = url_for('reset_password', token=token, _external=True)
+    msg = Message('Budgeteer: Reset Your Password', sender=MAIL_USERNAME, recipients=[email])
+    msg.html = render_template('emails/password_reset.html', reset_url=reset_url)
+    mail.send(msg)
+    return jsonify({'message': 'Password reset email has been sent!', 'success': True})
+  except:
+    return jsonify({'message': 'An unknown error occurred while processing your request!', 'success': False})
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+  try:
+    email = confirm_token(token)
+  except:
+    return render_template("error_page.html", message="The reset password link is invalid or has expired.")
+
+  user = get_user_by_email(email)
+  if user is None:
+    return render_template("error_page.html", message="Something went wrong with the password reset process. Please try again.")
+
+  if request.method == 'POST':
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+
+    print(new_password, confirm_password)
+
+    if new_password != confirm_password:
+      flash('Passwords must match!', 'error')
+      return redirect(url_for('reset_password', token=token))
+
+    new_password_hash, new_password_salt = hash_password(new_password)
+    user.password_hash = new_password_hash
+    user.password_salt = new_password_salt
+    update_user(user)
+
+    flash('Your password has been successfully reset!', 'success')
+    return redirect(url_for('login'))
+
+  return render_template('reset_password.html', token=token)
+
 
 @app.route('/resend-confirmation')
 @login_required

@@ -13,6 +13,9 @@
           .ajaxStop(function () {
             $loading.hide();
           });
+
+        // Initialize forgot password modal
+        $('.modal').modal();
   
         // AJAX request for login form
         $('#login-form').submit(function(e) {
@@ -44,6 +47,28 @@
             data: $(this).serialize(),
           }).done(function( o ) {
             M.toast({html: o.message})
+          });
+        });
+
+        // AJAX request for account creation form
+        $('#forgot-password-form').submit(function(e) {
+          e.preventDefault()
+          var url = $(this).attr('action');
+          var method = $(this).attr('method');
+          $form = $(this);
+          $.ajax({
+            type: method,
+            url: url,
+            data: $(this).serialize(),
+          }).done(function( o ) {
+            if (o.success) {
+              M.toast({html: o.message});
+              $('#forgot-password-modal').modal('close');
+              $form.trigger("reset");
+            } else {
+              $("#reset-email").removeClass("valid").addClass("invalid");
+              $("#forgot-password-email-error").attr("data-error", o.message).removeClass("hide");
+            }
           });
         });
 
