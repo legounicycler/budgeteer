@@ -31,7 +31,7 @@ with conn:
 
     # Copy the data from the old table to the new table
     today = datetime.now().strftime("%Y-%m-%d")
-    c.execute("INSERT INTO new_users SELECT uuid, email, password_hash, password_salt, first_name, last_name, ?, unallocated_e_id, 0, NULL FROM users", (today,))
+    c.execute("INSERT INTO new_users SELECT uuid, email, password_hash, password_salt, first_name, last_name, ?, unallocated_e_id, 1, ? FROM users", (today,today))
 
     # Drop the old table and rename the new table
     c.execute("DROP TABLE users")
