@@ -1038,6 +1038,13 @@ def delete_user(uuid):
     with conn:
         c.execute("DELETE FROM users WHERE uuid=?", (uuid,))
         
+def update_user(u):
+    """
+    Given a user, update all the fields in the database to match the user object's fields
+    """
+    with conn:
+        c.execute("UPDATE users SET email=?, password_hash=?, password_salt=?, first_name=?, last_name=?, registered_on=?, unallocated_e_id=? WHERE uuid=?", (u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.registered_on, u.unallocated_e_id, u.id))
+
 
 # endregion USER FUNCTIONS
 

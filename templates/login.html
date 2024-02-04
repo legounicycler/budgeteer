@@ -45,6 +45,7 @@
     </div>
 
     <div class="row content">
+
       <div id="orange-div" class=" col l5 m12 main-content-col">
         <div class="row main-content-row valign-wrapper">
           <div class="col s12">
@@ -52,18 +53,23 @@
           </div>
         </div>
       </div>
+
       <div class="col l6 offset-l1 m12 s12 main-content-col">
         <div class="row main-content-row valign-wrapper">
           <div class="container">
             <div id="login-card" class="card hoverable">
               <div class="card-content">
+
                 <div class="row">
                   <span class="card-title"><h3>Welcome to Budgeteer!</h3></span>
                 </div>
+
                 <div class="divider"></div>
+
                 <div class="row">
                   <h4>Log in</h4>
                 </div>
+
                 <form id="login-form" action="{{ url_for('api_login') }}" method="post">
                   <div class='row'>
                     <div class='input-field col s12'>
@@ -80,18 +86,22 @@
                       <button class="btn waves-effect waves-light" type="submit" name="action">Log in</button>
                     </div>
                   </div>
-                  <div class="row">
-                    <div class="col s12">
-                      <div class="section">
-                        <a class="tiny" href="#!">Forgot your password?</a>
-                      </div>
+                </form>
+
+                <div class="row">
+                  <div class="col s12">
+                    <div class="section">
+                      <a class="tiny modal-trigger" href="#forgot-password-modal">Forgot your password?</a>
                     </div>
                   </div>
-                  <div class="divider"></div>
-                  <div class="row">
-                    <h6 class="activator" id="no-account">Don't have an account yet?</h6>
-                  </div>
-                </form>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="row">
+                  <h6 class="activator" id="no-account">Don't have an account yet?</h6>
+                </div>
+
               </div>
 
               <div class="card-reveal">
@@ -130,6 +140,7 @@
                   </div>
                 </form>
               </div>
+
             </div>
 
           </div>
@@ -137,15 +148,40 @@
       </div>
     </div>
 
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <ul id="flash-toasts" class="hidden">
-        {% for message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
+    <div id="forgot-password-modal" class="modal">
+      <div class="modal-content center-align">
+        <h3>Forgot Your Password?</h3>
+        <div class="divider"></div>
+        <p class="flow-text">It's okay! It happens to the best of us.</p>
+        <p class="flow-text">Enter the email associated with your account below and we'll send you a link to reset your password.</p>
+        <div class="divider"></div>
+        <form id="forgot-password-form" action="{{ url_for('forgot_password') }}" method="post">
+          <div class="row">
+            <div class="row">
+              <div class="input-field col s8">
+                <i class="material-icons prefix">mail</i>
+                {{forgot_form.email.label}}
+                {{forgot_form.email(id="reset-email", class="validate")}}
+                <span id="forgot-password-email-error" class="helper-text"></span>
+              </div>
+              <div class="input-field col s4">
+                <button class="btn waves-effect waves-light" type="submit" name="action">Reset Password<i class="material-icons right">send</i></button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul id="flash-toasts" class="hidden">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
 
   </main>
 
