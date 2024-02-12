@@ -10,7 +10,7 @@ from flask_mail import Mail, Message
 
 # Library imports
 from itsdangerous import URLSafeTimedSerializer, URLSafeSerializer
-import uuid, re, os
+import uuid, re, os, requests
 from werkzeug.utils import secure_filename
 from functools import wraps
 
@@ -19,7 +19,7 @@ from database import *
 from exceptions import *
 from forms import *
 from textLogging import log_write
-from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME, SECURITY_PASSWORD_SALT
+from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME, SECURITY_PASSWORD_SALT, RECAPTCHA_SITE_KEY, RECAPTCHA_SECRET_KEY, RECAPTCHA_VERIFY_URL
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
@@ -103,7 +103,7 @@ def login():
     login_form = LoginForm()
     register_form = RegisterForm()
     forgot_form = ForgotPasswordForm()
-    return render_template('login.html',login_form=login_form, register_form=register_form, forgot_form=forgot_form)
+    return render_template('login.html',login_form=login_form, register_form=register_form, forgot_form=forgot_form, reCAPTCHA_site_key=RECAPTCHA_SITE_KEY)
   
 @app.route('/api/login', methods=["POST", "GET"])
 def api_login():
@@ -128,12 +128,14 @@ def api_login():
 
   # 4. If the user is already authenticated (logged in), return a success message (which will redirect to the home page)
   if current_user.is_authenticated:
+    log_write(f"LOGIN: User email - {email}")
     return jsonify({'login_success': True})
   
   # 5. Check the submitted password against the hashed password in the database
   if user.check_password(password):
     login_user(user, remember=False) # TODO: Swap to this eventually: login_user(user, remember=form.remember_me.data) *and ctrl+f for this comment*
     response = make_response(jsonify({'login_success': True}))
+    log_write(f"LOGIN: User email - {email}")
     return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
   else:
     return jsonify({'message': 'Incorrect password!', 'login_success': False})
@@ -200,6 +202,8 @@ def forgot_password():
   try:
     email = request.form.get('email')
     user = get_user_by_email(email)
+    recaptchaToken = request.form.get('recaptchaToken')
+    verify_recaptcha(recaptchaToken)
 
     if user is None:
       return jsonify({'message': 'No user found with that email!', 'success': False})
@@ -1091,6 +1095,12 @@ def allowed_file_size(file):
     file.seek(0) # Reset the file pointer to the beginning of the file so it can be saved properly
     if file_size >= MAX_FILE_SIZE:
       raise InvalidFileSizeError(f"The file you uploaded is too large! ({round(file_size/(1024*1024), 2)}Mb). Please upload a file smaller than {round(MAX_FILE_SIZE/(1024*1024), 0)}Mb.")
+
+def verify_recaptcha(recaptchaToken):
+  verify_response = requests.post(url=RECAPTCHA_VERIFY_URL, data={'secret': RECAPTCHA_SECRET_KEY, 'response': recaptchaToken}).json()
+  if verify_response['success'] == False or verify_response['score'] < 0.5:
+    raise RecaptchaFailError(verify_response)
+
 
 #MAKES SURE DEBUG IS TURNED OFF FOR MAIN DEPLOYMENT
 if __name__ == '__main__':

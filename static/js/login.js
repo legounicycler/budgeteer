@@ -55,20 +55,25 @@
           e.preventDefault()
           var url = $(this).attr('action');
           var method = $(this).attr('method');
+          var sitekey = $(this).data('sitekey');
           $form = $(this);
-          $.ajax({
-            type: method,
-            url: url,
-            data: $(this).serialize(),
-          }).done(function( o ) {
-            if (o.success) {
-              M.toast({html: o.message});
-              $('#forgot-password-modal').modal('close');
-              $form.trigger("reset");
-            } else {
-              $("#reset-email").removeClass("valid").addClass("invalid");
-              $("#forgot-password-email-error").attr("data-error", o.message).removeClass("hide");
-            }
+          grecaptcha.ready(function() {
+            grecaptcha.execute(sitekey, {action: 'submit'}).then(function(token) {
+              $.ajax({
+                type: method,
+                url: url,
+                data: $form.serialize() + "&recaptchaToken=" + token,
+              }).done(function( o ) {
+                if (o.success) {
+                  M.toast({html: o.message});
+                  $('#forgot-password-modal').modal('close');
+                  $form.trigger("reset");
+                } else {
+                  $("#reset-email").removeClass("valid").addClass("invalid");
+                  $("#forgot-password-email-error").attr("data-error", o.message).removeClass("hide");
+                }
+              });
+            });
           });
         });
 
