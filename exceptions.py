@@ -39,5 +39,10 @@ class InvalidFileSizeError(CustomException):
 class InvalidFileTypeError(CustomException):
     pass
 
+class RecaptchaFailError(CustomException):
+    def __init__(self, response):
+        log_write(f"EXCEPTION: ReCaptcha Fail - Score:{response['score']}, Hostname: {response['hostname']}, Timestamp: {response['challenge_ts']}", "LoginAttemptsLog.txt")
+        super().__init__("Error: ReCaptcha failed!")
+
 class OtherError(CustomException):
     pass

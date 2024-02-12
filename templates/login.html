@@ -155,16 +155,16 @@
         <p class="flow-text">It's okay! It happens to the best of us.</p>
         <p class="flow-text">Enter the email associated with your account below and we'll send you a link to reset your password.</p>
         <div class="divider"></div>
-        <form id="forgot-password-form" action="{{ url_for('forgot_password') }}" method="post">
+        <form id="forgot-password-form" action="{{ url_for('forgot_password') }}" method="post" data-sitekey="{{reCAPTCHA_site_key}}">
           <div class="row">
             <div class="row">
-              <div class="input-field col s8">
+              <div class="input-field col m6 s12">
                 <i class="material-icons prefix">mail</i>
                 {{forgot_form.email.label}}
                 {{forgot_form.email(id="reset-email", class="validate")}}
                 <span id="forgot-password-email-error" class="helper-text"></span>
               </div>
-              <div class="input-field col s4">
+              <div class="input-field col m6 s10 push-s1">
                 <button class="btn waves-effect waves-light" type="submit" name="action">Reset Password<i class="material-icons right">send</i></button>
               </div>
             </div>
@@ -189,5 +189,6 @@
   <script src="{{url_for('static', filename='node_modules/jquery-ui/dist/jquery-ui.min.js')}}"></script>
   <script src="{{url_for('static', filename='js/materialize.js')}}"></script>
   <script src="{{url_for('static', filename='js/login.js')}}"></script>
+  <script src="https://www.google.com/recaptcha/api.js?render={{reCAPTCHA_site_key}}"></script>
 </body>
 </html>
