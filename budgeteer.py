@@ -126,21 +126,23 @@ def api_login():
 
     # 3. If the user is already authenticated (logged in), return a success message (which will redirect to the home page)
     if current_user.is_authenticated:
-      log_write(f"LOGIN: Success for user - {user.id}")
+      log_write(f"LOGIN SUCCESS: For user {user.id}", "LoginAttemptsLog.txt")
       return jsonify({'login_success': True})
     
     # 4. Check the submitted password against the hashed password in the database
     if user.check_password(password):
       login_user(user, remember=False) # TODO: Swap to this eventually: login_user(user, remember=form.remember_me.data) *and ctrl+f for this comment*
       response = make_response(jsonify({'login_success': True}))
-      log_write(f"LOGIN: User email - {email}")
+      log_write(f"LOGIN SUCCESS: For user {user.id}", "LoginAttemptsLog.txt")
       return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
     else:
+      log_write(f"LOGIN FAIL: Incorrect password attempt ({password}) for user {user.id}", "LoginAttemptsLog.txt")
       return jsonify({'message': 'Incorrect password!', 'login_success': False})
   
   except RecaptchaFailError:
     return jsonify({'message': 'Error: ReCaptcha test failed!', 'login_success': False})
   except:
+    log_write(f"LOGIN FAIL: Unknown failure", "LoginAttemptsLog.txt")
     return jsonify({'message': 'Error: An unknown error occurred!', 'login_success': False})
 
 @app.route("/register", methods=["POST", "GET"])
@@ -165,6 +167,7 @@ def register():
       (new_password_hash, new_password_salt) = hash_password(new_password)
       new_user = User(uuid, new_email, new_password_hash, new_password_salt, new_first_name, new_last_name, datetime.now())
       insert_user(new_user)
+      log_write(f"REGISTER SUCCESS: New user with id {uuid} inserted", "LoginAttemptsLog.txt")
     else:
       return jsonify({'message': 'Passwords must match!'})
     
@@ -174,8 +177,10 @@ def register():
     msg = Message('Budgeteer: Confirm your email address', sender=MAIL_USERNAME, recipients=[new_email])
     msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
     mail.send(msg)
+    log_write(f"REGISTER EMAIL SENT: For user {uuid} to email {new_email}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'A confirmation email has been sent to your email address!'})
   except:
+    log_write(f"REGISTER ERROR: Unknown error", "LoginAttemptsLog.txt")
     return jsonify({'message': 'An unknown error occurred during registration!'})
 
 @app.route('/confirm/<token>')
@@ -183,14 +188,17 @@ def confirm_email(token):
   try:
     email = confirm_token(token)
   except:
+    log_write(f"CONFIRM FAIL: Confirmation link invalid or expired for token {token}", "LoginAttemptsLog.txt")
     return render_template("error_page.html", message="The confirmation link is invalid or has expired.")
   
   user = get_user_by_email(email)
   if user is None:
+    log_write(f"CONFIRM FAIL: No user found with email {email}", "LoginAttemptsLog.txt")
     return render_template("error_page.html", message="Something went wrong with the confirmation process. Please try again.")
 
   if user.confirmed is False:
     confirm_user(user)
+    log_write(f"CONFIRM SUCCESS: User {user.id} has been confirmed", "LoginAttemptsLog.txt")
   
   login_user(user)
   response = make_response(redirect(url_for('home')))
@@ -212,6 +220,7 @@ def forgot_password():
     verify_recaptcha(recaptchaToken)
 
     if user is None:
+      log_write(f"FORGOT PWD FAIL: No user with email {email}", "LoginAttemptsLog.txt")
       return jsonify({'message': 'No user found with that email!', 'success': False})
 
     token = generate_token(email)
@@ -219,8 +228,10 @@ def forgot_password():
     msg = Message('Budgeteer: Reset Your Password', sender=MAIL_USERNAME, recipients=[email])
     msg.html = render_template('emails/password_reset.html', reset_url=reset_url)
     mail.send(msg)
+    log_write(f"FORGOT PWD SUCCESS: Forgot password email for user {user.id} sent to {email}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'Password reset email has been sent!', 'success': True})
   except:
+    log_write(f"FORGOT PWD ERROR: Unknown error", "LoginAttemptsLog.txt")
     return jsonify({'message': 'An unknown error occurred while processing your request!', 'success': False})
 
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
@@ -228,17 +239,17 @@ def reset_password(token):
   try:
     email = confirm_token(token)
   except:
+    log_write(f"PWD RESET FAIL: Link invalid or expired for token {token}", "LoginAttemptsLog.txt")
     return render_template("error_page.html", message="The reset password link is invalid or has expired.")
 
   user = get_user_by_email(email)
   if user is None:
+    log_write(f"PWD RESET FAIL: No user with email {email}", "LoginAttemptsLog.txt")
     return render_template("error_page.html", message="Something went wrong with the password reset process. Please try again.")
 
   if request.method == 'POST':
     new_password = request.form.get('new_password')
     confirm_password = request.form.get('confirm_password')
-
-    print(new_password, confirm_password)
 
     if new_password != confirm_password:
       flash('Passwords must match!', 'error')
@@ -249,6 +260,7 @@ def reset_password(token):
     user.password_salt = new_password_salt
     update_user(user)
 
+    log_write(f"PWD RESET SUCCESS: Password reset for user {user.id}", "LoginAttemptsLog.txt")
     flash('Your password has been successfully reset!', 'success')
     return redirect(url_for('login'))
 
@@ -263,6 +275,7 @@ def resend_confirmation():
   msg = Message('Budgeteer: Confirm your email address', sender=MAIL_USERNAME, recipients=[current_user.email])
   msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
   mail.send(msg)
+  log_write(f"PWD RESET RESEND: Password reset email resent to {current_user.email} for user {current_user.id}", "LoginAttemptsLog.txt")
   flash('A new confirmation email has been sent to your email address.', 'success')
   return redirect('login')
 
@@ -270,6 +283,7 @@ def resend_confirmation():
 def logout():
   if current_user.is_authenticated:
     logout_user()
+    log_write(f"LOGOUT: User {current_user.id}", "LoginAttemptsLog.txt")
   return redirect(url_for('login'))
 
 @app.route("/home", methods=['GET'])
