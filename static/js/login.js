@@ -22,16 +22,27 @@
           e.preventDefault()
           var url = $(this).attr('action');
           var method = $(this).attr('method');
-          $.ajax({
-            type: method,
-            url: url,
-            data: $(this).serialize(),
-          }).done(function( o ) {
-            if (o.login_success) {
-              window.location.href= "home";
-            } else {
-              M.toast({html: o.message});
-            }
+          var sitekey = $(this).data('sitekey');
+          $form = $(this);
+          $loading.show();
+          grecaptcha.ready(function() {
+            grecaptcha.execute(sitekey, {action: 'submit'}).then(
+              function(token) {
+                $.ajax({
+                  type: method,
+                  url: url,
+                  data: $form.serialize() + "&recaptchaToken=" + token,
+                }).done(function( o ) {
+                  if (o.login_success) {
+                    window.location.href= "home";
+                  } else {
+                    M.toast({html: o.message});
+                  }
+                });
+            }).catch( function(error) {
+              $loading.hide();
+              M.toast({html: "Error: Unknown ReCaptcha error!"})
+            });
           });
         });
   
@@ -41,12 +52,23 @@
           e.preventDefault()
           var url = $(this).attr('action');
           var method = $(this).attr('method');
-          $.ajax({
-            type: method,
-            url: url,
-            data: $(this).serialize(),
-          }).done(function( o ) {
-            M.toast({html: o.message})
+          var sitekey = $(this).data('sitekey');
+          $form = $(this);
+          $loading.show();
+          grecaptcha.ready(function() {
+            grecaptcha.execute(sitekey, {action: 'submit'}).then(
+              function(token) {
+                $.ajax({
+                  type: method,
+                  url: url,
+                  data: $form.serialize() + "&recaptchaToken=" + token,
+                }).done(function( o ) {
+                  M.toast({html: o.message})
+                });
+            }).catch( function(error) {
+              $loading.hide();
+              M.toast({html: "Error: Unknown ReCaptcha error!"})
+            });
           });
         });
 
@@ -58,21 +80,25 @@
           var sitekey = $(this).data('sitekey');
           $form = $(this);
           grecaptcha.ready(function() {
-            grecaptcha.execute(sitekey, {action: 'submit'}).then(function(token) {
-              $.ajax({
-                type: method,
-                url: url,
-                data: $form.serialize() + "&recaptchaToken=" + token,
-              }).done(function( o ) {
-                if (o.success) {
-                  M.toast({html: o.message});
-                  $('#forgot-password-modal').modal('close');
-                  $form.trigger("reset");
-                } else {
-                  $("#reset-email").removeClass("valid").addClass("invalid");
-                  $("#forgot-password-email-error").attr("data-error", o.message).removeClass("hide");
-                }
-              });
+            grecaptcha.execute(sitekey, {action: 'submit'}).then(
+              function(token) {
+                $.ajax({
+                  type: method,
+                  url: url,
+                  data: $form.serialize() + "&recaptchaToken=" + token,
+                }).done(function( o ) {
+                  if (o.success) {
+                    M.toast({html: o.message});
+                    $('#forgot-password-modal').modal('close');
+                    $form.trigger("reset");
+                  } else {
+                    $("#reset-email").removeClass("valid").addClass("invalid");
+                    $("#forgot-password-email-error").attr("data-error", o.message).removeClass("hide");
+                  }
+                });
+            }).catch( function(error) {
+              $loading.hide();
+              M.toast({html: "Error: Unknown ReCaptcha error!"})
             });
           });
         });

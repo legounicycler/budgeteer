@@ -107,38 +107,41 @@ def login():
   
 @app.route('/api/login', methods=["POST", "GET"])
 def api_login():
+  try:
+    # 1. Fetch the form data
+    form = LoginForm()
+    email = form.email.data
+    password = form.password.data
 
-  # 1. Fetch the form data
-  form = LoginForm()
-  email = form.email.data
-  password = form.password.data
+    recaptchaToken = request.form.get('recaptchaToken')
+    verify_recaptcha(recaptchaToken)
+    
+    # 2. Check if there is a user with the submitted email
+    if email is not None:
+      user = get_user_by_email(email)
+      if user is None:
+        return jsonify({'message': 'No user with that email exists!', 'login_success': False})
+    else:
+      return jsonify({'message': 'No email was submitted!', 'login_success': False})
+
+    # 3. If the user is already authenticated (logged in), return a success message (which will redirect to the home page)
+    if current_user.is_authenticated:
+      log_write(f"LOGIN: Success for user - {user.id}")
+      return jsonify({'login_success': True})
+    
+    # 4. Check the submitted password against the hashed password in the database
+    if user.check_password(password):
+      login_user(user, remember=False) # TODO: Swap to this eventually: login_user(user, remember=form.remember_me.data) *and ctrl+f for this comment*
+      response = make_response(jsonify({'login_success': True}))
+      log_write(f"LOGIN: User email - {email}")
+      return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
+    else:
+      return jsonify({'message': 'Incorrect password!', 'login_success': False})
   
-  # 2. Check if there is a user with the submitted email
-  if email is not None:
-    user = get_user_by_email(email)
-    if user is None:
-      return jsonify({'message': 'No user with that email exists!', 'login_success': False})
-  else:
-    return jsonify({'message': 'No email was submitted!', 'login_success': False})
-
-
-  # # 3. If the user is not confirmed, redirect to the confirm page
-  # if user.confirmed is False:
-  #   return jsonify({'unconfirmed': True, 'login_success': False})
-
-  # 4. If the user is already authenticated (logged in), return a success message (which will redirect to the home page)
-  if current_user.is_authenticated:
-    log_write(f"LOGIN: User email - {email}")
-    return jsonify({'login_success': True})
-  
-  # 5. Check the submitted password against the hashed password in the database
-  if user.check_password(password):
-    login_user(user, remember=False) # TODO: Swap to this eventually: login_user(user, remember=form.remember_me.data) *and ctrl+f for this comment*
-    response = make_response(jsonify({'login_success': True}))
-    log_write(f"LOGIN: User email - {email}")
-    return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
-  else:
-    return jsonify({'message': 'Incorrect password!', 'login_success': False})
+  except RecaptchaFailError:
+    return jsonify({'message': 'Error: ReCaptcha test failed!', 'login_success': False})
+  except:
+    return jsonify({'message': 'Error: An unknown error occurred!', 'login_success': False})
 
 @app.route("/register", methods=["POST", "GET"])
 def register():
@@ -148,6 +151,9 @@ def register():
     new_password = form.new_password.data
     new_first_name = form.new_first_name.data
     new_last_name = form.new_last_name.data
+
+    recaptchaToken = request.form.get('recaptchaToken')
+    verify_recaptcha(recaptchaToken)
 
     # 1. Check if user with that email already exists
     if get_user_by_email(new_email) is not None:
