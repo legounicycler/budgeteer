@@ -159,7 +159,7 @@ def register():
 
     # 1. Check if user with that email already exists
     if get_user_by_email(new_email) is not None:
-      return jsonify({'message': 'A user with that email already exists!'})
+      return jsonify({'message': 'A user with that email already exists!', 'register_success': False})
 
     # 2. Check the password validation
     if form.new_password.validate(form) and form.confirm_password.validate(form):
@@ -169,7 +169,7 @@ def register():
       insert_user(new_user)
       log_write(f"REGISTER SUCCESS: New user with id {uuid} inserted", "LoginAttemptsLog.txt")
     else:
-      return jsonify({'message': 'Passwords must match!'})
+      return jsonify({'message': 'Passwords must match!', 'register_success': False})
     
     #3. Generate confirmation token and send email
     token = generate_token(new_email)
@@ -178,10 +178,10 @@ def register():
     msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
     mail.send(msg)
     log_write(f"REGISTER EMAIL SENT: For user {uuid} to email {new_email}", "LoginAttemptsLog.txt")
-    return jsonify({'message': 'A confirmation email has been sent to your email address!'})
+    return jsonify({'message': 'A confirmation email has been sent to your email address!', 'register_success': True})
   except:
     log_write(f"REGISTER ERROR: Unknown error", "LoginAttemptsLog.txt")
-    return jsonify({'message': 'An unknown error occurred during registration!'})
+    return jsonify({'message': 'An unknown error occurred during registration!', 'register_success': False})
 
 @app.route('/confirm/<token>')
 def confirm_email(token):
@@ -265,7 +265,6 @@ def reset_password(token):
     return redirect(url_for('login'))
 
   return render_template('reset_password.html', token=token)
-
 
 @app.route('/resend-confirmation')
 @login_required

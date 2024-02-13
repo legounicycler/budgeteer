@@ -339,7 +339,6 @@
         new_edit_envelope_row_html = o['edit_envelope_row'];
         new_edit_account_row_html = o['edit_account_row'];
         t_editor_new_env_row_html = o['t_editor_new_env_row'];
-        console.log("Static HTML loaded")
       });
 
       // Refresh the reconcile balances
@@ -1220,8 +1219,6 @@
         envelope_and_account_editor_binds(); // Various event binds for the envelope/account editor modals
         editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the envelope/account editor
         M.updateTextFields(); //Ensure that text input labels don't overlap with filled text
-
-        console.log("Page data reloaded!");
       });
     };
 
