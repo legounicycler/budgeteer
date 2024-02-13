@@ -70,7 +70,7 @@
                   <h4>Log in</h4>
                 </div>
 
-                <form id="login-form" action="{{ url_for('api_login') }}" method="post">
+                <form id="login-form" action="{{ url_for('api_login') }}" method="post" data-sitekey="{{reCAPTCHA_site_key}}">
                   <div class='row'>
                     <div class='input-field col s12'>
                       {{login_form.email.label}} {{login_form.email(class="validate")}}
@@ -109,7 +109,7 @@
                 <div class="row">
                   <h4>Create your account</h4>
                 </div>
-                <form id="register-form" action="{{ url_for('register') }}" method="post">
+                <form id="register-form" action="{{ url_for('register') }}" method="post" data-sitekey="{{reCAPTCHA_site_key}}">
                   <div class="row">
                     <div class='input-field col s6'>
                       {{register_form.new_first_name.label}} {{register_form.new_first_name(class="validate")}}
