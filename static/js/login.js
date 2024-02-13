@@ -63,7 +63,14 @@
                   url: url,
                   data: $form.serialize() + "&recaptchaToken=" + token,
                 }).done(function( o ) {
-                  M.toast({html: o.message})
+                  if (o.register_success) {
+                    $("#login-card-close").click();
+                    setTimeout(()=>{},100);
+                    $form[0].reset();
+                    M.toast({html: o.message});
+                  } else {
+                    M.toast({html: o.message});
+                  }
                 });
             }).catch( function(error) {
               $loading.hide();
@@ -105,7 +112,6 @@
 
         // Display the toasts that have been added with flask's flash function
         $("#flash-toasts").children().each(function() {
-          console.log("TOAST");
           M.toast({html: $(this).html()});
           $(this).remove();
         });
