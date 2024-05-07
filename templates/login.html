@@ -71,14 +71,19 @@
                 </div>
 
                 <form id="login-form" action="{{ url_for('api_login') }}" method="post" data-sitekey="{{reCAPTCHA_site_key}}">
+                  {{ login_form.hidden_tag() }}
                   <div class='row'>
                     <div class='input-field col s12'>
-                      {{login_form.email.label}} {{login_form.email(class="validate")}}
+                      {{login_form.email.label}}
+                      {{login_form.email(class="validate")}}
+                      <span class="helper-text red-text left-align"></span>
                     </div>
                   </div>
                   <div class='row'>
                     <div class='input-field col s12'>
-                      {{login_form.password.label}} {{login_form.password(class="validate")}}
+                      {{login_form.password.label}}
+                      {{login_form.password(class="validate")}}
+                      <span class="helper-text red-text left-align"></span>
                     </div>
                   </div>
                   <div class='row'>
@@ -110,27 +115,38 @@
                   <h4>Create your account</h4>
                 </div>
                 <form id="register-form" action="{{ url_for('register') }}" method="post" data-sitekey="{{reCAPTCHA_site_key}}">
+                  {{ register_form.hidden_tag() }}
                   <div class="row">
                     <div class='input-field col s6'>
-                      {{register_form.new_first_name.label}} {{register_form.new_first_name(class="validate")}}
+                      {{register_form.new_first_name.label}}
+                      {{register_form.new_first_name(class="validate")}}
+                      <span class="helper-text red-text left-align"></span>
                     </div>
                     <div class='input-field col s6'>
-                      {{register_form.new_last_name.label}} {{register_form.new_last_name(class="validate")}}                      
+                      {{register_form.new_last_name.label}}
+                      {{register_form.new_last_name(class="validate")}}
+                      <span class="helper-text red-text left-align"></span>                    
                     </div>
                   </div>
                   <div class='row'>
                     <div class='input-field col s12'>
-                      {{register_form.new_email.label}} {{register_form.new_email(class="validate")}}
+                      {{register_form.new_email.label}}
+                      {{register_form.new_email(class="validate")}}
+                      <span class="helper-text red-text left-align"></span>
                     </div>
                   </div>
                   <div class='row'>
                     <div class='input-field col s12'>
-                      {{register_form.new_password.label}} {{register_form.new_password(class="validate")}}
+                      {{register_form.new_password.label}}
+                      {{register_form.new_password(class="validate")}}
+                      <span class="helper-text red-text left-align"></span>
                     </div>
                   </div>
                   <div class='row'>
                     <div class='input-field col s12'>
-                      {{register_form.confirm_password.label}} {{register_form.confirm_password(class="validate")}}
+                      {{register_form.confirm_password.label}}
+                      {{register_form.confirm_password(class="validate")}}
+                      <span class="helper-text red-text left-align"></span>
                     </div>
                   </div>
                   <div class='row'>
@@ -156,6 +172,7 @@
         <p class="flow-text">Enter the email associated with your account below and we'll send you a link to reset your password.</p>
         <div class="divider"></div>
         <form id="forgot-password-form" action="{{ url_for('forgot_password') }}" method="post" data-sitekey="{{reCAPTCHA_site_key}}">
+          {{ login_form.hidden_tag() }}
           <div class="row">
             <div class="row">
               <div class="input-field col m6 s12">

@@ -7,6 +7,8 @@ This file interacts a lot with the javascript/jQuery running on the site
 from flask import Flask, render_template, url_for, request, redirect, jsonify, make_response, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
+from flask_wtf.csrf import CSRFProtect
+from werkzeug.exceptions import HTTPException
 
 # Library imports
 from itsdangerous import URLSafeTimedSerializer, URLSafeSerializer
@@ -25,6 +27,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
 timed_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 serializer = URLSafeSerializer(app.config['SECRET_KEY'])
+
+# Enable CSRF protection
+csrf = CSRFProtect()
+csrf.init_app(app)
+app.config['WTF_CSRF_ENABLED'] = True
 
 # Configure Flask-Mail settings
 app.config['MAIL_SERVER'] = 'smtp.zoho.com'
@@ -94,18 +101,37 @@ login_manager.login_view = "login"
 def load_user(uuid):
   return get_user_for_flask(uuid)
 
+# Error handler for HTTP exceptions
+@app.errorhandler(HTTPException)
+def handle_exception(e):
+    log_write(f'HTTP ERROR: {e.description}', "EventLog.txt")
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    # If error happens in an ajax request, return a response with the error message rather than rendering the error_page template
+    #    This is because the ajax request will redirect via javascript to the /error route below which renders the template
+    if is_ajax:
+      response = jsonify({'error_message': e.description})
+      response.status_code = e.code
+      return response
+    return render_template('error_page.html', message=f"Error {e.code}: {e.description}"), e.code
+
+# Error handler for HTTP exceptions (for ajax requests)
+@app.route('/error/<int:error_code>')
+def error_page(error_code):
+    error_desc = request.args.get('errorDesc') # Fetch the errorDesc query parameter from the ajax request
+    return render_template("error_page.html", message=f"Error {error_code}: {error_desc}"), error_code
+
+# Render the login page
 @app.route("/")
 @app.route('/login', methods=["POST", "GET"])
 def login():
   if current_user.is_authenticated and current_user.confirmed:
     return redirect(url_for('home'))
   else:
-    login_form = LoginForm()
-    register_form = RegisterForm()
-    forgot_form = ForgotPasswordForm()
-    return render_template('login.html',login_form=login_form, register_form=register_form, forgot_form=forgot_form, reCAPTCHA_site_key=RECAPTCHA_SITE_KEY)
-  
-@app.route('/api/login', methods=["POST", "GET"])
+    return render_template('login.html',login_form=LoginForm(), register_form=RegisterForm(), forgot_form=ForgotPasswordForm(), reCAPTCHA_site_key=RECAPTCHA_SITE_KEY)
+
+# Attempt to log in the user based on the submitted form data from the login.html page (/login route)
+@app.route('/api/login', methods=["POST"])
 def api_login():
   try:
     # 1. Fetch the form data
@@ -113,23 +139,27 @@ def api_login():
     email = form.email.data
     password = form.password.data
 
+    # 2. Check the form validity
+    if not form.validate():
+      errors = {field.name: field.errors for field in form if field.errors}
+      log_write(f"LOGIN FAIL: Errors - {errors}", "LoginAttemptsLog.txt")
+      return jsonify(message="Login form validation failed!", login_success=False, errors=errors)
+
+    # 3. Check the recaptchaToken
     recaptchaToken = request.form.get('recaptchaToken')
     verify_recaptcha(recaptchaToken)
     
-    # 2. Check if there is a user with the submitted email
-    if email is not None:
-      user = get_user_by_email(email)
-      if user is None:
-        return jsonify({'message': 'No user with that email exists!', 'login_success': False})
-    else:
-      return jsonify({'message': 'No email was submitted!', 'login_success': False})
+    # 4. Check if there is a user with the submitted email
+    user = get_user_by_email(email)
+    if user is None:
+      return jsonify({'message': 'No user with that email exists!', 'login_success': False})
 
-    # 3. If the user is already authenticated (logged in), return a success message (which will redirect to the home page)
+    # 5. If the user is already authenticated (logged in), return a success message (which will redirect to the home page)
     if current_user.is_authenticated:
       log_write(f"LOGIN SUCCESS: For user {user.id}", "LoginAttemptsLog.txt")
       return jsonify({'login_success': True})
     
-    # 4. Check the submitted password against the hashed password in the database
+    # 6. Check the submitted password against the hashed password in the database
     if user.check_password(password):
       login_user(user, remember=False) # TODO: Swap to this eventually: login_user(user, remember=form.remember_me.data) *and ctrl+f for this comment*
       response = make_response(jsonify({'login_success': True}))
@@ -145,33 +175,38 @@ def api_login():
     log_write(f"LOGIN FAIL: Unknown failure", "LoginAttemptsLog.txt")
     return jsonify({'message': 'Error: An unknown error occurred!', 'login_success': False})
 
-@app.route("/register", methods=["POST", "GET"])
+@app.route("/register", methods=["POST"])
 def register():
   try:
+    # 1. Fetch the form data
     form = RegisterForm()
     new_email = form.new_email.data
     new_password = form.new_password.data
     new_first_name = form.new_first_name.data
     new_last_name = form.new_last_name.data
 
+    # 2. Check the form validity
+    if not form.validate():
+      errors = {field.name: field.errors for field in form if field.errors}
+      log_write(f"REGISTER FAIL: Errors - {errors}", "LoginAttemptsLog.txt")
+      return jsonify(message="Register form validation failed!", login_success=False, errors=errors)
+
+    # 3. Check the recaptcha
     recaptchaToken = request.form.get('recaptchaToken')
     verify_recaptcha(recaptchaToken)
 
-    # 1. Check if user with that email already exists
+    # 4. Check if user with that email already exists
     if get_user_by_email(new_email) is not None:
       return jsonify({'message': 'A user with that email already exists!', 'register_success': False})
 
-    # 2. Check the password validation
-    if form.new_password.validate(form) and form.confirm_password.validate(form):
-      uuid = generate_uuid()
-      (new_password_hash, new_password_salt) = hash_password(new_password)
-      new_user = User(uuid, new_email, new_password_hash, new_password_salt, new_first_name, new_last_name, datetime.now())
-      insert_user(new_user)
-      log_write(f"REGISTER SUCCESS: New user with id {uuid} inserted", "LoginAttemptsLog.txt")
-    else:
-      return jsonify({'message': 'Passwords must match!', 'register_success': False})
+    # 5. If all steps before are successful, generate and insert a new user
+    uuid = generate_uuid()
+    (new_password_hash, new_password_salt) = hash_password(new_password)
+    new_user = User(uuid, new_email, new_password_hash, new_password_salt, new_first_name, new_last_name, datetime.now())
+    insert_user(new_user)
+    log_write(f"REGISTER SUCCESS: New user with id {uuid} inserted", "LoginAttemptsLog.txt")
     
-    #3. Generate confirmation token and send email
+    # 6. Generate confirmation token and send email
     token = generate_token(new_email)
     confirm_url = url_for('confirm_email', token=token, _external=True)
     msg = Message('Budgeteer: Confirm your email address', sender=MAIL_USERNAME, recipients=[new_email])
@@ -211,18 +246,42 @@ def unconfirmed():
     return redirect(url_for('home'))
   return render_template('unconfirmed.html')
 
+@app.route('/resend-confirmation')
+@login_required
+def resend_confirmation():
+  token = generate_token(current_user.email)
+  confirm_url = url_for('confirm_email', token=token, _external=True)
+  msg = Message('Budgeteer: Confirm your email address', sender=MAIL_USERNAME, recipients=[current_user.email])
+  msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
+  mail.send(msg)
+  log_write(f"EMAIL CONFIRM RESEND: Email confirmation email resent to {current_user.email} for user {current_user.id}", "LoginAttemptsLog.txt")
+  flash('A new confirmation email has been sent to your email address.', 'success')
+  return redirect('login')
+
 @app.route('/forgot-password', methods=['POST'])
 def forgot_password():
   try:
-    email = request.form.get('email')
-    user = get_user_by_email(email)
+    # 1. Fetch the form data
+    form = ForgotPasswordForm()
+    email = form.email.data
+
+    # 2. Check the form validity
+    if not form.validate():
+      errors = {field.name: field.errors for field in form if field.errors}
+      log_write(f"PWD RESET FAIL: Errors - {errors}", "LoginAttemptsLog.txt")
+      return jsonify(message="Password reset form validation failed!", login_success=False, errors=errors) #TODO: Probably make this error message better when unit tests come around
+
+    # 3. Verify the recaptcha
     recaptchaToken = request.form.get('recaptchaToken')
     verify_recaptcha(recaptchaToken)
 
+    # 4. Verify the user exists
+    user = get_user_by_email(email)
     if user is None:
       log_write(f"FORGOT PWD FAIL: No user with email {email}", "LoginAttemptsLog.txt")
       return jsonify({'message': 'No user found with that email!', 'success': False})
 
+    # 5. If all else works, send a password reset email
     token = generate_token(email)
     reset_url = url_for('reset_password', token=token, _external=True)
     msg = Message('Budgeteer: Reset Your Password', sender=MAIL_USERNAME, recipients=[email])
@@ -266,23 +325,12 @@ def reset_password(token):
 
   return render_template('reset_password.html', token=token)
 
-@app.route('/resend-confirmation')
-@login_required
-def resend_confirmation():
-  token = generate_token(current_user.email)
-  confirm_url = url_for('confirm_email', token=token, _external=True)
-  msg = Message('Budgeteer: Confirm your email address', sender=MAIL_USERNAME, recipients=[current_user.email])
-  msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
-  mail.send(msg)
-  log_write(f"PWD RESET RESEND: Password reset email resent to {current_user.email} for user {current_user.id}", "LoginAttemptsLog.txt")
-  flash('A new confirmation email has been sent to your email address.', 'success')
-  return redirect('login')
-
 @app.route('/logout')
 def logout():
   if current_user.is_authenticated:
+    uuid = current_user.id # Save this value so it can be logged after the current_user variable is changed when logging out
     logout_user()
-    log_write(f"LOGOUT: User {current_user.id}", "LoginAttemptsLog.txt")
+    log_write(f"LOGOUT: User {uuid}", "LoginAttemptsLog.txt")
   return redirect(url_for('login'))
 
 @app.route("/home", methods=['GET'])
