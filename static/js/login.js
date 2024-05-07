@@ -4,6 +4,44 @@
         //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
 
+      $.ajaxSetup({
+        // Default timeout for AJAX requests (15 seconds)
+        timeout: 15000,
+
+        // Global error handler
+        error: function(jqXHR, textStatus) {
+          if (textStatus === 'timeout') {
+            // TODO: Handle timeout errors by aborting the request
+          } else {
+            // Redirect to error page with error code and errorDesc
+            if (jqXHR.responseJSON) {
+              // Display the more verbose error message returned from the flask error handler stored in the responseJSON.error_message
+              const errorUrl = `/error/${jqXHR.status}?errorDesc=${jqXHR.responseJSON.error_message}`;
+              window.location.replace(errorUrl);
+            } else {
+              // If the responseJSON is not available, fall back to the less verbose responseText
+              const errorUrl = `/error/${jqXHR.status}?errorDesc=${jqHXR.responseText}`;
+              window.location.replace(errorUrl);
+            }
+          }
+        }
+      });
+
+      function displayFieldErrors(errors) {
+        // Display errors for each field
+        Object.keys(errors).forEach(function (fieldName) {
+          var errorMessages = errors[fieldName];
+          var fieldId = '#' + fieldName;
+          var errorContainer = $(fieldId).siblings('.helper-text');
+
+          // Display the first error for each field
+          if (errorMessages.length > 0) {
+            $(fieldId).removeClass('valid').addClass('invalid');
+            errorContainer.text(errorMessages[0]);
+          }
+        });
+      }
+
         //Initialize Loading spinners
         var $loading = $('#loading-div').hide();
         $(document)
@@ -36,6 +74,7 @@
                   if (o.login_success) {
                     window.location.href= "home";
                   } else {
+                    if (o.errors) {displayFieldErrors(o.errors);}
                     M.toast({html: o.message});
                   }
                 });
@@ -69,6 +108,7 @@
                     $form[0].reset();
                     M.toast({html: o.message});
                   } else {
+                    if (o.errors) {displayFieldErrors(o.errors);}
                     M.toast({html: o.message});
                   }
                 });
