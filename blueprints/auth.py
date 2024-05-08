@@ -5,7 +5,7 @@ from flask_mail import Message
 
 #Library imports
 import uuid, requests
-import datetime
+from datetime import datetime
 from functools import wraps
 
 #Custom imports
@@ -31,7 +31,7 @@ def load_user(uuid):
 @auth_bp.route('/login', methods=["POST", "GET"])
 def login():
   if current_user.is_authenticated and current_user.confirmed:
-    return redirect(url_for('home'))
+    return redirect(url_for('main.home'))
   else:
     return render_template('login.html',login_form=LoginForm(), register_form=RegisterForm(), forgot_form=ForgotPasswordForm(), reCAPTCHA_site_key=RECAPTCHA_SITE_KEY)
 
@@ -113,14 +113,14 @@ def register():
     
     # 6. Generate confirmation token and send email
     token = generate_token(new_email)
-    confirm_url = url_for('confirm_email', token=token, _external=True)
-    msg = Message('Budgeteer: Confirm your email address', sender=current_app.config(['MAIL_USERNAME']), recipients=[new_email])
+    confirm_url = url_for('auth.confirm_email', token=token, _external=True)
+    msg = Message('Budgeteer: Confirm your email address', sender=current_app.config['MAIL_USERNAME'], recipients=[new_email])
     msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
     current_app.mail.send(msg)
     log_write(f"REGISTER EMAIL SENT: For user {uuid} to email {new_email}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'A confirmation email has been sent to your email address!', 'register_success': True})
-  except:
-    log_write(f"REGISTER ERROR: Unknown error", "LoginAttemptsLog.txt")
+  except Exception as e:
+    log_write(f"REGISTER ERROR: {e}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'An unknown error occurred during registration!', 'register_success': False})
 
 @auth_bp.route('/confirm/<token>')
@@ -141,21 +141,21 @@ def confirm_email(token):
     log_write(f"CONFIRM SUCCESS: User {user.id} has been confirmed", "LoginAttemptsLog.txt")
   
   login_user(user)
-  response = make_response(redirect(url_for('home')))
+  response = make_response(redirect(url_for('main.home')))
   return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
 
 @auth_bp.route('/unconfirmed')
 @login_required
 def unconfirmed():
   if current_user.confirmed:
-    return redirect(url_for('home'))
+    return redirect(url_for('main.home'))
   return render_template('unconfirmed.html')
 
 @auth_bp.route('/resend-confirmation')
 @login_required
 def resend_confirmation():
   token = generate_token(current_user.email)
-  confirm_url = url_for('confirm_email', token=token, _external=True)
+  confirm_url = url_for('auth.confirm_email', token=token, _external=True)
   msg = Message('Budgeteer: Confirm your email address', sender=current_app.config['MAIL_USERNAME'], recipients=[current_user.email])
   msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
   current_app.mail.send(msg)
@@ -188,7 +188,7 @@ def forgot_password():
 
     # 5. If all else works, send a password reset email
     token = generate_token(email)
-    reset_url = url_for('reset_password', token=token, _external=True)
+    reset_url = url_for('auth.reset_password', token=token, _external=True)
     msg = Message('Budgeteer: Reset Your Password', sender=current_app.config["MAIL_USERNAME"], recipients=[email])
     msg.html = render_template('emails/password_reset.html', reset_url=reset_url)
     current_app.mail.send(msg)
@@ -217,7 +217,7 @@ def reset_password(token):
 
     if new_password != confirm_password:
       flash('Passwords must match!', 'error')
-      return redirect(url_for('reset_password', token=token))
+      return redirect(url_for('auth.reset_password', token=token))
 
     new_password_hash, new_password_salt = User.hash_password(new_password)
     user.password_hash = new_password_hash
@@ -226,7 +226,7 @@ def reset_password(token):
 
     log_write(f"PWD RESET SUCCESS: Password reset for user {user.id}", "LoginAttemptsLog.txt")
     flash('Your password has been successfully reset!', 'success')
-    return redirect(url_for('login'))
+    return redirect(url_for('auth.login'))
 
   return render_template('reset_password.html', token=token)
 
@@ -236,7 +236,7 @@ def logout():
     uuid = current_user.id # Save this value so it can be logged after the current_user variable is changed when logging out
     logout_user()
     log_write(f"LOGOUT: User {uuid}", "LoginAttemptsLog.txt")
-  return redirect(url_for('login'))
+  return redirect(url_for('auth.login'))
 
 # endregion -----Flask Routes-----
 
@@ -246,7 +246,7 @@ def check_confirmed(func):
   @wraps(func)
   def decorated_function(*args, **kwargs):
       if current_user.confirmed is False:
-          return redirect(url_for('unconfirmed'))
+          return redirect(url_for('auth.unconfirmed'))
       return func(*args, **kwargs)
 
   return decorated_function

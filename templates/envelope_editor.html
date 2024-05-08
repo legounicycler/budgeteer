@@ -4,7 +4,7 @@
 
       <h3>Edit Envelopes</h3>
 
-      <form id="envelope-editor-form" action="{{ url_for('edit_envelopes_page') }}" method="post">
+      <form id="envelope-editor-form" action="{{ url_for('main.edit_envelopes_page') }}" method="post">
         <div class="row budget-total-row">
           <h5>Total Budget: <b><span id="budget-total">{{budget_total|balanceformat}}</span></b></h5>
         </div>
