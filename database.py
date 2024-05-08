@@ -11,6 +11,7 @@ from enum import Enum
 # Custom Imports
 from exceptions import *
 from logging import *
+from filters import balanceformat
 
 app_platform = platform.system()
 if app_platform == 'Windows':
@@ -107,8 +108,13 @@ class User(UserMixin):
         self.unallocated_e_id = unallocated_e_id
         self.confirmed = confirmed
         self.confirmed_on = confirmed_on
+    def hash_password(password, salt=None):
+        if salt is None:
+            salt = secrets.token_hex(16)
+        hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
+        return hashed_password, salt
     def check_password(self, password):
-        return hash_password(password, self.password_salt)[0] == self.password_hash
+        return User.hash_password(password, self.password_salt)[0] == self.password_hash
     def __repr__(self):
         return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, U_EID: {}, REG_ON: {}, CONF: {}, CONF_ON: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.unallocated_e_id, self.registered_on, self.confirmed, self.confirmed_on)
     def __str__(self):
@@ -122,24 +128,6 @@ def unpack(list_of_tuples):
     for item in list_of_tuples:
         unpacked_array.append(item[0])
     return unpacked_array
-
-def hash_password(password, salt=None):
-  if salt is None:
-    salt = secrets.token_hex(16)
-  hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
-  return hashed_password, salt
-
-def balanceformat(number):
-    """
-    Formats amount numbers into a string with a "$" and "-" if necessary for display
-    """
-    if number is None:
-        string = "NAN"
-    else:
-        string = '$%.2f' % abs(number)
-        if number < 0:
-            string = '-' + string
-    return string
 
 def date_parse(date_str):
     """
