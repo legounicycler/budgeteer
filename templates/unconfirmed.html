@@ -20,7 +20,7 @@
     <div class="navbar-fixed">
       <nav class="yellow darken-4">
         <div class="nav-wrapper">
-            <a id="logo-container" href="{{url_for('home')}}" class="brand-logo center"><img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo"></a>
+            <a id="logo-container" href="{{url_for('main.home')}}" class="brand-logo center"><img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo"></a>
         </div>
       </nav>
     </div>
@@ -32,8 +32,8 @@
             <div class="card-panel">
                 <h4 class="center-align">Unconfirmed Email</h4>
                 <p class="center-align">You have not confirmed your account. Please check your inbox (and your spam folder) - you should have received an email with a confirmation link.</p>
-                <p class="center-align">Didn't receive the email? Click <a href="{{url_for('resend_confirmation')}}">here</a> to resend it.</p>
-                <p class="center-align">Or return to the login page <a href="{{url_for('login')}}">here</a>.</p>
+                <p class="center-align">Didn't receive the email? Click <a href="{{url_for('auth.resend_confirmation')}}">here</a> to resend it.</p>
+                <p class="center-align">Or return to the login page <a href="{{url_for('auth.login')}}">here</a>.</p>
             </div>
         </div>
     </div>
