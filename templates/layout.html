@@ -16,6 +16,9 @@
 
 <body>
 
+  <!-- Hidden CSRF token input -->
+  <input id="csrf-token" type="hidden" value="{{csrf_token()}}">
+
   <!-- Loading spinner overlay -->
   <div id="loading-div">
     <div class="preloader-wrapper big active">
