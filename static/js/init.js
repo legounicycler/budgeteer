@@ -354,9 +354,13 @@
       });
 
       // Load the contents of the static HTML files into global variables
+      const csrf_token = $("#csrf-token").val();
       $.ajax({
         type: 'POST',
         url: '/api/load-static-html',
+        headers: {
+          'X-CSRFToken': csrf_token
+        }
       }).done( function(o) {
         if (o['error']) { M.toast({html: o['error']}); return; }
         new_edit_envelope_row_html = o['edit_envelope_row'];
