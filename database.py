@@ -3,7 +3,7 @@ This file contains functions relevant to actually manipulating values in the dat
 """
 
 # Library imports
-import sqlite3, datetime, platform, hashlib, secrets, calendar, copy
+import sqlite3, datetime, hashlib, secrets, calendar, copy
 from datetime import datetime, timedelta, date
 from flask_login import UserMixin
 from enum import Enum

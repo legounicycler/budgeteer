@@ -64,10 +64,8 @@ def create_tables(conn, c):
 
         print("New database has been created!")
         log_write('\n\n\nNEW DATABASE HAS BEEN CREATED \n\n\n')
-
-
-# TODO: Make this cleaner by referencing the config???
-def main():
+    
+if __name__ == "__main__":
     platform = platform.system()
     if platform == 'Windows':
         database = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
@@ -77,6 +75,3 @@ def main():
     c = conn.cursor()
     create_tables(conn, c)
     conn.close()
-
-if __name__ == "__main__":
-    main()

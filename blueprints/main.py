@@ -35,12 +35,6 @@ def handle_exception(e):
       return response
     return render_template('error_page.html', message=f"Error {e.code}: {e.description}"), e.code
 
-# Error handler for HTTP exceptions (for ajax requests)
-@main_bp.route('/error/<int:error_code>')
-def error_page(error_code):
-    error_desc = request.args.get('errorDesc') # Fetch the errorDesc query parameter from the ajax request
-    return render_template("error_page.html", message=f"Error {error_code}: {error_desc}"), error_code
-
 @main_bp.route("/home", methods=['GET'])
 @login_required
 @check_confirmed
