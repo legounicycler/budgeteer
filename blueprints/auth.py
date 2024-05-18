@@ -28,7 +28,7 @@ def load_user(uuid):
 
 # Render the login page
 @auth_bp.route("/")
-@auth_bp.route('/login', methods=["POST", "GET"])
+@auth_bp.route('/login', methods=["GET"])
 def login():
   if current_user.is_authenticated and current_user.confirmed:
     return redirect(url_for('main.home'))
@@ -51,6 +51,7 @@ def api_login():
       return jsonify(message="Login form validation failed!", login_success=False, errors=errors)
 
     # 3. Check the recaptchaToken
+    print("BEFORE RECAPTCHA TOKEN")
     recaptchaToken = request.form.get('recaptchaToken')
     verify_recaptcha(recaptchaToken)
     
@@ -76,8 +77,9 @@ def api_login():
   
   except RecaptchaFailError:
     return jsonify({'message': 'Error: ReCaptcha test failed!', 'login_success': False})
-  except:
-    log_write(f"LOGIN FAIL: Unknown failure", "LoginAttemptsLog.txt")
+  except Exception as e:
+    print(e)
+    log_write(f"LOGIN FAIL: {e}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'Error: An unknown error occurred!', 'login_success': False})
 
 @auth_bp.route("/register", methods=["POST"])
