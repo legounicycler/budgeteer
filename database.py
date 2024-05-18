@@ -12,15 +12,30 @@ from enum import Enum
 from exceptions import *
 from logging import *
 from filters import balanceformat
+from create_db import create_tables
 
-app_platform = platform.system()
-if app_platform == 'Windows':
-    database = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
-else:
-    database = '/home/opc/database.sqlite'
+# Global variables
+conn = None
+c = None
 
-conn = sqlite3.connect(database, check_same_thread=False)
-c = conn.cursor()
+# region ---------------CLASS DEFINITIONS---------------
+
+class Database:
+
+    @classmethod
+    def get_conn(cls, database):
+        global conn, c
+        conn = sqlite3.connect(database, check_same_thread=False)
+        c = conn.cursor()
+
+        # Create the tables for the testing configuration
+        if database == ":memory:":
+            create_tables(conn, c)
+
+    @classmethod
+    def close_conn(cls):
+        print("Closing database connection...")
+        conn.close()
 
 class TType(Enum):
     BASIC_TRANSACTION = (0, "Basic Transaction", "local_atm")
@@ -44,10 +59,6 @@ class TType(Enum):
             if t.value[0] == value:
                 return t
         raise ValueError(f"ERROR: {value} is not a valid TType value!")
-
-    
-
-# region ---------------CLASS DEFINITIONS---------------
 
 class Transaction:
     def __init__(self, type: 'TType', name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id, pending):
@@ -116,9 +127,9 @@ class User(UserMixin):
     def check_password(self, password):
         return User.hash_password(password, self.password_salt)[0] == self.password_hash
     def __repr__(self):
-        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, U_EID: {}, REG_ON: {}, CONF: {}, CONF_ON: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.unallocated_e_id, self.registered_on, self.confirmed, self.confirmed_on)
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, REG_ON: {}, U_EID: {}, CONF: {}, CONF_ON: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.registered_on, self.unallocated_e_id, self.confirmed, self.confirmed_on)
     def __str__(self):
-        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, U_EID: {}, REG_ON: {}, CONF: {}, CONF_ON: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.unallocated_e_id, self.registered_on, self.confirmed, self.confirmed_on)
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, REG_ON: {} , U_EID: {}, CONF: {}, CONF_ON: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.registered_on, self.unallocated_e_id, self.confirmed, self.confirmed_on)
 
 # endregion CLASS DEFINITIONS
 
@@ -984,11 +995,12 @@ def get_user_for_flask(uuid):
     Given a uuid, return a User object if the uuid is in the database, or return None if not
     Note: Must return None, and not throw an exception
     """
-    conn = sqlite3.connect(database, check_same_thread=False)
-    c = conn.cursor()
+    # TODO: This is probably going to break things
+    # conn = sqlite3.connect(database, check_same_thread=False)
+    # c = conn.cursor()
     c.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
     u = c.fetchone()
-    c.close()
+    # c.close()
     if u is not None:
         user = User(*u)
         user.confirmed = bool(user.confirmed)
@@ -1010,6 +1022,9 @@ def get_user_by_uuid(uuid):
         raise UserNotFoundError(f"No user exists with uuid {uuid}")
 
 def insert_user(u):
+    """
+    TODO: Add description
+    """
     with conn:
         # 1. Create a new unallocated envelope for the user
         insert_envelope(Envelope(None, "Unallocated", 0, 0, False, u.id, 0))
@@ -1018,11 +1033,22 @@ def insert_user(u):
         c.execute("INSERT INTO users (uuid, email, password_hash, password_salt, first_name, last_name, registered_on, unallocated_e_id) VALUES (?,?,?,?,?,?,?, (SELECT id FROM envelopes WHERE user_id=? LIMIT 1))", (u.id, u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.registered_on, u.id))
 
 def confirm_user(u):
+    """
+    TODO: Add description
+    """
     with conn:
-        c.execute("UPDATE users SET confirmed=1, confirmed_on=? WHERE uuid=?", (datetime.now(), u.id))
+        date = datetime.now()
+        c.execute("UPDATE users SET confirmed=1, confirmed_on=? WHERE uuid=?", (date, u.id))
+        
+        # Update the user object to reflect the database changes
+        u.confirmed = True
+        u.registered_on = date
 
 # TODO: Implement soft and hard user deletes (hard deletes delete all user data, soft deletes sets a deleted flag to true)
 def delete_user(uuid):
+    """
+    TODO: Add description
+    """
     with conn:
         c.execute("DELETE FROM users WHERE uuid=?", (uuid,))
         
