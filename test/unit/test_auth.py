@@ -1,12 +1,27 @@
-import pytest
+import pytest, re
 
 from flask import url_for
 from flask_login import current_user
+from unittest.mock import patch
 
 from budgeteer import create_app
 from blueprints.auth import *
 from database import User
 from secret import RECAPTCHA_SITE_KEY
+
+def get_csrf_token(client):
+    response = client.get(url_for('auth.login'))
+    html = response.get_data(as_text=True)
+    match = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="([^"]+)">', html)
+    if match:
+        csrf_token = match.group(1)
+        return csrf_token
+    else:
+        raise ValueError("CSRF token not found in the login page")
+
+# Mock the reCAPTCHA validation to always return True
+def mock_verify_recaptcha(response):
+    return {'score': 0.9}
 
 @pytest.fixture
 def app():
@@ -41,7 +56,6 @@ def logged_in_user_client(app, client):
 
         #2. Simulate a user login
         login_user(new_user)
-        print(current_user)
 
         # 3. Return the test client with the logged-in user in the context
         return client
@@ -60,11 +74,12 @@ def test_login_get(client):
     assert RECAPTCHA_SITE_KEY.encode() in response.data
 
 def test_login_authenticated_user(logged_in_user_client):
-    """Test the login route when the user is already authenticated and confirmed."""
+    """
+    Test the login route when the user is already authenticated and confirmed.
+    The user should be redirected to the home page
+    """
     # Simulate a logged-in and confirmed user
-    print(current_user)
     confirm_user(current_user)
-    print(current_user)
     
     # Request the login page
     response = logged_in_user_client.get('/login')
@@ -72,6 +87,38 @@ def test_login_authenticated_user(logged_in_user_client):
     # Verify the response redirects to the home page for a user that's already logged in
     assert response.status_code == 302
     assert response.location == "/home"
+
+@patch('blueprints.auth.verify_recaptcha', mock_verify_recaptcha)
+def test_login_nonexistent_user(client):
+    """
+    Test the login route when the user doesn't exist.
+    The user should be redirected to the login page
+    """
+    csrf_token = get_csrf_token(client)
+    response = client.post(
+        '/api/login',
+        data={
+            'email': 'idontexist@example.com',
+            'password': 'password',
+            'csrf_token': csrf_token,
+            'g-recaptcha-response': 'dummy-response'
+            },
+        follow_redirects=True
+    )
+    assert response.status_code == 200
+    assert b'No user with that email exists!' in response.data
+
+# def test_login_unauthenticated_user(logged_in_user_client):
+#     """
+#     Test the login route when the user is not authenticated or confirmed.
+#     The user should ... be directed to the confirm page? Receive a toast? I don't remember
+#     """
+#     csrf_token = get_csrf_token(logged_in_user_client)
+#     response = logged_in_user_client.post('/api/login', data={'email': 'email@example.com', 'password': 'password', 'csrf_token': csrf_token})
+
+#     assert response.status_code == 200
+#     assert response.location == "/confirm"
+    
 
 def test_nonexistent_route(client):
     """Test a POST request to a route that doesn't exist"""
