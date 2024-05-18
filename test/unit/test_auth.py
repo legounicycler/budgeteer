@@ -73,11 +73,10 @@ def test_login_authenticated_user(logged_in_user_client):
     assert response.status_code == 302
     assert response.location == "/home"
 
-# def test_nonexistent_route(client):
-#     """Test a POST request route."""
-#     response = client.post('/nonexistentroute', data={'key': 'value'}) # Make a POST request to the desired route (TODO: This probably doesn't belong in the auth.py tests)
-#     assert response.status_code == 404
+def test_nonexistent_route(client):
+    """Test a POST request to a route that doesn't exist"""
+    response = client.post('/nonexistentroute', data={'key': 'value'})
+    assert response.status_code == 404
 
-#     # Check that the response brings up the error page
-#     # TODO: Probably check that the error page actually says 404
-#     assert b"<h5>You've encountered the following error:</h5>" in response.data
+    # Check that the response brings up the error page
+    assert b"<h5>You've encountered the following error:</h5>" in response.data

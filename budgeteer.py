@@ -3,12 +3,13 @@ TODO: Update description of the file here
 """
 
 # Flask imports
-from flask import Flask, current_app
+from flask import Flask, request, render_template
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
 
 # Library imports
 from itsdangerous import URLSafeTimedSerializer, URLSafeSerializer
+import platform
 
 # Custom imports
 from database import *
@@ -56,10 +57,23 @@ def create_app(config_object="config.DevelopmentConfig"):
   def close_db(exception=None):
     db.close_conn()
 
+  # Error handler for HTTP exceptions (for ajax requests)
+  @app.route('/error/<int:error_code>')
+  def error_page(error_code):
+      error_desc = request.args.get('errorDesc') # Fetch the errorDesc query parameter from the ajax request
+      return render_template("error_page.html", message=f"Error {error_code}: {error_desc}"), error_code
+
+  @app.errorhandler(404)
+  def not_found(e):
+    return render_template("error_page.html", message=f"404 Error: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."), 404
+
   return app
 
 if __name__ == '__main__':
+  app_platform = platform.system()
   if app_platform == 'Windows':
-    app = create_app("config.TestingConfig")
+    app = create_app("config.DevelopmentConfig")
+    app.run()
   else:
     app = create_app("config.ProductionConfig")
+    app.run()
