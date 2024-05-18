@@ -20,6 +20,9 @@ def create_app(config_object="config.DevelopmentConfig"):
   app = Flask(__name__)
   app.config.from_object(config_object)
 
+  db = Database()
+  db.get_conn(app.config['DATABASE_URI'])
+
   # Initilze csrf extension (TODO: May not need this if all forms are Flask WTForms)
   csrf = CSRFProtect(app)
   app.csrf = csrf
@@ -49,12 +52,14 @@ def create_app(config_object="config.DevelopmentConfig"):
   app.register_blueprint(auth_bp)
   app.register_blueprint(main_bp)
 
+  @app.teardown_request
+  def close_db(exception=None):
+    db.close_conn()
+
   return app
 
-#MAKES SURE DEBUG IS TURNED OFF FOR MAIN DEPLOYMENT
 if __name__ == '__main__':
-  app = create_app()
   if app_platform == 'Windows':
-      app.run(debug=True)
+    app = create_app("config.TestingConfig")
   else:
-    app.run(debug=False)
+    app = create_app("config.ProductionConfig")

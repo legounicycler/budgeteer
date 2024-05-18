@@ -13,3 +13,6 @@ uploads/*
 
 logs/*
 !logs/.gitkeep
+
+test/unit/logs/*
+!test/unit/logs/.gitkeep

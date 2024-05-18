@@ -3,6 +3,8 @@ project_directory = os.path.abspath('../..')
 sys.path.append(project_directory)
 from budgeteer import *
 
+# region ---------------HELPER FUNCTION TESTS---------------
+
 def test_datetimeformat():
     # Test datetimeformat function
     assert datetimeformat("2022-01-01") == "01/01/2022"
@@ -45,7 +47,7 @@ def test_load_user():
     # Test load_user function
     assert load_user("uuid") == None
 
-# Add more test cases for other functions...
+# endregion ---------------HELPER FUNCTION TESTS----------------
 
 if __name__ == "__main__":
     pytest.main()
