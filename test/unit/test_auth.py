@@ -10,6 +10,7 @@ from database import User
 from secret import RECAPTCHA_SITE_KEY
 
 def get_csrf_token(client):
+    """Get the CSRF token from the login page"""
     response = client.get(url_for('auth.login'))
     html = response.get_data(as_text=True)
     match = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="([^"]+)">', html)
@@ -19,24 +20,35 @@ def get_csrf_token(client):
     else:
         raise ValueError("CSRF token not found in the login page")
 
+
 # Mock the reCAPTCHA validation to always return True
 def mock_verify_recaptcha(response):
     return {'score': 0.9}
 
+
 @pytest.fixture
 def app():
-    """Create and configure a new instance of the Flask application for testing."""
+    """Create and configure a new app instance for testing."""
     app = create_app('config.TestingConfig')
-    return app
+    yield app
+
+
+# @pytest.fixture
+# def app_with_context(app):
+#     """Create and configure a new app instance for testing."""
+#     with app.app_context():
+#         yield app
+
 
 @pytest.fixture
 def client(app):
     """Create a test client for the Flask application."""
     return app.test_client()
 
+
 # Define a fixture for the context of a logged-in user
 @pytest.fixture
-def logged_in_user_client(app, client):
+def logged_in_user_client(client):
     """
     Creates a fixture for a logged-in user in the Flask application context.
 
@@ -47,18 +59,19 @@ def logged_in_user_client(app, client):
     Returns:
     - The test client with a logged-in user in the context.
     """
-    with app.app_context():
-        # 1. Create a user that is verified
-        uuid = generate_uuid()
-        (new_password_hash, new_password_salt) = User.hash_password("password")
-        new_user = User(uuid, "email@example.com", new_password_hash, new_password_salt, "Firstname", "Lastname", datetime.now())
-        insert_user(new_user)
+    
+    # 1. Create a user that is verified
+    uuid = generate_uuid()
+    (new_password_hash, new_password_salt) = User.hash_password("password")
+    new_user = User(uuid, "email@example.com", new_password_hash, new_password_salt, "Firstname", "Lastname", datetime.now())
+    insert_user(new_user)
 
-        #2. Simulate a user login
-        login_user(new_user)
+    #2. Simulate a user login
+    login_user(new_user)
 
-        # 3. Return the test client with the logged-in user in the context
-        return client
+    # 3. Yield the test client with the logged-in user in the context
+    yield client
+
 
 def test_login_get(client):
     """Test loading the login route."""
@@ -72,6 +85,7 @@ def test_login_get(client):
 
     # Check that the reCAPTCHA site key is included
     assert RECAPTCHA_SITE_KEY.encode() in response.data
+
 
 def test_login_authenticated_user(logged_in_user_client):
     """
@@ -88,13 +102,18 @@ def test_login_authenticated_user(logged_in_user_client):
     assert response.status_code == 302
     assert response.location == "/home"
 
+
+# Spoof the reCAPTCHA validation to always return True by replacing the verify_recaptcha function with a mock function
 @patch('blueprints.auth.verify_recaptcha', mock_verify_recaptcha)
 def test_login_nonexistent_user(client):
     """
     Test the login route when the user doesn't exist.
     The user should be redirected to the login page
     """
+    # 1. Get the CSRF token from the hidden input on the login page
     csrf_token = get_csrf_token(client)
+
+    # 2. Post data to the login form with an email for a user that doesn't exist
     response = client.post(
         '/api/login',
         data={
