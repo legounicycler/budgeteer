@@ -53,7 +53,7 @@ def create_app(config_object="config.DevelopmentConfig"):
   app.register_blueprint(auth_bp)
   app.register_blueprint(main_bp)
 
-  @app.teardown_request
+  @app.teardown_appcontext
   def close_db(exception=None):
     db.close_conn()
 

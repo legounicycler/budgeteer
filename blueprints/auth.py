@@ -51,7 +51,6 @@ def api_login():
       return jsonify(message="Login form validation failed!", login_success=False, errors=errors)
 
     # 3. Check the recaptchaToken
-    print("BEFORE RECAPTCHA TOKEN")
     recaptchaToken = request.form.get('recaptchaToken')
     verify_recaptcha(recaptchaToken)
     
@@ -78,7 +77,6 @@ def api_login():
   except RecaptchaFailError:
     return jsonify({'message': 'Error: ReCaptcha test failed!', 'login_success': False})
   except Exception as e:
-    print(e)
     log_write(f"LOGIN FAIL: {e}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'Error: An unknown error occurred!', 'login_success': False})
 
