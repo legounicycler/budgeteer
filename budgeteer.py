@@ -50,18 +50,9 @@ def create_app(config_object="config.DevelopmentConfig"):
   app.register_blueprint(auth_bp)
   app.register_blueprint(main_bp)
 
-  # # Initialize the database
-  # app.db = Database(app.config['DATABASE_URI'])
-
-  # @app.before_request
-  # def before_request():
-  #   print("BEFORE REQUEST")
-  #   app.db.get_conn()
-
-  # @app.teardown_appcontext
-  # def close_db(exception=None):
-  #   print("TEARDOWN APP CONTEXT")
-  #   app.db.close_conn()
+  # TODO: Initialize the database (Having this here breaks the tests, but works for running the app directly)
+  db = Database(app.config['DATABASE_URI'])
+  db.get_conn()
 
   # Error handler for HTTP exceptions (for ajax requests)
   @app.route('/error/<int:error_code>')
