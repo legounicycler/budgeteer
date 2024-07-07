@@ -21,9 +21,6 @@ def create_app(config_object="config.DevelopmentConfig"):
   app = Flask(__name__)
   app.config.from_object(config_object)
 
-  db = Database()
-  db.get_conn(app.config['DATABASE_URI'])
-
   # Initilze csrf extension (TODO: May not need this if all forms are Flask WTForms)
   csrf = CSRFProtect(app)
   app.csrf = csrf
@@ -53,9 +50,18 @@ def create_app(config_object="config.DevelopmentConfig"):
   app.register_blueprint(auth_bp)
   app.register_blueprint(main_bp)
 
-  @app.teardown_appcontext
-  def close_db(exception=None):
-    db.close_conn()
+  # # Initialize the database
+  # app.db = Database(app.config['DATABASE_URI'])
+
+  # @app.before_request
+  # def before_request():
+  #   print("BEFORE REQUEST")
+  #   app.db.get_conn()
+
+  # @app.teardown_appcontext
+  # def close_db(exception=None):
+  #   print("TEARDOWN APP CONTEXT")
+  #   app.db.close_conn()
 
   # Error handler for HTTP exceptions (for ajax requests)
   @app.route('/error/<int:error_code>')

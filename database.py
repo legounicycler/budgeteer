@@ -12,7 +12,6 @@ from enum import Enum
 from exceptions import *
 from logging import *
 from filters import balanceformat
-from create_db import create_tables
 
 # Global variables
 conn = None
@@ -22,20 +21,152 @@ c = None
 
 class Database:
 
-    @classmethod
-    def get_conn(cls, database):
+    def __init__(self, uri):
+        """
+        Initialize the Database object with the given URI (universal resource indicator).
+        
+        Parameters:
+        - uri (str): The database URI.
+        """
+        self.uri = uri
+
+    def get_conn(self):
         global conn, c
-        conn = sqlite3.connect(database, check_same_thread=False)
+        conn = sqlite3.connect(self.uri, check_same_thread=False)
         c = conn.cursor()
 
-        # Create the tables for the testing configuration
-        if database == ":memory:":
-            create_tables(conn, c)
-
-    @classmethod
-    def close_conn(cls):
+    def close_conn(self, exception=None):
         print("Closing database connection...")
+        if exception is not None:
+            log_write(f"CONN CLOSE EXCEPTION: {str(exception)}")
         conn.close()
+
+    def create_tables(self):
+        with conn:
+            c.execute("""
+                CREATE TABLE transactions (
+                    id INTEGER PRIMARY KEY,
+                    type INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    amount INTEGER NOT NULL,
+                    day DATE NOT NULL,
+                    envelope_id INTEGER,
+                    account_id INTEGER,
+                    grouping INTEGER NOT NULL,
+                    note TEXT NOT NULL DEFAULT '',
+                    schedule TEXT,
+                    status BOOLEAN NOT NULL DEFAULT 0,
+                    user_id NOT NULL,
+                    a_reconcile_bal INTEGER NOT NULL DEFAULT 0,
+                    e_reconcile_bal INTEGER NOT NULL DEFAULT 0,
+                    pending BOOLEAN NOT NULL DEFAULT 0
+                    )
+                """)
+
+            c.execute("""
+                CREATE TABLE accounts (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    balance INTEGER NOT NULL DEFAULT 0,
+                    deleted BOOLEAN NOT NULL DEFAULT 0,
+                    user_id INTEGER NOT NULL,
+                    display_order INTEGER
+                    )
+                """)
+
+            c.execute("""
+                CREATE TABLE envelopes (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    balance INTEGER NOT NULL DEFAULT 0,
+                    budget INTEGER NOT NULL DEFAULT 0,
+                    deleted BOOLEAN NOT NULL DEFAULT 0,
+                    user_id INTEGER NOT NULL,
+                    display_order INTEGER
+                    )
+                """)
+
+            c.execute("""
+                CREATE TABLE users (
+                    uuid TEXT PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    password_salt TEXT NOT NULL,
+                    first_name TEXT NOT NULL,
+                    last_name TEXT NOT NULL,
+                    registered_on TEXT NOT NULL,
+                    unallocated_e_id INTEGER NOT NULL,
+                    confirmed BOOLEAN NOT NULL DEFAULT 0,
+                    confirmed_on TEXT,
+                    FOREIGN KEY (unallocated_e_id) REFERENCES envelopes(id)
+                    )
+                """)
+
+            print("New database has been created!")
+            log_write('\n\n\nNEW DATABASE HAS BEEN CREATED \n\n\n')
+
+    def __str__(self):
+        return self.print_database()
+
+    def __repr__(self):
+        return self.print_database()
+
+    def print_database(print_all=0,reverse=1):
+        """
+        Prints the contents of the database to the console.
+        If the parameter print_all is 1, it will print all the transactions.
+        If no parameter is provided, it will only print the envelopes and accounts
+        """
+        print()
+        if print_all == 1:
+            print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
+            print("TRANSACTIONS:")
+            c.execute("PRAGMA table_info(transactions)")
+            colnames = ''
+            for row in c:
+                colnames = colnames + row[1] + ', '
+            print("(" + colnames[:-2] + ")\n")
+            if reverse == 1:
+                c.execute("SELECT * FROM transactions ORDER BY day ASC, id ASC")
+            else:
+                c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
+            for row in c:
+                print(row)
+            print()
+        
+        print('ACCOUNTS:')
+        c.execute("PRAGMA table_info(accounts)")
+        colnames = ''
+        for row in c:
+            colnames = colnames + row[1] + ', '
+        print("(" + colnames[:-2] + ")\n")
+        c.execute("SELECT * FROM accounts ORDER BY display_order ASC, id ASC")
+        for row in c:
+            print(row)
+        print()
+
+        print('ENVELOPES:')
+        c.execute("PRAGMA table_info(envelopes)")
+        colnames = ''
+        for row in c:
+            colnames = colnames + row[1] + ', '
+        print("(" + colnames[:-2] + ")\n")
+        c.execute("SELECT * FROM envelopes ORDER BY display_order ASC, id ASC")
+        for row in c:
+            print(row)
+        print()
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
+
+        print('USERS:')
+        c.execute("PRAGMA table_info(users)")
+        colnames = ''
+        for row in c:
+            colnames = colnames + row[1] + ', '
+        print("(" + colnames[:-2] + ")\n")
+        c.execute("SELECT * FROM users ORDER BY user_id ASC")
+        for row in c:
+            print(row)
+        print()
 
 class TType(Enum):
     BASIC_TRANSACTION = (0, "Basic Transaction", "local_atm")
@@ -1321,67 +1452,6 @@ def health_check(toasts, interactive=False):
             return healthy
 
 # endregion OTHER FUNCTIONS
-
-# region ---------------DEBUGGING FUNCTIONS---------------
-
-def print_database(print_all=0,reverse=1):
-    """
-    Prints the contents of the database to the console.
-    If the parameter print_all is 1, it will print all the transactions.
-    If no parameter is provided, it will only print the envelopes and accounts
-    """
-    print()
-    if print_all == 1:
-        print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
-        print("TRANSACTIONS:")
-        c.execute("PRAGMA table_info(transactions)")
-        colnames = ''
-        for row in c:
-            colnames = colnames + row[1] + ', '
-        print("(" + colnames[:-2] + ")\n")
-        if reverse == 1:
-            c.execute("SELECT * FROM transactions ORDER BY day ASC, id ASC")
-        else:
-            c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
-        for row in c:
-            print(row)
-        print()
-    
-    print('ACCOUNTS:')
-    c.execute("PRAGMA table_info(accounts)")
-    colnames = ''
-    for row in c:
-        colnames = colnames + row[1] + ', '
-    print("(" + colnames[:-2] + ")\n")
-    c.execute("SELECT * FROM accounts ORDER BY display_order ASC, id ASC")
-    for row in c:
-        print(row)
-    print()
-
-    print('ENVELOPES:')
-    c.execute("PRAGMA table_info(envelopes)")
-    colnames = ''
-    for row in c:
-        colnames = colnames + row[1] + ', '
-    print("(" + colnames[:-2] + ")\n")
-    c.execute("SELECT * FROM envelopes ORDER BY display_order ASC, id ASC")
-    for row in c:
-        print(row)
-    print()
-    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
-
-    print('USERS:')
-    c.execute("PRAGMA table_info(users)")
-    colnames = ''
-    for row in c:
-        colnames = colnames + row[1] + ', '
-    print("(" + colnames[:-2] + ")\n")
-    c.execute("SELECT * FROM users ORDER BY user_id ASC")
-    for row in c:
-        print(row)
-    print()
-
-# endregion DEBUGGING FUNCTIONS
 
 def main():
     print_database()
