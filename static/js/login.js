@@ -74,8 +74,12 @@
                   if (o.login_success) {
                     window.location.href= "home";
                   } else {
-                    if (o.errors) {displayFieldErrors(o.errors);}
-                    M.toast({html: o.message});
+                    if (o.confirmed == false) {
+                      window.location.href="confirm";
+                    } else {
+                      if (o.errors) {displayFieldErrors(o.errors);}
+                      M.toast({html: o.message});
+                    }
                   }
                 });
             }).catch( function(error) {

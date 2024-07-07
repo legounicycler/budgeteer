@@ -62,7 +62,10 @@ def api_login():
     # 5. If the user is already authenticated (logged in), return a success message (which will redirect to the home page)
     if current_user.is_authenticated:
       log_write(f"LOGIN SUCCESS: For user {user.id}", "LoginAttemptsLog.txt")
-      return jsonify({'login_success': True})
+      if current_user.confirmed:
+        return jsonify({'login_success': True})
+      else:
+        return jsonify({'login_success': False, "confirmed": False})
     
     # 6. Check the submitted password against the hashed password in the database
     if user.check_password(password):
