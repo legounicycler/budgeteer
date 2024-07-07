@@ -75,7 +75,7 @@
                     window.location.href= "home";
                   } else {
                     if (o.confirmed == false) {
-                      window.location.href="confirm";
+                      window.location.href="unconfirmed";
                     } else {
                       if (o.errors) {displayFieldErrors(o.errors);}
                       M.toast({html: o.message});

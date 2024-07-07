@@ -1453,8 +1453,6 @@ def health_check(toasts, interactive=False):
 
 # endregion OTHER FUNCTIONS
 
-def main():
-    print_database()
-
 if __name__ == "__main__":
-    main()
+    # If you're running this file directly from the command line...
+    print("This is a module, not meant to be run directly!")
