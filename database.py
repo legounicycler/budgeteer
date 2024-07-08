@@ -1124,7 +1124,7 @@ def get_user_by_email(email):
 def get_user_for_flask(uuid):
     """
     Given a uuid, return a User object if the uuid is in the database, or return None if not
-    Note: Must return None, and not throw an exception
+    Note: Used by the flask user_loader function, which requires that this function returns None and NOT throw an exception
     """
     # TODO: This is probably going to break things
     # conn = sqlite3.connect(database, check_same_thread=False)
@@ -1141,7 +1141,7 @@ def get_user_for_flask(uuid):
 
 def get_user_by_uuid(uuid):
     """
-    Given a uuid address, return a User object if the uuid is in the database, or return none if not
+    Given a uuid address, return a User object if the uuid is in the database, or return an error if not
     """
     c.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
     udata = c.fetchone()

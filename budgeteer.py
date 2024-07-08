@@ -50,10 +50,6 @@ def create_app(config_object="config.DevelopmentConfig"):
   app.register_blueprint(auth_bp)
   app.register_blueprint(main_bp)
 
-  # TODO: Initialize the database (Having this here breaks the tests, but works for running the app directly)
-  db = Database(app.config['DATABASE_URI'])
-  db.get_conn()
-
   # Error handler for HTTP exceptions (for ajax requests)
   @app.route('/error/<int:error_code>')
   def error_page(error_code):
@@ -70,7 +66,9 @@ if __name__ == '__main__':
   app_platform = platform.system()
   if app_platform == 'Windows':
     app = create_app("config.DevelopmentConfig")
-    app.run()
   else:
     app = create_app("config.ProductionConfig")
-    app.run()
+  
+  db = Database(app.config['DATABASE_URI'])
+  db.get_conn()
+  app.run()

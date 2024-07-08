@@ -44,12 +44,6 @@ def api_login():
     email = form.email.data
     password = form.password.data
 
-
-    # TODO: What happens if the current_user is authenticated but unconfirmed, then another user attempts to log in?
-    # Try: Logging in with an unconfirmed user
-    # Then: logging in witn a different confirmed user
-    # See the problem in step 5. The current_user isn't necessarily the same as the user in step 4.
-
     # 2. Check the form validity
     if not form.validate():
       errors = {field.name: field.errors for field in form if field.errors}
@@ -65,13 +59,12 @@ def api_login():
     if user is None:
       return jsonify({'message': 'No user with that email exists!', 'login_success': False})
 
-    # 5. If the user is already authenticated (logged in), return a success message (which will redirect to the home page)
-    if current_user.is_authenticated:
+    # 5. If the user is already authenticated (logged in), check if their email is confirmed and either log them in or send them to the uncomfirmed email page
+    if user == current_user and current_user.is_authenticated:
       if user.confirmed:
         log_write(f"LOGIN SUCCESS: For user {user.id}", "LoginAttemptsLog.txt")
         return jsonify({'login_success': True})
       else:
-        print(current_user)
         log_write(f"UNCONFIRMED LOGIN: For user {user.id}", "LoginAttemptsLog.txt")
         return jsonify({'login_success': False, "confirmed": False})
     
