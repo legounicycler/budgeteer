@@ -43,7 +43,7 @@ def logged_in_user_client(client):
     - The test client with a logged-in user in the context.
     """
     
-    # 1. Create a user that is verified
+    # 1. Insert a new user to the database
     uuid = generate_uuid()
     (new_password_hash, new_password_salt) = User.hash_password("password")
     new_user = User(uuid, "email@example.com", new_password_hash, new_password_salt, "Firstname", "Lastname", datetime.now())
@@ -215,13 +215,61 @@ def test_api_login_confirmed_user(logged_in_user_client):
     assert response.status_code == 200
     assert b'"login_success":true' in response.data
 
+@patch('blueprints.auth.verify_recaptcha', mock_verify_recaptcha) # Spoof the reCAPTCHA validation to always return True by replacing the verify_recaptcha function with a mock function
+def test_api_login_malformed_data(client):
+    # 0. Get the CSRF token from the hidden input on the login page
+    csrf_token = get_csrf_token(client)
 
-# def test_api_login_malformed_data(client):
-    # malformed email
-    # missing email
-    # too long password
-    # too short password
-    # missing password
-    # incorrect password
+    # 1. Post data to the login form with a malformed email address
+    response = client.post('/api/login', data={'email': "email@example", 'password': 'password', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
+    assert response.status_code == 200
+    assert b'{"login_success":false,"message":"No user with that email exists!"}' in response.data
+
+    # 2. Post data to the login form with no email
+    response = client.post('/api/login', data={'password': 'password', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
+    assert response.status_code == 200
+    assert b'"errors":{"email":["This field is required."]}' in response.data
+
+    # 3. Post data to the login form with no password
+    response = client.post('/api/login', data={'email': 'email@example', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
+    assert response.status_code == 200
+    assert b'"errors":{"password":["This field is required."]}' in response.data
+
+    # 4. Post data to the login form with a malformed password (too long)
+    response = client.post('/api/login', data={'email': 'email@example', 'password': 'asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
+    assert response.status_code == 200
+    assert b'{"errors":{"password":["Password must be between 8 and 32 characters long"]}' in response.data
+
+    # 5. Post data to the login form with a malformed password (too short)
+    response = client.post('/api/login', data={'email': 'email@example', 'password': 'abc', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
+    assert response.status_code == 200
+    assert b'{"errors":{"password":["Password must be between 8 and 32 characters long"]}' in response.data
+
+@patch('blueprints.auth.verify_recaptcha', mock_verify_recaptcha) # Spoof the reCAPTCHA validation to always return True by replacing the verify_recaptcha function with a mock function
+def test_api_login_incorrect_password(client):
+    # 0. Get the CSRF token from the hidden input on the login page
+    csrf_token = get_csrf_token(client)
+
+    # 1. Insert a new user to the database
+    uuid = generate_uuid()
+    (new_password_hash, new_password_salt) = User.hash_password("password")
+    new_user = User(uuid, "email@example.com", new_password_hash, new_password_salt, "Firstname", "Lastname", datetime.now())
+    insert_user(new_user)
+
+    # 1. Post data to the login form with an email for a user that doesn't exist
+    response = client.post(
+        '/api/login',
+        data={
+            'email': new_user.email,
+            'password': 'incorrectpassword',
+            'csrf_token': csrf_token,
+            'g-recaptcha-response': 'dummy-response'
+            },
+        follow_redirects=True
+    )
+
+    # 2. Verify the response redirects to the home page
+    assert response.status_code == 200
+    assert b'{"login_success":false,"message":"Incorrect password!"}' in response.data
 
 # endregion TESTS

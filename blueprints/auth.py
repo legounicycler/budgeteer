@@ -30,10 +30,13 @@ def load_user(uuid):
 @auth_bp.route("/")
 @auth_bp.route('/login', methods=["GET"])
 def login():
-  if current_user.is_authenticated and current_user.confirmed:
-    return redirect(url_for('main.home'))
-  else:
-    return render_template('login.html',login_form=LoginForm(), register_form=RegisterForm(), forgot_form=ForgotPasswordForm(), reCAPTCHA_site_key=RECAPTCHA_SITE_KEY)
+  try:
+    if current_user.is_authenticated and current_user.confirmed:
+      return redirect(url_for('main.home'))
+    else:
+      return render_template('login.html',login_form=LoginForm(), register_form=RegisterForm(), forgot_form=ForgotPasswordForm(), reCAPTCHA_site_key=RECAPTCHA_SITE_KEY)
+  except Exception as e:
+    log_write(f"INTERNAL ERROR: {e}")
 
 # Attempt to log in the user based on the submitted form data from the login.html page (/login route)
 @auth_bp.route('/api/login', methods=["POST"])
@@ -135,37 +138,46 @@ def confirm_email(token):
     log_write(f"CONFIRM FAIL: Confirmation link invalid or expired for token {token}", "LoginAttemptsLog.txt")
     return render_template("error_page.html", message="The confirmation link is invalid or has expired.")
   
-  user = get_user_by_email(email)
-  if user is None:
-    log_write(f"CONFIRM FAIL: No user found with email {email}", "LoginAttemptsLog.txt")
-    return render_template("error_page.html", message="Something went wrong with the confirmation process. Please try again.")
+  try:
+    user = get_user_by_email(email)
+    if user is None:
+      log_write(f"CONFIRM FAIL: No user found with email {email}", "LoginAttemptsLog.txt")
+      return render_template("error_page.html", message="Something went wrong with the confirmation process. Please try again.")
 
-  if user.confirmed is False:
-    confirm_user(user)
-    log_write(f"CONFIRM SUCCESS: User {user.id} has been confirmed", "LoginAttemptsLog.txt")
-  
-  login_user(user)
-  response = make_response(redirect(url_for('main.home')))
-  return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
+    if user.confirmed is False:
+      confirm_user(user)
+      log_write(f"CONFIRM SUCCESS: User {user.id} has been confirmed", "LoginAttemptsLog.txt")
+    
+    login_user(user)
+    response = make_response(redirect(url_for('main.home')))
+    return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
+  except Exception as e:
+    log_write(f"CONFIRM FAIL: {e}", "LoginAttemptsLog.txt")
 
 @auth_bp.route('/unconfirmed')
 @login_required
 def unconfirmed():
-  if current_user.confirmed:
-    return redirect(url_for('main.home'))
-  return render_template('unconfirmed.html')
+  try:
+    if current_user.confirmed:
+      return redirect(url_for('main.home'))
+    return render_template('unconfirmed.html')
+  except Exception as e:
+    log_write(f"UNCOMFIRMED FAIL: {e}", "LoginAttemptsLog.txt")
 
 @auth_bp.route('/resend-confirmation')
 @login_required
 def resend_confirmation():
-  token = generate_token(current_user.email)
-  confirm_url = url_for('auth.confirm_email', token=token, _external=True)
-  msg = Message('Budgeteer: Confirm your email address', sender=current_app.config['MAIL_USERNAME'], recipients=[current_user.email])
-  msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
-  current_app.mail.send(msg)
-  log_write(f"EMAIL CONFIRM RESEND: Email confirmation email resent to {current_user.email} for user {current_user.id}", "LoginAttemptsLog.txt")
-  flash('A new confirmation email has been sent to your email address.', 'success')
-  return redirect('login')
+  try:
+    token = generate_token(current_user.email)
+    confirm_url = url_for('auth.confirm_email', token=token, _external=True)
+    msg = Message('Budgeteer: Confirm your email address', sender=current_app.config['MAIL_USERNAME'], recipients=[current_user.email])
+    msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
+    current_app.mail.send(msg)
+    log_write(f"EMAIL CONFIRM RESEND: Email confirmation email resent to {current_user.email} for user {current_user.id}", "LoginAttemptsLog.txt")
+    flash('A new confirmation email has been sent to your email address.', 'success')
+    return redirect('login')
+  except Exception as e:
+    log_write(f"RESEND CONFIRMATION FAIL: {e}", "LoginAttemptsLog.txt")
 
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
@@ -198,49 +210,55 @@ def forgot_password():
     current_app.mail.send(msg)
     log_write(f"FORGOT PWD SUCCESS: Forgot password email for user {user.id} sent to {email}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'Password reset email has been sent!', 'success': True})
-  except:
-    log_write(f"FORGOT PWD ERROR: Unknown error", "LoginAttemptsLog.txt")
+  except Exception as e:
+    log_write(f"FORGOT PWD ERROR: {e}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'An unknown error occurred while processing your request!', 'success': False})
 
 @auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
   try:
-    email = confirm_token(token)
-  except:
-    log_write(f"PWD RESET FAIL: Link invalid or expired for token {token}", "LoginAttemptsLog.txt")
-    return render_template("error_page.html", message="The reset password link is invalid or has expired.")
+    try:
+      email = confirm_token(token)
+    except:
+      log_write(f"PWD RESET FAIL: Link invalid or expired for token {token}", "LoginAttemptsLog.txt")
+      return render_template("error_page.html", message="The reset password link is invalid or has expired.")
 
-  user = get_user_by_email(email)
-  if user is None:
-    log_write(f"PWD RESET FAIL: No user with email {email}", "LoginAttemptsLog.txt")
-    return render_template("error_page.html", message="Something went wrong with the password reset process. Please try again.")
+    user = get_user_by_email(email)
+    if user is None:
+      log_write(f"PWD RESET FAIL: No user with email {email}", "LoginAttemptsLog.txt")
+      return render_template("error_page.html", message="Something went wrong with the password reset process. Please try again.")
 
-  if request.method == 'POST':
-    new_password = request.form.get('new_password')
-    confirm_password = request.form.get('confirm_password')
+    if request.method == 'POST':
+      new_password = request.form.get('new_password')
+      confirm_password = request.form.get('confirm_password')
 
-    if new_password != confirm_password:
-      flash('Passwords must match!', 'error')
-      return redirect(url_for('auth.reset_password', token=token))
+      if new_password != confirm_password:
+        flash('Passwords must match!', 'error')
+        return redirect(url_for('auth.reset_password', token=token))
 
-    new_password_hash, new_password_salt = User.hash_password(new_password)
-    user.password_hash = new_password_hash
-    user.password_salt = new_password_salt
-    update_user(user)
+      new_password_hash, new_password_salt = User.hash_password(new_password)
+      user.password_hash = new_password_hash
+      user.password_salt = new_password_salt
+      update_user(user)
 
-    log_write(f"PWD RESET SUCCESS: Password reset for user {user.id}", "LoginAttemptsLog.txt")
-    flash('Your password has been successfully reset!', 'success')
-    return redirect(url_for('auth.login'))
+      log_write(f"PWD RESET SUCCESS: Password reset for user {user.id}", "LoginAttemptsLog.txt")
+      flash('Your password has been successfully reset!', 'success')
+      return redirect(url_for('auth.login'))
 
-  return render_template('reset_password.html', token=token)
+    return render_template('reset_password.html', token=token)
+  except Exception as e:
+    log_write(f"RESET PASSWORD FAIL: {e}", "LoginAttemptsLog.txt")
 
 @auth_bp.route('/logout')
 def logout():
-  if current_user.is_authenticated:
-    uuid = current_user.id # Save this value so it can be logged after the current_user variable is changed when logging out
-    logout_user()
-    log_write(f"LOGOUT: User {uuid}", "LoginAttemptsLog.txt")
-  return redirect(url_for('auth.login'))
+  try:
+    if current_user.is_authenticated:
+      uuid = current_user.id # Save this value so it can be logged after the current_user variable is changed when logging out
+      logout_user()
+      log_write(f"LOGOUT: User {uuid}", "LoginAttemptsLog.txt")
+    return redirect(url_for('auth.login'))
+  except Exception as e:
+    log_write(f"LOGOUT FAIL: {e}", "LoginAttemptsLog.txt")
 
 # endregion -----Flask Routes-----
 
