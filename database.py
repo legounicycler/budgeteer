@@ -103,7 +103,7 @@ class Database:
                 """)
 
             print("New database has been created!")
-            log_write('\n\n\nNEW DATABASE HAS BEEN CREATED \n\n\n')
+            log_write('NEW DATABASE HAS BEEN CREATED')
 
     def __str__(self):
         return self.print_database()
