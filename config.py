@@ -21,6 +21,7 @@ class Config:
 class DevelopmentConfig(Config):
     """Configuration for development environment."""
     DEBUG = True
+    WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
     DATABASE_URI = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
 
 class TestingConfig(Config):
@@ -36,6 +37,7 @@ class ProductionConfig(Config):
     # e.g., Different database, error handling, caching, etc.
     # You might include production-specific environment variables
     DATABASE_URI = '/home/opc/database.sqlite'
+    WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
 
 # Configuration dictionary mapping names to classes
 config = {
