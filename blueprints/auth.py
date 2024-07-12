@@ -80,9 +80,6 @@ def api_login():
     else:
       log_write(f"LOGIN FAIL: Incorrect password attempt ({password}) for user {user.id}", "LoginAttemptsLog.txt")
       return jsonify({'message': 'Incorrect password!', 'login_success': False})
-  
-  except RecaptchaFailError:
-    return jsonify({'message': 'Error: ReCaptcha test failed!', 'login_success': False})
   except Exception as e:
     log_write(f"LOGIN FAIL: {e}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'Error: An unknown error occurred!', 'login_success': False})
