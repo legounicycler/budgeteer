@@ -14,6 +14,8 @@ class Config:
     MAIL_USE_SSL = False
     MAIL_USERNAME = MAIL_USERNAME
     MAIL_PASSWORD = MAIL_PASSWORD
+    MAIL_DEFAULT_SENDER = {'Budgeteer Help', MAIL_USERNAME}
+
     UPLOAD_FOLDER = 'uploads'
     SECURITY_PASSWORD_SALT = SECURITY_PASSWORD_SALT
     DATABASE_URI = None
@@ -28,8 +30,8 @@ class TestingConfig(Config):
     """Configuration for testing environment."""
     TESTING = True
     DATABASE_URI = ':memory:'
-    # Additional testing-specific settings
-    # e.g., DISABLE_EMAILS = True
+    MAIL_SUPPRESS_SEND = True
+    MAIL_BACKEND = 'memory'
 
 class ProductionConfig(Config):
     """Configuration for production environment."""

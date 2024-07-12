@@ -2,7 +2,6 @@ import pytest, re
 
 from flask import url_for
 from flask_login import current_user
-from unittest.mock import patch
 
 from blueprints.auth import *
 from database import User
@@ -55,9 +54,26 @@ def logged_in_user_client(client):
     # 3. Yield the test client with the logged-in user in the context
     yield client
 
+@pytest.fixture
+def mail_instance(app):
+    return app.mail
+
+@pytest.fixture
+def mock_verify_recaptcha(mocker):
+    return mocker.patch('blueprints.auth.verify_recaptcha', return_value=True)
+
 # endregion FIXTURES
 
-# region TESTS
+# region ROUTE TESTS
+
+def test_email_send(mail_instance):
+    with mail_instance.record_messages() as outbox:
+        msg = Message(subject="Test email", recipients=['normaljoepro@gmail.com'], body="Test email body")
+        mail_instance.send(msg)
+        assert len(outbox) == 1
+        assert outbox[0].subject == 'Test email'
+        assert outbox[0].body == 'Test email body'
+        assert outbox[0].recipients == ["normaljoepro@gmail.com"]
 
 def test_post_to_nonexistent_route(client):
     """
@@ -136,8 +152,7 @@ def test_login_get_authenticated_and_unconfirmed_user(logged_in_user_client):
     assert b'<form id="register-form"' in response.data
     assert b'<form id="forgot-password-form"' in response.data
 
-@patch('blueprints.auth.verify_recaptcha', mock_verify_recaptcha) # Spoof the reCAPTCHA validation to always return True by replacing the verify_recaptcha function with a mock function
-def test_api_login_nonexistent_user(client):
+def test_api_login_nonexistent_user(client, mock_verify_recaptcha):
     """
     Test POSTing data to the login form for a user that doesn't exist.
     The user should be redirected to the login page
@@ -161,8 +176,7 @@ def test_api_login_nonexistent_user(client):
     assert response.status_code == 200
     assert b'No user with that email exists!' in response.data
 
-@patch('blueprints.auth.verify_recaptcha', mock_verify_recaptcha) # Spoof the reCAPTCHA validation to always return True by replacing the verify_recaptcha function with a mock function
-def test_api_login_unconfirmed_user(logged_in_user_client):
+def test_api_login_unconfirmed_user(logged_in_user_client, mock_verify_recaptcha):
     """
     Test POSTing data to the login form for a user that DOES exist but hasn't yet confirmed their email.
     The user should ... be directed to the confirm page? Receive a toast? I don't remember
@@ -186,8 +200,7 @@ def test_api_login_unconfirmed_user(logged_in_user_client):
     assert response.status_code == 200
     assert b'"confirmed":false' in response.data
 
-@patch('blueprints.auth.verify_recaptcha', mock_verify_recaptcha) # Spoof the reCAPTCHA validation to always return True by replacing the verify_recaptcha function with a mock function
-def test_api_login_confirmed_user(logged_in_user_client):
+def test_api_login_confirmed_user(logged_in_user_client, mock_verify_recaptcha):
     """
     Test POSTing data to the login form for a user that DOES exists and HAS confirmed their email.
     The user should be redirected to the home page.
@@ -215,8 +228,7 @@ def test_api_login_confirmed_user(logged_in_user_client):
     assert response.status_code == 200
     assert b'"login_success":true' in response.data
 
-@patch('blueprints.auth.verify_recaptcha', mock_verify_recaptcha) # Spoof the reCAPTCHA validation to always return True by replacing the verify_recaptcha function with a mock function
-def test_api_login_malformed_data(client):
+def test_api_login_malformed_data(client, mock_verify_recaptcha):
     # 0. Get the CSRF token from the hidden input on the login page
     csrf_token = get_csrf_token(client)
 
@@ -245,8 +257,7 @@ def test_api_login_malformed_data(client):
     assert response.status_code == 200
     assert b'{"errors":{"password":["Password must be between 8 and 32 characters long"]}' in response.data
 
-@patch('blueprints.auth.verify_recaptcha', mock_verify_recaptcha) # Spoof the reCAPTCHA validation to always return True by replacing the verify_recaptcha function with a mock function
-def test_api_login_incorrect_password(client):
+def test_api_login_incorrect_password(client, mock_verify_recaptcha):
     # 0. Get the CSRF token from the hidden input on the login page
     csrf_token = get_csrf_token(client)
 
@@ -272,4 +283,125 @@ def test_api_login_incorrect_password(client):
     assert response.status_code == 200
     assert b'{"login_success":false,"message":"Incorrect password!"}' in response.data
 
-# endregion TESTS
+def test_api_login_bad_recaptcha(client):
+    # 0. Get the CSRF token from the hidden input on the login page
+    csrf_token = get_csrf_token(client)
+
+    # 1. Post data to the login form with an email for a user that doesn't exist
+    response = client.post(
+        '/api/login',
+        data={
+            'email': 'email@example',
+            'password': 'password',
+            'csrf_token': csrf_token,
+            'g-recaptcha-response': 'bad-response'
+            },
+        follow_redirects=True
+    )
+
+    # 2. Verify the response redirects to the home page
+    assert response.status_code == 200
+    assert b'{"login_success":false,"message":"Error: An unknown error occurred!"}' in response.data
+
+# --Create account form--
+# Malformed data: Missing firstname, missing lastname, missing email, missing password1, missing password2
+# passwords don't match, too short firstname/lastname, malformed email, too short/long password1/password2
+# Email already exists
+
+def test_create_account_form_success(client, mail_instance, mock_verify_recaptcha):
+    with mail_instance.record_messages() as outbox:
+    
+        # 0. Get the CSRF token from the hidden input on the login page 
+        csrf_token = get_csrf_token(client)
+
+        # 1. Post data to the login form with an email for a user that doesn't exist
+        response = client.post(
+            '/register',
+            data={
+                'new_first_name': 'firstname',
+                'new_last_name': 'lastname',
+                'new_email': 'email@example.com',
+                'new_password': 'password',
+                'confirm_password': 'password',
+                'csrf_token': csrf_token,
+                'g-recaptcha-response': 'dummy-response'
+                },
+            follow_redirects=True
+        )
+
+        # 2. Verify the response
+        assert response.status_code == 200
+        assert b'{"message":"A confirmation email has been sent to your email address!","register_success":true}' in response.data
+        
+        # 3. Verify the email was sent properly
+        assert len(outbox) == 1
+        assert outbox[0].subject == 'Budgeteer: Confirm your email address'
+        assert outbox[0].recipients == ["email@example.com"]
+
+def test_create_account_email_already_exists(client, mock_verify_recaptcha):
+    # 0. Get the CSRF token from the hidden input on the login page
+    csrf_token = get_csrf_token(client)
+
+    # 1. Post data to the login form with an email for a user that doesn't exist yet
+    response = client.post(
+        '/register',
+        data={
+            'new_first_name': 'firstname',
+            'new_last_name': 'lastname',
+            'new_email': 'email@example',
+            'new_password': 'password',
+            'confirm_password': 'password',
+            'csrf_token': csrf_token,
+            'g-recaptcha-response': 'dummy-response'
+            },
+        follow_redirects=True
+    )
+
+    # 2. Post data to the login form with an email for a user that already is registered with the same email
+    response = client.post(
+        '/register',
+        data={
+            'new_first_name': 'firstname',
+            'new_last_name': 'lastname',
+            'new_email': 'email@example',
+            'new_password': 'password',
+            'confirm_password': 'password',
+            'csrf_token': csrf_token,
+            'g-recaptcha-response': 'dummy-response'
+            },
+        follow_redirects=True
+    )
+
+    # 2. Verify the response redirects to the home page
+    assert response.status_code == 200
+    assert b'{"message":"A user with that email already exists!","register_success":false}' in response.data
+
+# --Confirm email route--
+# Something
+
+# --Unocnfirmed route--
+# Something
+
+# --Resend confirmation route--
+# Something
+
+# --Forgot password form--
+# Too short email, too long email, malformed email format, no email
+
+# --reset password route--
+# Something
+
+# --logout route--
+# Something
+
+# TRY POSTING TO /LOGOUT ROUTE to determine if every route needs explicit methods
+
+# 
+
+# endregion ROUTE TESTS
+
+# region HELPER FUNCTION TESTS
+
+
+
+# endregion HELPER FUNCTION TESTS
