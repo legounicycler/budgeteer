@@ -271,6 +271,7 @@ def logout():
     return redirect(url_for('auth.login'))
   except Exception as e:
     log_write(f"LOGOUT FAIL: {e}", "LoginAttemptsLog.txt")
+    return render_template("error_page.html", message="An unknown error occurred.")
 
 # endregion -----Flask Routes-----
 
