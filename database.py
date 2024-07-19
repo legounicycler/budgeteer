@@ -1126,9 +1126,6 @@ def get_user_for_flask(uuid):
     Given a uuid, return a User object if the uuid is in the database, or return None if not
     Note: Used by the flask user_loader function, which requires that this function returns None and NOT throw an exception
     """
-    # TODO: This is probably going to break things
-    # conn = sqlite3.connect(database, check_same_thread=False)
-    # c = conn.cursor()
     c.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
     u = c.fetchone()
     # c.close()
