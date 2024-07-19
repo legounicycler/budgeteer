@@ -466,7 +466,7 @@ def test_create_account_malformed_data(client, mock_verify_recaptcha):
     assert response.status_code == 200
     assert b'{"errors":{"confirm_password":["Passwords must match"],"new_password":["Passwords must match"]},"login_success":false,"message":"Register form validation failed!"}' in response.data
 
-# --Confirm email route--
+# --Confirm email route tests--
 def test_confirm_email_no_token_in_url(client):
   response = client.get('/confirm/')
   assert response.status_code == 404
@@ -492,7 +492,7 @@ def test_confirm_email_valid_token_unconfirmed_user(logged_in_user_client):
   assert response.status_code == 302
   assert response.headers['Location'] == url_for('main.home')
 
-# --Unocnfirmed route--
+# --Unocnfirmed route tests--
 def test_unconfirmed_route_unconfirmed_user(logged_in_user_client):
   response = logged_in_user_client.get('/unconfirmed')
   assert response.status_code == 200
@@ -504,7 +504,7 @@ def test_unconfirmed_route_confirmed_user(logged_in_user_client):
   assert response.status_code == 302
   assert response.headers['Location'] == url_for('main.home')
 
-# --Resend confirmation route--
+# --Resend confirmation route tests--
 def test_resend_confirmation_route_non_logged_in_user(client):
   response = client.get('/resend-confirmation')
   assert response.status_code == 302
@@ -522,13 +522,47 @@ def test_resend_confirmation_route_logged_in_user_already_confirmed(logged_in_us
   assert response.status_code == 302
   assert response.headers['Location'] == url_for('main.home')
 
-# --Forgot password form--
-# Too short email, too long email, malformed email format, no email
+# --Forgot password form tests-- (malformed email format, no email)
+def test_forgot_password_route_get(client):
+  response = client.get('/forgot-password')
+  assert response.status_code == 405 # Method not allowed
 
-# --reset password route--
+def test_forgot_password_route_missing_email(client, mock_verify_recaptcha):
+  csrf_token = get_csrf_token(client)
+  response = client.post('/forgot-password',data={'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
+  assert response.status_code == 200
+  assert b'"errors":{"reset_email":["This field is required."]},"success":false' in response.data
+
+def test_forgot_password_route_malformed_email(client):
+  csrf_token = get_csrf_token(client)
+  response = client.post('/forgot-password', data={'reset_email': 'email@example', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
+  assert response.status_code == 200
+  assert b'"errors":{"reset_email":["Invalid email address."]},"success":false' in response.data
+
+def test_forgot_password_route_non_exisent_user(client, mock_verify_recaptcha):
+    csrf_token = get_csrf_token(client)
+    response = client.post('/forgot-password', data={'reset_email': 'email@example.com', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
+    assert response.status_code == 200
+    assert b'"errors":{"email":["No user found with that email!"]},"success":false' in response.data
+
+def test_forgot_password_route_valid_user(logged_in_user_client, mail_instance, mock_verify_recaptcha):
+  with mail_instance.record_messages() as outbox:
+
+    csrf_token = get_csrf_token(logged_in_user_client)
+    response = logged_in_user_client.post('/forgot-password', data={'reset_email': 'email@example.com', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
+    
+    assert response.status_code == 200
+    assert b'{"message":"Password reset email has been sent!","success":true}' in response.data
+    
+    assert len(outbox) == 1
+    assert outbox[0].subject == 'Budgeteer: Reset Your Password'
+    assert outbox[0].recipients == ["email@example.com"]
+
+
+# --Reset password route tests--
 # Something
 
-# --logout route--
+# --logout route tests--
 # Something
 
 # TRY POSTING TO /LOGOUT ROUTE to determine if every route needs explicit methods

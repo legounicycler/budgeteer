@@ -13,7 +13,7 @@ class RegisterForm(FlaskForm):
     confirm_password = PasswordField("Confirm Password", [validators.InputRequired(), validators.EqualTo('new_password', message='Passwords must match'), validators.Length(min=8, max=32, message="Password must be between 8 and 32 characters long")], render_kw={"placeholder": "Between 8 and 32 characters", "autocomplete": "new-password"})
 
 class ForgotPasswordForm(FlaskForm):
-    email = EmailField("Email", [validators.InputRequired(), validators.Email()], render_kw={"autocomplete": "username"})
+    reset_email = EmailField("Email", [validators.InputRequired(), validators.Email()], render_kw={"autocomplete": "username"})
 
 class ResetPasswordForm(FlaskForm):
     new_password = PasswordField("New Password", [validators.InputRequired(), validators.EqualTo('confirm_password', message='Passwords must match'), validators.Length(min=8, max=32, message="Password must be between 8 and 32 characters long")], render_kw={"placeholder": "Between 8 and 32 characters", "autocomplete": "new-password"})

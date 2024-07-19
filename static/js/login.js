@@ -143,8 +143,8 @@
                     $('#forgot-password-modal').modal('close');
                     $form.trigger("reset");
                   } else {
-                    $("#reset-email").removeClass("valid").addClass("invalid");
-                    $("#forgot-password-email-error").attr("data-error", o.message).removeClass("hide");
+                    if (o.message) {M.toast({html: o.message});}
+                    if (o.errors) {displayFieldErrors(o.errors);}
                   }
                 });
             }).catch( function(error) {
