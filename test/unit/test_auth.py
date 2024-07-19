@@ -622,12 +622,22 @@ def test_reset_password_post_valid_data(logged_in_user_client, mock_verify_recap
   assert response.status_code == 200
   assert b'"success":true' in response.data
 
-# --logout route tests--
-# Something
+# --ogout route tests--
+def test_logout_route_not_logged_in(client):
+  response = client.get('/logout')
+  assert response.status_code == 302
+  assert response.headers['Location'] == url_for('auth.login')
+  assert current_user.is_anonymous
 
-# TRY POSTING TO /LOGOUT ROUTE to determine if every route needs explicit methods
+def test_logout_route_logged_in(logged_in_user_client):
+  response = logged_in_user_client.get('/logout')
+  assert response.status_code == 302
+  assert response.headers['Location'] == url_for('auth.login')
+  assert current_user.is_anonymous
 
-# 
+def test_logout_post(client):
+  response = client.post('/logout')
+  assert response.status_code == 405 # Method Not Allowed
 
 # endregion ROUTE TESTS
 
