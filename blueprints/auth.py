@@ -37,6 +37,7 @@ def login():
       return render_template('login.html',login_form=LoginForm(), register_form=RegisterForm(), forgot_form=ForgotPasswordForm(), reCAPTCHA_site_key=RECAPTCHA_SITE_KEY)
   except Exception as e:
     log_write(f"INTERNAL ERROR: {e}")
+    return render_template('error_page.html', message=f"An unknown error has occurred. Please come back later!")
 
 # Attempt to log in the user based on the submitted form data from the login.html page (/login route)
 @auth_bp.route('/api/login', methods=["POST"])
@@ -184,13 +185,13 @@ def forgot_password():
   try:
     # 1. Fetch the form data
     form = ForgotPasswordForm()
-    email = form.email.data
+    email = form.reset_email.data
 
     # 2. Check the form validity
     if not form.validate():
       errors = {field.name: field.errors for field in form if field.errors}
       log_write(f"PWD RESET FAIL: Errors - {errors}", "LoginAttemptsLog.txt")
-      return jsonify(message="Password reset form validation failed!", login_success=False, errors=errors) #TODO: Probably make this error message better when unit tests come around
+      return jsonify(success=False, errors=errors)
 
     # 3. Verify the recaptcha
     recaptchaToken = request.form.get('recaptchaToken')
@@ -200,7 +201,7 @@ def forgot_password():
     user = get_user_by_email(email)
     if user is None:
       log_write(f"FORGOT PWD FAIL: No user with email {email}", "LoginAttemptsLog.txt")
-      return jsonify({'message': 'No user found with that email!', 'success': False})
+      return jsonify(success=False, errors={'email': ['No user found with that email!']})
 
     # 5. If all else works, send a password reset email
     token = generate_token(email)
