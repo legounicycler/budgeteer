@@ -560,7 +560,67 @@ def test_forgot_password_route_valid_user(logged_in_user_client, mail_instance, 
 
 
 # --Reset password route tests--
-# Something
+# Invalid token, no user with that email, malformed password data (POST), valid token and user, 
+def test_reset_password_get_invalid_token(client):
+  response = client.get('/reset-password/invalid-token')
+  assert response.status_code == 200
+  assert b'The reset password link is invalid or has expired.' in response.data
+
+def test_reset_password_get_valid_token_invalid_user(logged_in_user_client):
+  token = generate_token("nonexistentuser@example.com")
+  response = logged_in_user_client.get('/reset-password/' + token)
+  assert response.status_code == 200
+  assert b'Something went wrong with the password reset process. Please try again.' in response.data
+
+def test_reset_password_get_valid_token_valid_user(logged_in_user_client):
+  token = generate_token(current_user.email)
+  response = logged_in_user_client.get('/reset-password/' + token)
+  assert response.status_code == 200
+  assert b'form id="password-reset-form"' in response.data
+
+def test_reset_password_post_malformed_data(logged_in_user_client, mock_verify_recaptcha):
+  #0. Get csrf token
+  csrf_token = get_csrf_token(logged_in_user_client)
+
+  #1. Generate a reset password token
+  token = generate_token(current_user.email)
+
+  #2. Send POST request with missing new_password
+  response = logged_in_user_client.post('/reset-password/' + token, data={'confirm_password': 'newpassword', 'csrf_token': csrf_token})
+  assert response.status_code == 200
+  assert b'"errors":{"confirm_password":["Passwords must match"],"new_password":["This field is required."]},"success":false' in response.data
+
+  #3. Send POST request with missing confirm_password
+  response = logged_in_user_client.post('/reset-password/' + token, data={'new_password': 'newpassword', 'csrf_token': csrf_token})
+  assert response.status_code == 200
+  assert b'"errors":{"confirm_password":["This field is required."],"new_password":["Passwords must match"]},"success":false' in response.data
+
+  #4. Send POST request with malformed too short passwords
+  response = logged_in_user_client.post('/reset-password/' + token, data={'new_password': 'a', 'confirm_password': 'a', 'csrf_token': csrf_token})
+  assert response.status_code == 200
+  assert b'"errors":{"confirm_password":["Password must be between 8 and 32 characters long"],"new_password":["Password must be between 8 and 32 characters long"]},"success":false' in response.data
+
+  #5. Send POST request with malformed too long passwords
+  response = logged_in_user_client.post('/reset-password/' + token, data={'new_password': 'a' * 33, 'confirm_password': 'a' * 33, 'csrf_token': csrf_token})
+  assert response.status_code == 200
+  assert b'"errors":{"confirm_password":["Password must be between 8 and 32 characters long"],"new_password":["Password must be between 8 and 32 characters long"]},"success":false' in response.data
+
+  #6. Send POST request with mismatched passwords
+  response = logged_in_user_client.post('/reset-password/' + token, data={'new_password': 'password', 'confirm_password': 'password1', 'csrf_token': csrf_token})
+  assert response.status_code == 200
+  assert b'"errors":{"confirm_password":["Passwords must match"],"new_password":["Passwords must match"]},"success":false' in response.data
+
+def test_reset_password_post_valid_data(logged_in_user_client, mock_verify_recaptcha):
+  #0. Get csrf token
+  csrf_token = get_csrf_token(logged_in_user_client)
+
+  #1. Generate a reset password token
+  token = generate_token(current_user.email)
+
+  #2. Send POST request with valid data
+  response = logged_in_user_client.post('/reset-password/' + token, data={'new_password': 'newpassword', 'confirm_password': 'newpassword', 'csrf_token': csrf_token})
+  assert response.status_code == 200
+  assert b'"success":true' in response.data
 
 # --logout route tests--
 # Something

@@ -11,7 +11,7 @@ from functools import wraps
 #Custom imports
 from database import User, get_user_by_email, get_user_for_flask, insert_user, update_user, confirm_user
 from exceptions import *
-from forms import LoginForm, RegisterForm, ForgotPasswordForm
+from forms import LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm
 from secret import RECAPTCHA_SITE_KEY, RECAPTCHA_SECRET_KEY, RECAPTCHA_VERIFY_URL
 from textLogging import log_write
 
@@ -190,7 +190,7 @@ def forgot_password():
     # 2. Check the form validity
     if not form.validate():
       errors = {field.name: field.errors for field in form if field.errors}
-      log_write(f"PWD RESET FAIL: Errors - {errors}", "LoginAttemptsLog.txt")
+      log_write(f"FORGOT PWD FAIL: Errors - {errors}", "LoginAttemptsLog.txt")
       return jsonify(success=False, errors=errors)
 
     # 3. Verify the recaptcha
@@ -217,6 +217,7 @@ def forgot_password():
 
 @auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
+  reset_password_form = ResetPasswordForm()
   try:
     try:
       email = confirm_token(token)
@@ -230,12 +231,21 @@ def reset_password(token):
       return render_template("error_page.html", message="Something went wrong with the password reset process. Please try again.")
 
     if request.method == 'POST':
-      new_password = request.form.get('new_password')
-      confirm_password = request.form.get('confirm_password')
+      new_password = reset_password_form.new_password.data
+      confirm_password = reset_password_form.confirm_password.data
 
+      recaptchaToken = request.form.get('recaptchaToken')
+      verify_recaptcha(recaptchaToken)
+
+      if not reset_password_form.validate():
+        errors = {field.name: field.errors for field in reset_password_form if field.errors}
+        log_write(f"PWD RESET FAIL: Form Errors - {errors}", "LoginAttemptsLog.txt")
+        return jsonify(success=False, errors=errors)
+
+      # This should never happen because the password equality should be checked in the form validation, but keeping it here anyway
       if new_password != confirm_password:
-        flash('Passwords must match!', 'error')
-        return redirect(url_for('auth.reset_password', token=token))
+        log_write(f"PWD RESET FAIL: Form Errors - {errors}", "LoginAttemptsLog.txt")
+        return jsonify(success=False, errors=errors)
 
       new_password_hash, new_password_salt = User.hash_password(new_password)
       user.password_hash = new_password_hash
@@ -244,11 +254,12 @@ def reset_password(token):
 
       log_write(f"PWD RESET SUCCESS: Password reset for user {user.id}", "LoginAttemptsLog.txt")
       flash('Your password has been successfully reset!', 'success')
-      return redirect(url_for('auth.login'))
+      return jsonify(success=True)
 
-    return render_template('reset_password.html', token=token)
+    return render_template('reset_password.html', token=token, reset_password_form=reset_password_form, reCAPTCHA_site_key=RECAPTCHA_SITE_KEY)
   except Exception as e:
-    log_write(f"RESET PASSWORD FAIL: {e}", "LoginAttemptsLog.txt")
+    log_write(f"PWD RESET FAIL: {e}", "LoginAttemptsLog.txt")
+    return render_template("error_page.html", message="Something went wrong with the password reset process. Please try again.")
 
 @auth_bp.route('/logout')
 def logout():
