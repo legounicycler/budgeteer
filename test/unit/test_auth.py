@@ -467,7 +467,30 @@ def test_create_account_malformed_data(client, mock_verify_recaptcha):
     assert b'{"errors":{"confirm_password":["Passwords must match"],"new_password":["Passwords must match"]},"login_success":false,"message":"Register form validation failed!"}' in response.data
 
 # --Confirm email route--
-# Something
+def test_confirm_email_no_token_in_url(client):
+  response = client.get('/confirm/')
+  assert response.status_code == 404
+
+def test_confirm_email_invalid_token(client):
+  response = client.get('/confirm/invalid_token')
+  assert response.status_code == 200
+  assert b'The confirmation link is invalid or has expired.' in response.data
+
+def test_confirm_email_valid_token_but_user_not_found(client):
+  response = client.get('/confirm/' + generate_token('email@example.com'))
+  assert response.status_code == 200
+  assert b'Something went wrong with the confirmation process. Please try again.' in response.data
+
+def test_confirm_email_valid_token_user_already_confirmed(logged_in_user_client):
+  confirm_user(current_user)
+  response = logged_in_user_client.get('/confirm/' + generate_token('email@example.com'))
+  assert response.status_code == 302
+  assert response.headers['Location'] == url_for('main.home')
+
+def test_confirm_email_valid_token_unconfirmed_user(logged_in_user_client):
+  response = logged_in_user_client.get('/confirm/' + generate_token('email@example.com'))
+  assert response.status_code == 302
+  assert response.headers['Location'] == url_for('main.home')
 
 # --Unocnfirmed route--
 # Something
