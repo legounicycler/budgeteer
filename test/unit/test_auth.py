@@ -493,7 +493,16 @@ def test_confirm_email_valid_token_unconfirmed_user(logged_in_user_client):
   assert response.headers['Location'] == url_for('main.home')
 
 # --Unocnfirmed route--
-# Something
+def test_unconfirmed_route_unconfirmed_user(logged_in_user_client):
+  response = logged_in_user_client.get('/unconfirmed')
+  assert response.status_code == 200
+  assert response.data == render_template('unconfirmed.html').encode('utf-8')
+
+def test_unconfirmed_route_confirmed_user(logged_in_user_client):
+  confirm_user(current_user)
+  response = logged_in_user_client.get('/unconfirmed')
+  assert response.status_code == 302
+  assert response.headers['Location'] == url_for('main.home')
 
 # --Resend confirmation route--
 # Something
