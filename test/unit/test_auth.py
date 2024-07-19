@@ -505,7 +505,22 @@ def test_unconfirmed_route_confirmed_user(logged_in_user_client):
   assert response.headers['Location'] == url_for('main.home')
 
 # --Resend confirmation route--
-# Something
+def test_resend_confirmation_route_non_logged_in_user(client):
+  response = client.get('/resend-confirmation')
+  assert response.status_code == 302
+  assert url_for('auth.login') in response.headers['Location']
+
+def test_resend_confirmation_route_unconfirmed_user(logged_in_user_client):
+  response = logged_in_user_client.get('/resend-confirmation', follow_redirects=True)
+  assert response.status_code == 200
+  assert response.request.path == url_for('auth.login')
+  assert b'A new confirmation email has been sent to your email address.' in response.data #Verify the flashed message shows up on the login page
+
+def test_resend_confirmation_route_logged_in_user_already_confirmed(logged_in_user_client):
+  confirm_user(current_user)
+  response = logged_in_user_client.get('/resend-confirmation')
+  assert response.status_code == 302
+  assert response.headers['Location'] == url_for('main.home')
 
 # --Forgot password form--
 # Too short email, too long email, malformed email format, no email

@@ -145,6 +145,17 @@
         </div>
       </form>
     </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul id="flash-toasts" class="hidden">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
   </main>
 
   <div id="fullscreen-wrapper"></div>

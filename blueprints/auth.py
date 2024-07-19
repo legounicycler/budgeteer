@@ -146,6 +146,7 @@ def confirm_email(token):
       log_write(f"CONFIRM SUCCESS: User {user.id} has been confirmed", "LoginAttemptsLog.txt")
     
     login_user(user)
+    flash('Your account has been successfully confirmed!', 'success')
     response = make_response(redirect(url_for('main.home')))
     return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
   except Exception as e:
@@ -166,13 +167,15 @@ def unconfirmed():
 def resend_confirmation():
   try:
     token = generate_token(current_user.email)
+    if current_user.confirmed:
+      return redirect(url_for('main.home'))
     confirm_url = url_for('auth.confirm_email', token=token, _external=True)
     msg = Message('Budgeteer: Confirm your email address', sender=current_app.config['MAIL_USERNAME'], recipients=[current_user.email])
     msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
     current_app.mail.send(msg)
     log_write(f"EMAIL CONFIRM RESEND: Email confirmation email resent to {current_user.email} for user {current_user.id}", "LoginAttemptsLog.txt")
     flash('A new confirmation email has been sent to your email address.', 'success')
-    return redirect('login')
+    return redirect(url_for('auth.login'))
   except Exception as e:
     log_write(f"RESEND CONFIRMATION FAIL: {e}", "LoginAttemptsLog.txt")
 
