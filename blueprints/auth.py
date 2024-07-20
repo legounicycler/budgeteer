@@ -153,6 +153,7 @@ def confirm_email(token):
     return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
   except Exception as e:
     log_write(f"CONFIRM FAIL: {e}", "LoginAttemptsLog.txt")
+    return render_template("error_page.html", message="Something went wrong with the confirmation process. Please try again.")
 
 @auth_bp.route('/unconfirmed')
 @login_required
@@ -163,6 +164,7 @@ def unconfirmed():
     return render_template('unconfirmed.html')
   except Exception as e:
     log_write(f"UNCOMFIRMED FAIL: {e}", "LoginAttemptsLog.txt")
+    return render_template("error_page.html", message="An unknown error occurred!")
 
 @auth_bp.route('/resend-confirmation')
 @login_required
@@ -180,6 +182,7 @@ def resend_confirmation():
     return redirect(url_for('auth.login'))
   except Exception as e:
     log_write(f"RESEND CONFIRMATION FAIL: {e}", "LoginAttemptsLog.txt")
+    return render_template("error_page.html", message="An unknown error occurred!")
 
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
