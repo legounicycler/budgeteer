@@ -56,7 +56,7 @@ class Database:
                     note TEXT NOT NULL DEFAULT '',
                     schedule TEXT,
                     status BOOLEAN NOT NULL DEFAULT 0,
-                    user_id NOT NULL,
+                    user_id TEXT NOT NULL,
                     a_reconcile_bal INTEGER NOT NULL DEFAULT 0,
                     e_reconcile_bal INTEGER NOT NULL DEFAULT 0,
                     pending BOOLEAN NOT NULL DEFAULT 0
@@ -69,7 +69,7 @@ class Database:
                     name TEXT NOT NULL,
                     balance INTEGER NOT NULL DEFAULT 0,
                     deleted BOOLEAN NOT NULL DEFAULT 0,
-                    user_id INTEGER NOT NULL,
+                    user_id TEXT NOT NULL,
                     display_order INTEGER
                     )
                 """)
@@ -81,7 +81,7 @@ class Database:
                     balance INTEGER NOT NULL DEFAULT 0,
                     budget INTEGER NOT NULL DEFAULT 0,
                     deleted BOOLEAN NOT NULL DEFAULT 0,
-                    user_id INTEGER NOT NULL,
+                    user_id TEXT NOT NULL,
                     display_order INTEGER
                     )
                 """)
@@ -1151,7 +1151,7 @@ def get_user_by_uuid(uuid):
 
 def insert_user(u):
     """
-    TODO: Add description
+    Given a user object, insert a new user entry into the users table
     """
     with conn:
         # 1. Create a new unallocated envelope for the user
@@ -1162,7 +1162,7 @@ def insert_user(u):
 
 def confirm_user(u):
     """
-    TODO: Add description
+    Given a user object, set the user's confirmed field to True in the database
     """
     with conn:
         date = datetime.now()
@@ -1172,13 +1172,15 @@ def confirm_user(u):
         u.confirmed = True
         u.registered_on = date
 
-# TODO: Implement soft and hard user deletes (hard deletes delete all user data, soft deletes sets a deleted flag to true)
 def delete_user(uuid):
     """
-    TODO: Add description
+    Deletes the user from the database along with all envelopes, accounts, and transactions associated with the user
     """
     with conn:
         c.execute("DELETE FROM users WHERE uuid=?", (uuid,))
+        c.execute("DELETE FROM envelopes WHERE user_id=?", (uuid,))
+        c.execute("DELETE FROM accounts WHERE user_id=?", (uuid,))
+        c.execute("DELETE FROM transactions WHERE user_id=?", (uuid,))
         
 def update_user(u):
     """
