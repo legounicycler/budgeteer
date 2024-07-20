@@ -1205,8 +1205,8 @@
         // 2. Update the total text
         $('#total span').text(balance_format(o['total'])).negative_check(o['total']);
 
-        // 3. Update the unallocated balance text
-        $('#unallocated span, #unallocated-balance-envelope-filler').attr('data-amt', o['unallocated']).text(balance_format(o['unallocated'])).negative_check(o['unallocated']);
+        // 3. Update the unallocated balance text/data
+        $('#unallocated span, #unallocated-balance-envelope-filler').attr('data-amt', o['unallocated']).data('amt', o['unallocated']).text(balance_format(o['unallocated'])).negative_check(o['unallocated']);
 
         // 4.1 Update selects in transaction editor
         expense_editor.appendTo('#editor-row');
