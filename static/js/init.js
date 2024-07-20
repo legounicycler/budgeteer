@@ -298,6 +298,7 @@
       // AJAX request to load all transactions
       $(document).on('click', '#total', function() {
         var url = $(this).data('url');
+        current_page = "All Transactions";
         $.ajax({
           type: "post",
           url: url,
