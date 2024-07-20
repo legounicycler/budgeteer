@@ -824,8 +824,6 @@ def bug_report():
         allowed_file_size(screenshot)
         screenshot.filename = secure_filename(screenshot.filename)
         screenshot.save(os.path.join(current_app.config['UPLOAD_FOLDER'], screenshot.filename))
-    else:
-        raise InvalidFormDataError("ERROR: Invalid file type for bug report screenshot!")
     
     send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot)  # Send bug report email to the developer
     send_bug_report_email_user(name, email, bug_report_id) # Send confirmation email to the user

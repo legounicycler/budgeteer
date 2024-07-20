@@ -407,7 +407,7 @@ h5.no-margin {
   pointer-events: none !important;
 }
 
-.transaction-status, .envelope-budget, .transaction-name, .transaction-amount, .envelope-balance, .account-balance, .transaction-type, .delete-account, .delete-envelope {
+.transaction-status, .envelope-budget, .transaction-name, .transaction-amount, .envelope-balance, .envelope-balance-col, .account-balance, .transaction-type, .delete-account, .delete-envelope {
   border-left: 1px solid #e0e0e0;
 }
 
