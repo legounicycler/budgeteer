@@ -78,6 +78,7 @@ def api_login():
       login_user(user, remember=False) # TODO: Swap to this eventually: login_user(user, remember=form.remember_me.data) *and ctrl+f for this comment*
       response = make_response(jsonify({'login_success': True}))
       log_write(f"LOGIN SUCCESS: For user {user.id}", "LoginAttemptsLog.txt")
+      flash(f"Welcome back, {user.first_name}! Happy budgeting!", "success")
       return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser
     else:
       log_write(f"LOGIN FAIL: Incorrect password attempt ({password}) for user {user.id}", "LoginAttemptsLog.txt")
