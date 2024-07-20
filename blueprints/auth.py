@@ -7,6 +7,7 @@ from flask_mail import Message
 import uuid, requests
 from datetime import datetime
 from functools import wraps
+from itsdangerous import BadTimeSignature
 
 #Custom imports
 from database import User, get_user_by_email, get_user_for_flask, insert_user, update_user, confirm_user
@@ -221,9 +222,12 @@ def reset_password(token):
   try:
     try:
       email = confirm_token(token)
-    except:
-      log_write(f"PWD RESET FAIL: Link invalid or expired for token {token}", "LoginAttemptsLog.txt")
-      return render_template("error_page.html", message="The reset password link is invalid or has expired.")
+    except BadTimeSignature:
+      log_write(f"PWD RESET FAIL: Token has expired: {token}", "LoginAttemptsLog.txt")
+      return render_template("error_page.html", message="The reset password link has expired.")
+    except Exception as e:
+      log_write(f"PWD RESET FAIL: Exception: {e} - Exception Type: {type(e)}", "LoginAttemptsLog.txt")
+      return render_template("error_page.html", message="The reset password link is invalid.")
 
     user = get_user_by_email(email)
     if user is None:
