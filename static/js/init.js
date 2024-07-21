@@ -775,17 +775,22 @@
       })
     });
 
-    var start;
-    var longPressTimer;
-    var isDragging = false;
-    var longpressAmt = 400;
+
+    var start_time; // System time in ms when a touchevent starts
+    var longPressTimer; // Timer for determining if a touchevent is a longpress
+    var longpressAmt = 400; // Duration in ms for a touchevent to be considered a longpress
+    var isDragSelecting = false; // Is the user selecting transactions by dragging during a longpress (synonomous with isLongPressing)
+    var isDragSelectScrolling = false; // Is the screen programatically scrolling during a drag selection (i.e.when your finger is near the top or bottom of the scroller area)
+    var isSwipeScrolling; // Is the user swiping the screen to scroll through transactions (not during a longpress when they are drag selecting)
     var initialTargetIsChecked = null;
     var startingTargetIndex = null;
     var lastChangedTargetIndex = null;
     var $allTRows;
     var $allCheckboxes;
+    var $scroller;
     var originalStates = null;
     var lastChecked = null; // Used for shift selection
+    var touched = false; // Was the transaction touched (as opposed to clicking) (used )
 
     // Used for programatic scrolling on long selects
     var intTopHandler= null;
@@ -795,7 +800,12 @@
       clearInterval(intBottomHandler);
     }
 
-    $('#bin').on('mouseenter', '.transaction-date', function() {
+    // When clicking on a transaction, open the transaction editor modal
+    // When hovering over the date, show the multidelete buttons
+    $('#bin').on('click', '.transaction', function(e) {
+      t_editor_modal_open($(this));
+    })
+    .on('mouseenter', '.transaction-date', function() {
       if (none_checked) {
         $(this).find('.date-bucket').hide();
         $(this).find('.checkbox-bucket').show();
@@ -805,36 +815,48 @@
         $(".date-bucket").show();
         $(this).find('.checkbox-bucket').hide();
       }
-    }).on('mouseleave', '.transaction-row', function() {
-      start = 0;
-      clearTimeout(longPressTimer);
-    }).on('touchstart', '.transaction-row', function(e) {
+    });
+
+    $("#bin").on('touchstart', '.transaction-row', function(e) {
       $allTRows = $('.transaction-row');
       $allCheckboxes = $('.t-delete-checkbox');
       originalStates = [];
       $allCheckboxes.each(function() {originalStates.push(this.checked)});
-      $tRow = $(this).addClass('disable-select');
+      $tRow = $(this).addClass('disable-select'); // Keeps the user from selecting/highlighting the text during a longpress
       startingTargetIndex = $allTRows.index($tRow);
-      start = new Date().getTime();
+      start_time = new Date().getTime();
       start_y = e.touches[0].clientY;
       start_x = e.touches[0].clientX;
       y = start_y;
+
+      // Start the timer to determine if you're trying to select a transaction (longpress)
       longPressTimer = setTimeout(function(){
-        if (Math.abs(start_y - y) < 30) { //Ensure your finger hasn't moved more than 30px since the start of the touch event
-          isDragging = true;
+        if (!isSwipeScrolling) {
+          
+          // You are longpressing
+          isDragSelecting = true;
+
+          // Select the transaction you longpressed and update the variables related to multiselection
           $tRow.find('.t-delete-checkbox').click();
           lastChangedTargetIndex = startingTargetIndex;
           initialTargetIsChecked = $tRow.find(".t-delete-checkbox")[0].checked;
           $(window).bind("contextmenu", function(e) {e.preventDefault();} ); //Disable the context menu
         } else {
-          clearTimeout(longPressTimer);
-          isDragging = false;
+          clearTimeout(longPressTimer); //Disable the timer
         }
       }, longpressAmt)
     }).on('touchmove', '.transaction-row', function(e) {
-      y = e.touches[0].clientY; // Update the y position of your touch (used in touchstart)
-      if (isDragging) {
-        function toggleTransaction() {
+      // 1. Update the y coordinate of your touch (declared in touchstart)
+      y = e.touches[0].clientY;
+      
+      // 2. If your finger has moved more than 30px since the start of the touch event (and you're not in a longpress), you are swpipe scrolling
+      if (Math.abs(start_y - y) > 30 && !isDragSelecting) {
+        isSwipeScrolling = true;
+      }
+      
+      if (isDragSelecting) {
+        // 3. Toggle the transaction selection
+        function toggleTransactionSelection() {
           e.preventDefault(); //Prevents scrolling on longpress moves
           var $tRow = $(document.elementFromPoint(start_x,y)).closest(".transaction-row"); //Determine which transaction you're touching
           var currentTargetIndex = $allTRows.index($tRow);
@@ -860,52 +882,62 @@
             lastChangedTargetIndex = currentTargetIndex;
           }
         }
-        toggleTransaction();
-        // Handle scrolling!
-        var $scroller = $('#transactions-scroller .simplebar-content-wrapper');
-        var isScrolling = false;
-        if (y/window.innerHeight * 100 > 97) { //Downward scrolling
-          isScrolling = true;
+        toggleTransactionSelection();
+
+        // 4. Handle drag select scrolling
+        isDragSelectScrolling = false;
+
+        // 4.1 Determine if you're drag select scrolling DOWNWARD (i.e. your mouse is toward the bottom of the screen while you're drag selecting)
+        if (y/window.innerHeight * 100 > 97) {
+          isDragSelectScrolling = true;
           clearInetervals();
           intBottomHandler= setInterval(function(){
             var currentScrollTop = $scroller.scrollTop();
             $scroller.scrollTop(currentScrollTop + 2);
-            toggleTransaction();
-        },5);
+            toggleTransactionSelection();
+          },5);
         }
-        if ($scroller[0].getBoundingClientRect().top/y * 100 > 95 ) { //Upward scrolling
-          isScrolling = true;
+
+        // 4.2 Determine if you're drag select scrolling UPWARD (i.e. your mouse is toward the top of the scroller area while you're drag selecting)
+        $scroller = $('#transactions-scroller .simplebar-content-wrapper');
+        if ($scroller[0].getBoundingClientRect().top/y * 100 > 95 ) {
+          isDragSelectScrolling = true;
           clearInetervals();
           intTopHandler= setInterval(function(){
             var currentScrollTop = $scroller.scrollTop();
             $scroller.scrollTop(currentScrollTop - 2);
-            toggleTransaction();
-        },5);
+            toggleTransactionSelection();
+          },5);
         }
-        if (!isScrolling) clearInetervals();
-      } else { //If you're not touching a transaction
-        clearTimeout(longPressTimer);
-        isDragging = false;
+
+        // 4.3 If you're not drag select scrolling, clear the interval
+        if (!isDragSelectScrolling) clearInetervals();
       }
     }).on('touchend', '.transaction-row', function(e) {
-      isDragging = false;
+      e.preventDefault();
+      // 1. Set all scrolling/selecting variables to false and clear timers
+      isDragSelecting = false;
+      isDragSelectScrolling = false;
+      isSwipeScrolling = false;
+      clearTimeout(longPressTimer);
       clearInetervals();
-      if ( new Date().getTime() < ( start + longpressAmt ) && Math.abs(start_y - y) < 30 ) {
-        // If your touch did NOT count as a longpress
-        $(this).removeClass('disable-select');
-        clearTimeout(longPressTimer);
+
+      // 2. Handle "touching" the transaction
+      if ( new Date().getTime() < ( start_time + longpressAmt ) && Math.abs(start_y - y) < 30 ) { // If your touch was NOT a longpress
+        // If you are in a multiselection (i.e. checkboxes are showing), toggle the checkbox, otherwise open the editor modal
         if (!none_checked) {
-          e.preventDefault();
           $(this).find('.t-delete-checkbox').click();
+        } else {
+          $(this).children('.transaction').click();
         }
-      } else {
-        // If your touch WAS a longpress
-        start = 0;
-        clearTimeout(longPressTimer);
+      } else { // If your touch WAS a longpress
         originalStates = null;
         multideleteToggleCheck();
         setTimeout(function() {$(window).unbind("contextmenu")}, 100); //Re-enable the context menu (only relevant when you switch from mobile inspection to normal inspection on Chrome)
       }
+
+      // 3. Re-enable selecting/highlighting the text and open the editor modal
+      $(this).removeClass('disable-select');
     }).on("click", ".t-delete-checkbox", function(e) {
       var $checkboxes = $(".t-delete-checkbox");
       var $checkboxes_toupdate = null;
@@ -929,13 +961,6 @@
 
       // 4. Hide or show the multidelete buttons and checkboxes as needed
       multideleteToggleCheck();
-    }).on('click', '.transaction', function() {
-      t_editor_modal_open($(this));
-    }).on('touchend', ".transaction-date", function() {
-      // On mobile, as long as you're not in a longpress selection, clicking anywhere on the transaction-row, even on the .transaction-date column should open the editor modal
-      if (!isDragging && none_checked) {
-        t_editor_modal_open($(this).siblings());
-      }
     });
 
     // Toggler code for transfer tab of transaction creator/editor
@@ -1716,10 +1741,12 @@
           }
         }
       }
+
       
       M.updateTextFields();
       $("#editor-modal .special-input").trigger("input"); //Update the amount spans by triggering the "input" event
       $('#editor-modal').modal('open');
+      console.log("END OF EDITOR OPEN")
     }; // End of t_editor_modal_open
 
   });

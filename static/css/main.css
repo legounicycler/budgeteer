@@ -251,6 +251,10 @@ input[type="text"]:not(.special-fill-input, .special-input-envelope-editor, .spe
   cursor: pointer;
 }
 
+.transaction-row {
+  cursor: default;
+}
+
 .transaction-link {
   color: black;
   padding: 0 !important;
