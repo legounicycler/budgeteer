@@ -2,9 +2,9 @@ from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME, SECURITY_PASSWORD_S
 
 class Config:
     """Base configuration class with default settings."""
+    ENV = 'development'
     SECRET_KEY = SECRET_KEY
     WTF_CSRF_ENABLED = True
-    DEBUG = False
     TESTING = False
 
     # Flask-Mail config settings
@@ -22,7 +22,6 @@ class Config:
 
 class DevelopmentConfig(Config):
     """Configuration for development environment."""
-    DEBUG = True
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
     DATABASE_URI = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
 
@@ -35,9 +34,7 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     """Configuration for production environment."""
-    # Settings optimized for production
-    # e.g., Different database, error handling, caching, etc.
-    # You might include production-specific environment variables
+    ENV = 'production'
     DATABASE_URI = '/home/opc/database.sqlite'
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
 
