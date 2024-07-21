@@ -10,7 +10,7 @@ from functools import wraps
 from itsdangerous import BadTimeSignature
 
 #Custom imports
-from database import User, get_user_by_email, get_user_for_flask, insert_user, update_user, confirm_user
+from database import User, get_user_by_email, get_user_for_flask, insert_user, update_user, confirm_user, update_user_last_login
 from exceptions import *
 from forms import LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm
 from secret import RECAPTCHA_SITE_KEY, RECAPTCHA_SECRET_KEY, RECAPTCHA_VERIFY_URL
@@ -77,6 +77,7 @@ def api_login():
     if user.check_password(password):
       login_user(user, remember=False) # TODO: Swap to this eventually: login_user(user, remember=form.remember_me.data) *and ctrl+f for this comment*
       response = make_response(jsonify({'login_success': True}))
+      update_user_last_login(user, datetime.now())
       log_write(f"LOGIN SUCCESS: For user {user.id}", "LoginAttemptsLog.txt")
       flash(f"Welcome back, {user.first_name}! Happy budgeting!", "success")
       return set_secure_cookie(response, 'uuid', user.id) # Set the encrypted uuid cookie on the user's browser

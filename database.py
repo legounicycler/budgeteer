@@ -98,6 +98,7 @@ class Database:
                     unallocated_e_id INTEGER NOT NULL,
                     confirmed BOOLEAN NOT NULL DEFAULT 0,
                     confirmed_on TEXT,
+                    last_login TEXT,
                     FOREIGN KEY (unallocated_e_id) REFERENCES envelopes(id)
                     )
                 """)
@@ -239,7 +240,7 @@ class Envelope:
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id,self.display_order)
 
 class User(UserMixin):
-    def __init__(self, uuid, email, password_hash, password_salt, first_name, last_name, registered_on, unallocated_e_id=None, confirmed=False, confirmed_on=None):
+    def __init__(self, uuid, email, password_hash, password_salt, first_name, last_name, registered_on, unallocated_e_id=None, confirmed=False, confirmed_on=None, last_login=None):
         self.id = uuid
         self.email = email
         self.password_hash = password_hash
@@ -250,6 +251,7 @@ class User(UserMixin):
         self.unallocated_e_id = unallocated_e_id
         self.confirmed = confirmed
         self.confirmed_on = confirmed_on
+        self.last_login = last_login
     def hash_password(password, salt=None):
         if salt is None:
             salt = secrets.token_hex(16)
@@ -258,9 +260,9 @@ class User(UserMixin):
     def check_password(self, password):
         return User.hash_password(password, self.password_salt)[0] == self.password_hash
     def __repr__(self):
-        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, REG_ON: {}, U_EID: {}, CONF: {}, CONF_ON: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.registered_on, self.unallocated_e_id, self.confirmed, self.confirmed_on)
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, REG_ON: {}, U_EID: {}, CONF: {}, CONF_ON: {}, LAST_LOGIN: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.registered_on, self.unallocated_e_id, self.confirmed, self.confirmed_on, self.last_login)
     def __str__(self):
-        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, REG_ON: {} , U_EID: {}, CONF: {}, CONF_ON: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.registered_on, self.unallocated_e_id, self.confirmed, self.confirmed_on)
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, REG_ON: {} , U_EID: {}, CONF: {}, CONF_ON: {}, LAST_LOGIN: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.registered_on, self.unallocated_e_id, self.confirmed, self.confirmed_on, self.last_login)
 
 # endregion CLASS DEFINITIONS
 
@@ -1189,6 +1191,13 @@ def update_user(u):
     with conn:
         c.execute("UPDATE users SET email=?, password_hash=?, password_salt=?, first_name=?, last_name=?, registered_on=?, unallocated_e_id=?, confirmed=?, confirmed_on=? WHERE uuid=?", (u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.registered_on, u.unallocated_e_id, u.confirmed, u.confirmed_on, u.id))
 
+def update_user_last_login(u, date):
+    """
+    Set the last_login field in the database to be the provided date
+    This function is called each time a user logs in.
+    """
+    with conn:
+        c.execute("UPDATE users SET last_login=? WHERE uuid=?", (date, u.id))
 
 # endregion USER FUNCTIONS
 
