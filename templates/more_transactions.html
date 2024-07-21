@@ -1,5 +1,5 @@
 {% for transaction in transactions_data %}
-  <li class="row transaction-row collection-item {% if transaction.pending == true %}pending{% endif %}">
+  <li class="row transaction-row collection-item waves-effect {% if transaction.pending == true %}pending{% endif %}">
     <div class="col s2 valign-wrapper transaction-date">
       <div class="date-bucket">
         <span class="long-date">{{transaction.date|datetimeformat}}</span><span class="short-date hide">{{transaction.date|datetimeformatshort}}</span>
