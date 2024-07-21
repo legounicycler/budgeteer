@@ -25,13 +25,14 @@ with conn:
         unallocated_e_id INTEGER NOT NULL,
         confirmed BOOLEAN NOT NULL DEFAULT 0,
         confirmed_on TEXT,
+        last_login TEXT,
         FOREIGN KEY (unallocated_e_id) REFERENCES envelopes(id)
         )
     """)
 
     # Copy the data from the old table to the new table
     today = datetime.now().strftime("%Y-%m-%d")
-    c.execute("INSERT INTO new_users SELECT uuid, email, password_hash, password_salt, first_name, last_name, ?, unallocated_e_id, 1, ? FROM users", (today,today))
+    c.execute("INSERT INTO new_users SELECT uuid, email, password_hash, password_salt, first_name, last_name, ?, unallocated_e_id, 1, ?, NULL FROM users", (today,today))
 
     # Drop the old table and rename the new table
     c.execute("DROP TABLE users")
