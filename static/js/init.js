@@ -39,6 +39,21 @@
     var current_page = "All Transactions";   //Used to determine which transactions to reload on a data reload (also used in transactions.html to properly color transaction amount)
     var none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
 
+    function displayFieldErrors(errors) {
+      // Display errors for each field
+      Object.keys(errors).forEach(function (fieldName) {
+        var errorMessages = errors[fieldName];
+        var fieldId = '#' + fieldName;
+        var errorContainer = $(fieldId).siblings('.helper-text');
+
+        // Display the first error for each field
+        if (errorMessages.length > 0) {
+          $(fieldId).removeClass('valid').addClass('invalid');
+          errorContainer.text(errorMessages[0]);
+        }
+      });
+    }
+
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
 
@@ -376,20 +391,28 @@
       $span =  $(this).parent().siblings().find("span");
       try {
         num = math.evaluate($(this).val());
-        if ($(this).hasClass("negate-input")) {
-          num = num * -1;
+        if (!isNaN(num)) {
+          if ($(this).hasClass("negate-input")) {
+            num = num * -1;
+          }
+          $span.text(balance_format(num)).negative_check(num);
+          $(this).removeClass("invalid").addClass("valid");
+        } else {
+          $span.text("$...").removeClass('negative').addClass('neutral');
+          $(this).removeClass("valid");
         }
-        $span.text(balance_format(num)).negative_check(num);
-        $(this).removeClass("invalid").addClass("valid");
       } catch (error) {
-        $span.text("$...").removeClass('negative').addClass('neutral');
-        $(this).removeClass("valid").addClass("invalid");
+        $span.text("$...").removeClass('negative').addClass('neutral').removeClass("valid");
+        $(this).removeClass("valid").addClass("invalid"); //TODO: Make this NOT show the error message
       }
     }).on("change",".special-input", function() {
       try {
         num = math.evaluate($(this).val());
         if (!isNaN(num)) {
           $(this).val((Math.round(num * 100) / 100).toFixed(2));
+        } else {
+          $span.text("$...").removeClass('negative').addClass('neutral').removeClass("valid");
+          $(this).removeClass("valid");
         }
       } catch (error) {
         return;
@@ -1368,6 +1391,14 @@
       }
     });
 
+    $("#transaction-modal input").on("invalid", function() {
+      // TODO: If e.target is a select input, add the invalid class to the parent select-wrapper
+      $(this).addClass("invalid").removeClass("valid");
+    }).on("input", function(e) {
+      $(e.target).removeClass("invalid"); // As soon as you fill in the empty name input, remove the invalid class
+    });
+    // TODO: Probably duplicate this function for the on change event for the select wrappers
+
     // Submits transaction CREATOR form data, closes the modal, clears the form, and reloads the data
     $('#transaction-modal form').submit(function(e) {
       e.preventDefault()
@@ -1392,57 +1423,60 @@
         url: url,
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
-        if (o['error']) { M.toast({html: o['error']}); return; }
-        if (remain_open == 1) { // RESET NAME FIELD, STAY OPEN
-          // If the form was submitted with the submit and new button
-          $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
-          data_reload(current_page).then( function () {
+        if (o['success']) {
+          if (remain_open == 1) { // RESET NAME FIELD, STAY OPEN
+            // If the form was submitted with the submit and new button
+            $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
+            data_reload(current_page).then( function () {
 
-            //Clear the transaction name field
-            $form.find('input[name="name"]').val("").select().removeClass('valid');
+              //Clear the transaction name field
+              $form.find('input[name="name"]').val("").select().removeClass('valid');
 
-            //Remove the valid class from the amount
-            $form.find('input[name="amount"]').removeClass('valid');
+              //Remove the valid class from the amount
+              $form.find('input[name="amount"]').removeClass('valid');
 
-            //Fill the date field
-            $form.find('input[name="date"]').val(selected_date);
-            $form.find('.datepicker').datepicker('setDate', new Date(selected_date));
+              //Fill the date field
+              $form.find('input[name="date"]').val(selected_date);
+              $form.find('.datepicker').datepicker('setDate', new Date(selected_date));
 
-            //Select the previously selected envelopes and their respective dropdowns
-            $envelope_selectors.each(function(index) {
-              $(this).find('option[value=' + selected_envelopes[index] + ']').attr('selected', 'selected');
-              $(this).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+              //Select the previously selected envelopes and their respective dropdowns
+              $envelope_selectors.each(function(index) {
+                $(this).find('option[value=' + selected_envelopes[index] + ']').attr('selected', 'selected');
+                $(this).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+              });
+              //Select the previously selected account in its dropdown
+              $account_selectors.each(function(index) {
+                $(this).find('option[value=' + selected_accounts[index] + ']').attr('selected', 'selected');
+                $(this).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+              });
+
             });
-            //Select the previously selected account in its dropdown
-            $account_selectors.each(function(index) {
-              $(this).find('option[value=' + selected_accounts[index] + ']').attr('selected', 'selected');
-              $(this).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+          }
+          else if (remain_open == 2) { // RESET ALL FIELDS, STAY OPEN
+            $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
+            $form.find(".new-envelope-row").remove(); //Only used on #new-expense-form
+            $form[0].reset(); //Clear the data from the form fields
+            data_reload(current_page).then( function () {
+              $form.find(".schedule-content").hide();
+              update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
+              $form.find('input[name="name"]').select();
             });
-
-          });
+          }
+          else { // RESET ALL FIELDS AND CLOSE
+            // If the form was submitted with the standard submit button or enter
+            $('#transaction-modal').modal("close")
+            $form.find(".new-envelope-row").remove() //Only used on #new-expense-form
+            $form[0].reset(); //Clear the data from the form fields
+            $form.find(".amount-span").text("$0.00").removeClass("negative").addClass("neutral");
+            data_reload(current_page).then( function () {
+              $form.find(".schedule-content").hide();
+              update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
+            });
+          }
+        } else {
+          if (o.errors) {displayFieldErrors(o.errors);}
         }
-        else if (remain_open == 2) { // RESET ALL FIELDS, STAY OPEN
-          $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
-          $form.find(".new-envelope-row").remove(); //Only used on #new-expense-form
-          $form[0].reset(); //Clear the data from the form fields
-          data_reload(current_page).then( function () {
-            $form.find(".schedule-content").hide();
-            update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
-            $form.find('input[name="name"]').select();
-          });
-        }
-        else { // RESET ALL FIELDS AND CLOSE
-          // If the form was submitted with the standard submit button or enter
-          $('#transaction-modal').modal("close")
-          $form.find(".new-envelope-row").remove() //Only used on #new-expense-form
-          $form[0].reset(); //Clear the data from the form fields
-          $form.find(".amount-span").text("$0.00").removeClass("negative").addClass("neutral");
-          data_reload(current_page).then( function () {
-            $form.find(".schedule-content").hide();
-            update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
-          });
-        }
-        o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+        if (o['toasts']) { o['toasts'].forEach((toast) => M.toast({html: toast})); } //Display toasts
       });
     });
 

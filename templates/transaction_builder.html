@@ -13,10 +13,11 @@
         <h3>Expense</h3>
         <div class="row">
           <form class="col s12" id="new-expense-form" action="{{ url_for('main.new_expense') }}" data-remain-open ="0" method="post">
+            {{ new_expense_form.hidden_tag() }}
             <div class="row">
               <div class="input-field col s12">
-                <input class="validate" type="text" name="name" required>
-                <label for="name">Name</label>
+                {{new_expense_form.name.label}}
+                {{new_expense_form.name}}
                 <span class="helper-text" data-error="Transaction name required"></span>
               </div>
             </div>
@@ -35,8 +36,9 @@
                   <label>Envelope</label>
                 </div>
                 <div class="input-field col s4 ">
-                  <input class="validate special-input negate-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
+                  <input class="special-input negate-input" type="text" autocomplete="off" name="amount" required>
                   <label for="amount">Amount</label>
+                  <span class="helper-text" data-error="Required"></span>
                 </div>
                 <div class="col s2 valign-wrapper center-align amount-col">
                   <span class="amount-span balance neutral">$0.00</span>
@@ -126,11 +128,11 @@
         <div class="row">
 
           <form class="col s12" id="new-transfer-form" action="{{ url_for('main.new_transfer') }}" data-remain-open ="0" method="post">
-
+            {{ new_transfer_form.hidden_tag()}}
             <div class="row">
               <div class="input-field col s12">
-                <input class="validate" type="text" name="name" required>
-                <label for="name">Name</label>
+                {{new_transfer_form.name.label}}
+                {{new_transfer_form.name}}
                 <span class="helper-text" data-error="Transaction name required"></span>
               </div>
             </div>
@@ -205,8 +207,9 @@
                 <label for="date">Date</label>
               </div>
               <div class="input-field col s4 ">
-                <input class="validate special-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
+                <input class="special-input" type="text" autocomplete="off" name="amount" required>
                 <label for="amount">Amount</label>
+                <span class="helper-text" data-error="Required"></span>
               </div>
               <div class="col s2 valign-wrapper center-align amount-col">
                 <span class="amount-span balance neutral">$0.00</span>
@@ -269,10 +272,11 @@
 
         <div class="row">
           <form class="col s12" id="new-income-form" action="{{ url_for('main.new_income') }}" data-remain-open ="0" method="post">
+            {{ new_income_form.hidden_tag() }}
             <div class="row">
               <div class="input-field col s12">
-                <input class="validate" type="text" name="name" required>
-                <label for="name">Name</label>
+                {{new_income_form.name.label}}
+                {{new_income_form.name}}
                 <span class="helper-text" data-error="Transaction name required"></span>
               </div>
             </div>
@@ -295,8 +299,9 @@
                 <label for="date">Date</label>
               </div>
               <div class="input-field col s4 ">
-                <input class="validate special-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
+                <input class="special-input" type="text" autocomplete="off" name="amount" required>
                 <label for="amount">Amount</label>
+                <span class="helper-text" data-error="Required"></span>
               </div>
               <div class="col s2 valign-wrapper center-align amount-col">
                 <span class="amount-span balance neutral">$0.00</span>

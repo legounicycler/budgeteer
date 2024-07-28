@@ -15,6 +15,7 @@ from werkzeug.utils import secure_filename
 #Custom import
 from database import *
 from exceptions import *
+from forms import NewExpenseForm, NewTransferForm, NewIncomeForm
 from filters import datetimeformat
 from textLogging import log_write
 from blueprints.auth import check_confirmed, get_uuid_from_cookie, generate_uuid
@@ -71,7 +72,10 @@ def home():
         first_name=current_user.first_name,
         last_name=current_user.last_name,
         unallocated_e_id=u.unallocated_e_id,
-        TType=TType
+        TType=TType,
+        new_expense_form = NewExpenseForm(),
+        new_transfer_form = NewTransferForm(),
+        new_income_form = NewIncomeForm()
       ))
       response.delete_cookie('timestamp')
       return response
@@ -174,8 +178,16 @@ def get_account_page():
 @check_confirmed
 def new_expense(edited=False):
   try:
+    form = NewExpenseForm()
+    names = form.name.data
+
+    if not form.validate():
+      errors = {field.name: field.errors for field in form if field.errors}
+      log_write(f"NEW EXPENSE FAIL: Errors - {errors}", "LoginAttemptsLog.txt")
+      return jsonify(success=False, errors=errors)
+
     uuid = get_uuid_from_cookie()
-    names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
+    names = [n.lstrip() for n in names.split(',') if n.lstrip()] #Parse name field separated by commas
     amounts = request.form.getlist('amount')
     envelope_ids = request.form.getlist('envelope_id')
     account_id = request.form['account_id']
@@ -237,10 +249,10 @@ def new_expense(edited=False):
         raise OtherError("ERROR: No transaction name was submitted for new_expense!")
 
     health_check(toasts)
-    return jsonify({'toasts': toasts})
+    return jsonify({'success': True, 'toasts': toasts})
   
   except CustomException as e:
-    return jsonify({"error": str(e)})
+    return jsonify({'success': False, "toasts": f"ERROR: {str(e)}"})
 
 @main_bp.route('/new_transfer', methods=['POST'])
 @login_required
