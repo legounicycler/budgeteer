@@ -24,6 +24,8 @@ class DevelopmentConfig(Config):
     """Configuration for development environment."""
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
     DATABASE_URI = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
+    DEBUG = True
+    TEMPLATES_AUTO_RELOAD = True
 
 class TestingConfig(Config):
     """Configuration for testing environment."""
