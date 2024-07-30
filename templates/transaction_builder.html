@@ -34,11 +34,12 @@
                     {% endfor %}
                   </select>
                   <label>Envelope</label>
+                  <span class="helper-text" data-error="Required"></span>
                 </div>
                 <div class="input-field col s4 ">
                   <input class="special-input negate-input" type="text" autocomplete="off" name="amount" required>
                   <label for="amount">Amount</label>
-                  <span class="helper-text" data-error="Required"></span>
+                  <span class="helper-text hidden" data-error="Required"></span>
                 </div>
                 <div class="col s2 valign-wrapper center-align amount-col">
                   <span class="amount-span balance neutral">$0.00</span>
@@ -61,6 +62,7 @@
                   {% endfor %}
                 </select>
                 <label>Account</label>
+                <span class="helper-text" data-error="Required"></span>
               </div>
               <div class="input-field col s6">
                 <input type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">

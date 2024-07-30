@@ -1392,10 +1392,29 @@
     });
 
     $("#transaction-modal input").on("invalid", function() {
-      // TODO: If e.target is a select input, add the invalid class to the parent select-wrapper
+      if ($(this).hasClass("special-input")) {
+        $(this).siblings("span").removeClass("hidden"); // For special inputs (inline math), remove the hidden class which hides the invalid message (because it's annoying)
+      }
       $(this).addClass("invalid").removeClass("valid");
     }).on("input", function(e) {
       $(e.target).removeClass("invalid"); // As soon as you fill in the empty name input, remove the invalid class
+      if ($(this).hasClass("special-input")) {
+        $(this).siblings("span").addClass("hidden");
+      }
+    });
+
+    $("#transaction-modal select").on("invalid", function() {
+      console.log($(this));
+      $(this).siblings(".select-dropdown").addClass("invalid").removeClass("valid");
+    });
+    // console.log($("#transaction-modal .select-dropdown"));
+    $("#transaction-modal .select-dropdown").on("keydown", function() {
+      console.log("HELLO");
+      $(this).removeClass("invalid");
+    });
+    $("#transaction-modal").on("click", ".select-dropdown", function() {
+      console.log("HELLO2");
+      $(this).removeClass("invalid");
     });
     // TODO: Probably duplicate this function for the on change event for the select wrappers
 
