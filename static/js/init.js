@@ -107,18 +107,17 @@
 
       $('#transaction-modal').modal({
         onOpenEnd: function () {
-          $('#transaction-modal').find('.tabs').tabs();
-          var tab_index = M.Tabs.init(document.getElementById('type-tabs')).index;
+          tab_index = $('#type-tabs').tabs().index;
           if (tab_index == 0) {
-            $('#new-expense-form').find('input').first().select();
+            $('#new-expense-form input[name="name"]').eq().select();
           } else if (tab_index == 1) {
-            $('#new-transfer-form').find('input').first().select();
+            $('#new-transfer-form input[name="name"]').eq().select();
           } else if (tab_index == 2) {
-            $('#new-income-form').find('input').first().select();
+            $('#new-income-form input[name="name"]').eq().select();
           }
         },
         onCloseStart: function() {
-          $('#transaction-modal').find('.select-dropdown').dropdown('close')
+          $('#transaction-modal .select-dropdown').dropdown('close')
         }
       });
 
@@ -1375,8 +1374,7 @@
       });
     });
 
-    // --- Transaction modal keybinds --- //
-    // Ctrl+Alt+Arrow toggles between tabs
+    // --- Transaction creator form keybinds --- //
     // Ctrl+Enter submits and clears some
     // Ctrl+Shift+Enter submits and clears all
     $('#transaction-modal form').keydown(function(e) {
@@ -1392,10 +1390,31 @@
               $(this).trigger('submit');
           }
         }
-      } else if ((e.ctrlKey) && e.keyCode === LEFT_ARROW) {
+      }
+    });
+    
+    // Ctrl+Alt+Arrow toggles between tabs in transaction creator
+    $("#transaction-modal").keydown(function(e) {
+      if (e.ctrlKey && e.altKey && e.keyCode === LEFT_ARROW) {
         // Switch one tab to the left
-      } else if ((e.ctrlKey) && e.keyCode === RIGHT_ARROW) {
+        var tabs = M.Tabs.getInstance($('#type-tabs'));
+        var tab_index = tabs.index;
+        if (tab_index > 0) {
+          $tab = $("#type-tabs").children(".tab").eq(tab_index - 1); // Get the next tab (<li> element)
+          id = $tab.children("a").attr("href").substring(1); // The name of the id which the tab switches to
+          $("#type-tabs").tabs("select", id); // Change to the next tab
+          $("#" + id).find('form input[name="name"]').select(); // Select the name field
+        }
+      } else if (e.ctrlKey && e.altKey && e.keyCode === RIGHT_ARROW) {
         // Switch one tab to the right
+        var tabs = M.Tabs.getInstance($('#type-tabs'));
+        var tab_index = tabs.index;
+        if (tab_index < 2) {
+          $tab = $("#type-tabs").children(".tab").eq(tab_index + 1); // Get the next tab (<li> element)
+          id = $tab.children("a").attr("href").substring(1); // The name of the id which the tab switches to
+          $("#type-tabs").tabs("select", id); // Change to the next tab
+          $("#" + id).find('form input[name="name"]').select(); // Select the name field
+        }
       }
     });
 
