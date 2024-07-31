@@ -388,7 +388,7 @@
       refresh_reconcile();
 
     $("body").on("input", ".special-input", function() {
-      $span =  $(this).parent().siblings().find("span");
+      $span =  $(this).parent().siblings(".amount-col").find("span");
       try {
         num = math.evaluate($(this).val());
         if (!isNaN(num)) {
@@ -839,8 +839,7 @@
     });
 
 
-
-    // ----- Code for touch for selecting transactions -----
+    // ----- Code for touch-selecting transactions -----
     var start_time; // System time in ms when a touchevent starts
     var longPressTimer; // Timer for determining if a touchevent is a longpress
     var longpressAmt = 400; // Duration in ms for a touchevent to be considered a longpress
@@ -861,7 +860,6 @@
       clearInterval(intBottomHandler);
     }
 
-    //
     $("#bin").on('touchstart', '.transaction-row', function(e) {
       // Set up variables for touch events
       originalStates = [];
@@ -1039,6 +1037,9 @@
       var show = $("option:selected", this).data('show');
       $(target).children().addClass('hide');
       $(show).removeClass('hide');
+      $selects = $(target).find('select').removeAttr('required'); // Remove the required attribute
+      $selects.siblings(".select-dropdown").removeClass("invalid"); // Remove the invalid class from the dropdown
+      $selects.parent().siblings(".helper-text").text(""); // Clear the error message
       $(target).find('select').removeAttr('required');
       $(show).find('select').attr('required', true);
     });
@@ -1374,7 +1375,10 @@
       });
     });
 
-    // Ctrl+Enter submits and clears some, Ctrl+Shift+Enter submits and clears all
+    // --- Transaction modal keybinds --- //
+    // Ctrl+Alt+Arrow toggles between tabs
+    // Ctrl+Enter submits and clears some
+    // Ctrl+Shift+Enter submits and clears all
     $('#transaction-modal form').keydown(function(e) {
       if ((e.ctrlKey) && e.keyCode === ENTER) {
         if ($(this)[0].checkValidity()) {
@@ -1388,9 +1392,14 @@
               $(this).trigger('submit');
           }
         }
+      } else if ((e.ctrlKey) && e.keyCode === LEFT_ARROW) {
+        // Switch one tab to the left
+      } else if ((e.ctrlKey) && e.keyCode === RIGHT_ARROW) {
+        // Switch one tab to the right
       }
     });
 
+    // Clear the "required" error message on the amount inputs in the transaction-builder modal when you start typing
     $("#transaction-modal input").on("invalid", function() {
       if ($(this).hasClass("special-input")) {
         $(this).siblings("span").removeClass("hidden"); // For special inputs (inline math), remove the hidden class which hides the invalid message (because it's annoying)
@@ -1403,20 +1412,17 @@
       }
     });
 
+    // If you attempt to submit a form in the transactions-modal without selecting an envelope/account, display an error message
     $("#transaction-modal select").on("invalid", function() {
-      console.log($(this));
-      $(this).siblings(".select-dropdown").addClass("invalid").removeClass("valid");
+      $(this).siblings(".select-dropdown").addClass("invalid").removeClass("valid"); // Add invalid class to the select dropdown
+      $(this).parent().siblings(".helper-text").text("Required"); // Show the error message for the select dropdown
     });
-    // console.log($("#transaction-modal .select-dropdown"));
-    $("#transaction-modal .select-dropdown").on("keydown", function() {
-      console.log("HELLO");
-      $(this).removeClass("invalid");
+
+    // When you make a selection in the select dropdown, remove the invalid class and clear the error message
+    $("#transaction-modal").on("change", ".select-wrapper", function() {
+      $(this).children(".select-dropdown").removeClass("invalid");
+      $(this).siblings(".helper-text").text("");
     });
-    $("#transaction-modal").on("click", ".select-dropdown", function() {
-      console.log("HELLO2");
-      $(this).removeClass("invalid");
-    });
-    // TODO: Probably duplicate this function for the on change event for the select wrappers
 
     // Submits transaction CREATOR form data, closes the modal, clears the form, and reloads the data
     $('#transaction-modal form').submit(function(e) {

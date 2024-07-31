@@ -34,7 +34,7 @@
                     {% endfor %}
                   </select>
                   <label>Envelope</label>
-                  <span class="helper-text" data-error="Required"></span>
+                  <span class="helper-text red-text left-align"></span>
                 </div>
                 <div class="input-field col s4 ">
                   <input class="special-input negate-input" type="text" autocomplete="off" name="amount" required>
@@ -62,7 +62,7 @@
                   {% endfor %}
                 </select>
                 <label>Account</label>
-                <span class="helper-text" data-error="Required"></span>
+                <span class="helper-text red-text left-align"></span>
               </div>
               <div class="input-field col s6">
                 <input type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
@@ -161,6 +161,7 @@
                       {% endfor %}
                     </select>
                     <label>From</label>
+                    <span class="helper-text red-text left-align"></span>
                   </div>
                   <div class="input-field col s6">
                     <select name="to_account" class="account-selector" required>
@@ -170,6 +171,7 @@
                       {% endfor %}
                     </select>
                     <label>To</label>
+                    <span class="helper-text red-text left-align"></span>
                   </div>
                 </div>
               </div>
@@ -186,6 +188,7 @@
                       {% endfor %}
                     </select>
                     <label>From</label>
+                    <span class="helper-text red-text left-align"></span>
                   </div>
                   <div class="input-field col s6">
                     <select name="to_envelope" class="envelope-selector" required>
@@ -197,6 +200,7 @@
                       {% endfor %}
                     </select>
                     <label>To</label>
+                    <span class="helper-text red-text left-align"></span>
                   </div>
                 </div>
               </div>
@@ -292,6 +296,7 @@
                   {% endfor %}
                 </select>
                 <label>Account</label>
+                <span class="helper-text red-text left-align"></span>
               </div>
             </div>
 

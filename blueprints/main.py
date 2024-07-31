@@ -183,7 +183,7 @@ def new_expense(edited=False):
 
     if not form.validate():
       errors = {field.name: field.errors for field in form if field.errors}
-      log_write(f"NEW EXPENSE FAIL: Errors - {errors}", "LoginAttemptsLog.txt")
+      log_write(f"NEW EXPENSE FAIL: Errors - {errors}")
       return jsonify(success=False, errors=errors)
 
     uuid = get_uuid_from_cookie()
@@ -259,9 +259,17 @@ def new_expense(edited=False):
 @check_confirmed
 def new_transfer(edited=False):
   try:
+    form = NewTransferForm()
+    names = form.name.data
+
+    if not form.validate():
+      errors = {field.name: field.errors for field in form if field.errors}
+      log_write(f"NEW TRANSFER FAIL: Errors - {errors}")
+      return jsonify(success=False, errors=errors)
+
     uuid = get_uuid_from_cookie()
     transfer_type = int(request.form['transfer_type'])
-    names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
+    names = [n.lstrip() for n in names.split(',') if n.lstrip()] #Parse name field separated by commas
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     timestamp = date_parse(request.form['timestamp'])
     note = request.form['note']
@@ -325,19 +333,29 @@ def new_transfer(edited=False):
           raise InvalidFormDataError("ERROR: No transaction name was submitted for new_transfer!")
 
     health_check(toasts)
-    return jsonify({'toasts': toasts})
+    return jsonify({'success': True, 'toasts': toasts})
   
   except CustomException as e:
-    return jsonify({"error": str(e)})
+    toasts.append(str(e))
+    return jsonify({'success': False, 'toasts': toasts})
+  
 
 @main_bp.route('/new_income', methods=['POST'])
 @login_required
 @check_confirmed
 def new_income(edited=False):
   try:
+    form = NewIncomeForm()
+    names = form.name.data
+
+    if not form.validate():
+      errors = {field.name: field.errors for field in form if field.errors}
+      log_write(f"NEW INCOME FAIL: Errors - {errors}")
+      return jsonify(success=False, errors=errors)
+
     uuid = get_uuid_from_cookie()
     u = get_user_by_uuid(uuid)
-    names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
+    names = [n.lstrip() for n in names.split(',') if n.lstrip()] #Parse name field separated by commas
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     timestamp = date_parse(request.form['timestamp'])
     account_id = request.form['account_id']
@@ -382,10 +400,11 @@ def new_income(edited=False):
           raise InvalidFormDataError("ERROR: No transaction name was submitted for new_income!")
 
     health_check(toasts)
-    return jsonify({'toasts': toasts})
+    return jsonify({'success': True,'toasts': toasts})
   
   except CustomException as e:
-    return jsonify({"error": str(e)})
+    toasts.append(str(e))
+    return jsonify({'success': False, 'toasts': toasts})
 
 @main_bp.route('/fill_envelopes', methods=['POST'])
 @login_required
