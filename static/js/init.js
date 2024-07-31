@@ -403,7 +403,7 @@
         }
       } catch (error) {
         $span.text("$...").removeClass('negative').addClass('neutral').removeClass("valid");
-        $(this).removeClass("valid").addClass("invalid"); //TODO: Make this NOT show the error message
+        $(this).removeClass("valid").addClass("invalid");
       }
     }).on("change",".special-input", function() {
       try {
@@ -1399,27 +1399,27 @@
       }
     });
 
-    // Clear the "required" error message on the amount inputs in the transaction-builder modal when you start typing
-    $("#transaction-modal input").on("invalid", function() {
+    // Clear the "required" error message on the amount inputs in the transaction creator/editor modal when you start typing
+    $("#transaction-modal input, #editor-modal input").on("invalid", function() {
       if ($(this).hasClass("special-input")) {
-        $(this).siblings("span").removeClass("hidden"); // For special inputs (inline math), remove the hidden class which hides the invalid message (because it's annoying)
+        $(this).siblings("span").removeClass("hidden"); // For special inputs (inline math), remove the hidden class to display the error message
       }
       $(this).addClass("invalid").removeClass("valid");
     }).on("input", function(e) {
       $(e.target).removeClass("invalid"); // As soon as you fill in the empty name input, remove the invalid class
       if ($(this).hasClass("special-input")) {
-        $(this).siblings("span").addClass("hidden");
+        $(this).siblings("span").addClass("hidden"); // For special inputs (inline math), add the hidden class to hide the error message
       }
     });
 
-    // If you attempt to submit a form in the transactions-modal without selecting an envelope/account, display an error message
-    $("#transaction-modal select").on("invalid", function() {
+    // If you attempt to submit a form in the transaction creator/editor modal without selecting an envelope/account, display an error message
+    $("#transaction-modal select, #editor-modal select").on("invalid", function() {
       $(this).siblings(".select-dropdown").addClass("invalid").removeClass("valid"); // Add invalid class to the select dropdown
       $(this).parent().siblings(".helper-text").text("Required"); // Show the error message for the select dropdown
     });
 
     // When you make a selection in the select dropdown, remove the invalid class and clear the error message
-    $("#transaction-modal").on("change", ".select-wrapper", function() {
+    $("#transaction-modal, #editor-modal").on("change", ".select-wrapper", function() {
       $(this).children(".select-dropdown").removeClass("invalid");
       $(this).siblings(".helper-text").text("");
     });
