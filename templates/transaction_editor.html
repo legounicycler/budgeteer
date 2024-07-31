@@ -27,10 +27,12 @@
                   {% endfor %}
                 </select>
                 <label class="no-active">Envelope</label>
+                <span class="helper-text red-text left-align"></span>
               </div>
               <div class="input-field col s4 ">
-                <input id="edit-amount" class="validate special-input negate-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
+                <input id="edit-amount" class="special-input negate-input" type="text" autocomplete="off" name="amount" required>
                 <label for="edit-amount" class="active">Amount</label>
+                <span class="helper-text hidden" data-error="Required"></span>
               </div>
               <div class="col s2 valign-wrapper center-align amount-col">
                 <span class="amount-span balance neutral">$0.00</span>
@@ -51,10 +53,12 @@
                 {% endfor %}
               </select>
               <label class="no-active">Account</label>
+              <span class="helper-text red-text left-align"></span>
             </div>
             <div class="input-field col s6 ">
               <input id="edit-date" type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
               <label for="edit-date">Date</label>
+              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
           </div>
           <div class="row">
@@ -135,6 +139,7 @@
                   {% endfor %}
                 </select>
                 <label class="no-active">From</label>
+                <span class="helper-text red-text left-align"></span>
               </div>
               <div class="input-field col s6">
                 <select id="edit-to_account" class="account-selector" name="to_account" required>
@@ -144,6 +149,7 @@
                   {% endfor %}
                 </select>
                 <label class="no-active">To</label>
+                <span class="helper-text red-text left-align"></span>
               </div>
             </div>
             <div id="envelope-transfer-edit" class="row">
@@ -157,6 +163,7 @@
                   {% endfor %}
                 </select>
                 <label class="no-active">From</label>
+                <span class="helper-text red-text left-align"></span>
               </div>
               <div class="input-field col s6">
                 <select id="edit-to_envelope" class="envelope-selector" name="to_envelope" required>
@@ -168,6 +175,7 @@
                   {% endfor %}
                 </select>
                 <label class="no-active">To</label>
+                <span class="helper-text red-text left-align"></span>
               </div>
             </div>
           </div>
@@ -175,10 +183,12 @@
             <div class="input-field col s6 ">
               <input id="edit-date" type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
               <label for="edit-date">Date</label>
+              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
             <div class="input-field col s4 ">
-              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
+              <input id="edit-amount" class="special-input" type="text" autocomplete="off" name="amount" required>
               <label for="edit-amount" class="active">Amount</label>
+              <span class="helper-text hidden" data-error="Required"></span>
             </div>
             <div class="col s2 valign-wrapper center-align amount-col">
               <span class="amount-span balance neutral">$0.00</span>
@@ -252,16 +262,19 @@
                 {% endfor %}
               </select>
               <label class="no-active">Account</label>
+              <span class="helper-text red-text left-align"></span>
             </div>
           </div>
           <div class="row flex">
             <div class="input-field col s6 ">
               <input id="edit-date" type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
               <label for="edit-date">Date</label>
+              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
             <div class="input-field col s4 ">
-              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
+              <input id="edit-amount" class="special-input" type="text" autocomplete="off" name="amount" required>
               <label for="edit-amount" class="active">Amount</label>
+              <span class="helper-text hidden" data-error="Required"></span>
             </div>
             <div class="col s2 valign-wrapper center-align amount-col">
               <span class="amount-span balance neutral">$0.00</span>
@@ -331,6 +344,7 @@
             <div class="input-field col s6">
               <input id="edit-date" type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
               <label for="edit-date">Date</label>
+              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
           </div>
           <div class="row envelope-fill-sticky-row">
@@ -461,6 +475,7 @@
             <div class="input-field col s6">
               <input readonly="true" id="noneditable-date" type="text" name="date" class="grey-text">
               <label for="noneditable-date">Date</label>
+              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
           </div>
           <div class="row">
@@ -507,6 +522,7 @@
             <div class="input-field col s6">
               <input readonly="true" id="noneditable-date" type="text" name="date" class="grey-text">
               <label for="noneditable-date">Date</label>
+              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
           </div>
           <div class="row">
@@ -545,10 +561,12 @@
             <div class="input-field col s6 ">
               <input id="edit-date" type="text" class="datepicker validate" name="date" required pattern="^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$">
               <label for="edit-date">Date</label>
+              <span class="helper-text" data-error="Date must match format mm/dd/yyyy"></span>
             </div>
             <div class="input-field col s4 ">
-              <input id="edit-amount" class="validate special-input" type="text" autocomplete="off" name="amount" required pattern="^-?(?!0\d)\d+(?:\.\d{2})?$">
+              <input id="edit-amount" class="special-input" type="text" autocomplete="off" name="amount" required>
               <label for="edit-amount" class="active">Amount</label>
+              <span class="helper-text hidden" data-error="Required"></span>
             </div>
             <div class="col s2 valign-wrapper center-align amount-col">
               <span class="amount-span balance neutral">$0.00</span>
