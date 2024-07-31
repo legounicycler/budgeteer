@@ -123,14 +123,20 @@
 
       // Makes escape button ONLY close a select located in a modal (but all the select bodies are actually in the fullscreen wrapper)
       $("#fullscreen-wrapper").on("keydown", ".dropdown-content li", function(e) {
-        if (e.keyCode == ESCAPE) e.stopPropagation();
+        if (e.key == "Escape") e.stopPropagation();
       });
 
       $('body').keydown(function(e){
-        if(e.which == ESCAPE && M.Modal._modalsOpen == 0){
+        if(e.key == "Escape" && M.Modal._modalsOpen == 0){
           // Clear all transaction selection checkboxes on ESCAPE KEY (if you're not hitting escape to close a modal)
           $('.t-delete-checkbox:checked').click();
           none_checked = true;
+        } else if (e.key == "t" && M.Modal._modalsOpen == 0) {
+          // TODO: When the searchbar is added, this will probably need to change to be more specific since valid keypresses in the searchbar are not within a modal 
+          $("#transaction-modal").modal("open"); 
+        } else if (e.key == "e" && M.Modal._modalsOpen == 0) {
+          // TODO: When the searchbar is added, this will probably need to change to be more specific since valid keypresses in the searchbar are not within a modal 
+          $("#envelope-fill-modal").modal("open");
         }
       });
 
@@ -166,21 +172,21 @@
 
       // Adds arrowkey functionality to datepicker
       $(".datepicker-modal").keydown(function(e) {
-        if (e.shiftKey && (e.which == LEFT_ARROW)) {
+        if (e.shiftKey && (e.key == "ArrowLeft")) {
           $(this).find(".month-prev").click();
           $(this).find("table button").last("button").focus();
         }
-        else if (e.shiftKey && (e.which == RIGHT_ARROW)) {
+        else if (e.shiftKey && (e.key == "ArrowRight")) {
           $(this).find(".month-next").click();
           $(this).find("table button").first("button").focus();
         }
-        else if (e.which == LEFT_ARROW) {
+        else if (e.key == "ArrowLeft") {
           if (!$(document.activeElement).hasClass("month-prev")) $.tabPrev();
         }
-        else if (e.which == RIGHT_ARROW) {
+        else if (e.key == "ArrowRight") {
           if (!$(document.activeElement).hasClass("datepicker-done")) $.tabNext();
         }
-        else if (e.which == DOWN_ARROW) {
+        else if (e.key == "ArrowDown") {
           var focused = document.activeElement;
           //If the focused element is one of the date buttons
           if ($(focused).hasClass("datepicker-day-button")) {
@@ -213,7 +219,7 @@
             }
           }
         }
-        else if (e.which == UP_ARROW) {
+        else if (e.key == "ArrowUp") {
           var focused = document.activeElement;
           //If the focused element is one of the date buttons
           if ($(focused).hasClass("datepicker-day-button")) {
@@ -245,7 +251,7 @@
             }
           }
         }
-        else if (e.which == ESCAPE) {
+        else if (e.key == "Escape") {
           e.stopPropagation(); // Don't close the parent modal
           $(this).modal("close"); //Only close the datepicker modal
           $(".modal.open").find(".datepicker").focus(); //Refocus the datepicker from the parent modal (this will break if there's ever two datepickers)
@@ -255,7 +261,7 @@
 
       // When schedule checkbox is focused, open it on ENTER
       $('input[name="scheduled"]').keydown(function(e) {
-        if (e.which == ENTER) {
+        if (e.key == "Enter") {
           e.preventDefault();
           $(this).next().click();
         }
@@ -1378,7 +1384,7 @@
     // Ctrl+Enter submits and clears some
     // Ctrl+Shift+Enter submits and clears all
     $('#transaction-modal form').keydown(function(e) {
-      if ((e.ctrlKey) && e.keyCode === ENTER) {
+      if ((e.ctrlKey) && e.key === "Enter") {
         if ($(this)[0].checkValidity()) {
           if (!e.shiftKey) {
               e.preventDefault();
@@ -1395,7 +1401,7 @@
     
     // Ctrl+Alt+Arrow toggles between tabs in transaction creator
     $("#transaction-modal").keydown(function(e) {
-      if (e.ctrlKey && e.altKey && e.keyCode === LEFT_ARROW) {
+      if (e.ctrlKey && e.altKey && e.key == "ArrowLeft") {
         // Switch one tab to the left
         var tabs = M.Tabs.getInstance($('#type-tabs'));
         var tab_index = tabs.index;
@@ -1405,7 +1411,7 @@
           $("#type-tabs").tabs("select", id); // Change to the next tab
           $("#" + id).find('form input[name="name"]').select(); // Select the name field
         }
-      } else if (e.ctrlKey && e.altKey && e.keyCode === RIGHT_ARROW) {
+      } else if (e.ctrlKey && e.altKey && e.key == "ArrowRight") {
         // Switch one tab to the right
         var tabs = M.Tabs.getInstance($('#type-tabs'));
         var tab_index = tabs.index;

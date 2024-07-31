@@ -9463,8 +9463,10 @@ $jscomp.polyfill = function (e, r, p, m) {
             }
           } else if ($target.closest('.month-prev').length) {
             this.prevMonth();
+            this.$modalEl.find(".month-prev")[0].focus();
           } else if ($target.closest('.month-next').length) {
             this.nextMonth();
+            this.$modalEl.find(".month-next")[0].focus();
           }
         }
       }
