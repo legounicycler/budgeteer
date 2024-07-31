@@ -388,6 +388,10 @@ pre {
   margin-top: 2em;
 }
 
+.datepicker-modal .dropdown-trigger:focus{
+  background-color: #26a69a;
+}
+
 .no-margin {
   margin: 0;
 }
