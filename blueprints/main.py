@@ -18,6 +18,7 @@ from exceptions import *
 from filters import datetimeformat
 from textLogging import log_write
 from blueprints.auth import check_confirmed, get_uuid_from_cookie, generate_uuid
+import traceback
 
 main_bp = Blueprint('main', __name__)
 
@@ -25,6 +26,7 @@ main_bp = Blueprint('main', __name__)
 @main_bp.errorhandler(HTTPException)
 def handle_exception(e):
     log_write(f'HTTP ERROR: {e}', "EventLog.txt")
+    log_write(f'\n{traceback.format_exc()}', "EventLog.txt")
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     # If error happens in an ajax request, return a response with the error message rather than rendering the error_page template
