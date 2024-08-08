@@ -45,7 +45,7 @@ class RecaptchaFailError(CustomException):
             log_write(f"EXCEPTION: ReCaptcha Fail - Success: {response['success']}, error-codes: {response['error-codes']}", "LoginAttemptsLog.txt")
         else:
             log_write(f"EXCEPTION: ReCaptcha Fail - Success: {response['success']}, Hostname: {response['hostname']}, Timestamp: {response['challenge_ts']}", "LoginAttemptsLog.txt")
-        super().__init__("Error: ReCaptcha failed!")
+        # super().__init__("Error: ReCaptcha failed!")
 
 class OtherError(CustomException):
     pass

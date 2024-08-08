@@ -320,7 +320,7 @@ def test_api_login_bad_recaptcha(client):
 
     # 2. Verify the response displays an error
     assert response.status_code == 200
-    assert b'{"login_success":false,"message":"Error: An unknown error occurred!"}' in response.data
+    assert b'{"login_success":false,"message":"Error: Recaptcha test failed!"}' in response.data
 
 # --Create account form tests--
 

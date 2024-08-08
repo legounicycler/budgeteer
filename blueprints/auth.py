@@ -84,8 +84,11 @@ def api_login():
     else:
       log_write(f"LOGIN FAIL: Incorrect password attempt ({password}) for user {user.id}", "LoginAttemptsLog.txt")
       return jsonify({'message': 'Incorrect password!', 'login_success': False})
+  except RecaptchaFailError as e:
+    log_write(f" ^  LOGIN ERROR: Recaptcha error for email: {email} and password: {password}", "LoginAttemptsLog.txt")
+    return jsonify({'message': 'Error: Recaptcha test failed!', 'login_success': False})
   except Exception as e:
-    log_write(f"LOGIN FAIL: {e}", "LoginAttemptsLog.txt")
+    log_write(f"LOGIN ERROR: {e}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'Error: An unknown error occurred!', 'login_success': False})
 
 @auth_bp.route("/register", methods=["POST"])
@@ -127,6 +130,9 @@ def register():
     current_app.mail.send(msg)
     log_write(f"REGISTER EMAIL SENT: For user {uuid} to email {new_email}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'A confirmation email has been sent to your email address!', 'register_success': True})
+  except RecaptchaFailError as e:
+    log_write(f" ^  REGISTER ERROR: Recaptcha error for email: {new_email}, password: {new_password}, FName: {new_first_name}, LName: {new_last_name}", "LoginAttemptsLog.txt")
+    return jsonify({'message': 'Error: Recaptcha test failed!', 'login_success': False})
   except Exception as e:
     log_write(f"REGISTER ERROR: {e}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'An unknown error occurred during registration!', 'register_success': False})
@@ -217,6 +223,9 @@ def forgot_password():
     current_app.mail.send(msg)
     log_write(f"FORGOT PWD SUCCESS: Forgot password email for user {user.id} sent to {email}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'Password reset email has been sent!', 'success': True})
+  except RecaptchaFailError as e:
+    log_write(f" ^  FORGOT PWD ERROR: Recaptcha error for email: {email}", "LoginAttemptsLog.txt")
+    return jsonify({'message': 'Error: Recaptcha test failed!', 'success': False})
   except Exception as e:
     log_write(f"FORGOT PWD ERROR: {e}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'An unknown error occurred while processing your request!', 'success': False})
@@ -266,6 +275,9 @@ def reset_password(token):
       return jsonify(success=True)
 
     return render_template('reset_password.html', token=token, reset_password_form=reset_password_form, reCAPTCHA_site_key=RECAPTCHA_SITE_KEY)
+  except RecaptchaFailError as e:
+    log_write(f" ^  PWD RESET FAIL: Recaptcha error for user: {user} and new_password: {new_password}", "LoginAttemptsLog.txt")
+    return jsonify({'message': 'Error: Recaptcha test failed!', 'success': False})
   except Exception as e:
     log_write(f"PWD RESET FAIL: {e}", "LoginAttemptsLog.txt")
     return render_template("error_page.html", message="Something went wrong with the password reset process. Please try again.")

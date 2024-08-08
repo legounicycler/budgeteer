@@ -24,7 +24,7 @@ main_bp = Blueprint('main', __name__)
 # Error handler for HTTP exceptions
 @main_bp.errorhandler(HTTPException)
 def handle_exception(e):
-    log_write(f'HTTP ERROR: {e.description}', "EventLog.txt")
+    log_write(f'HTTP ERROR: {e}', "EventLog.txt")
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     # If error happens in an ajax request, return a response with the error message rather than rendering the error_page template
