@@ -65,8 +65,8 @@ def test_check_pending_transactions():
     # Test case for check_pending_transactions function
     pass
 
-def test_create_scheduled_transaction():
-    # Test case for create_scheduled_transaction function
+def test_generate_scheduled_transaction():
+    # Test case for generate_scheduled_transaction function
     pass
 
 # endregion TRANSACTION FUNCTIONS TESTS
