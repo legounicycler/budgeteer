@@ -688,35 +688,62 @@ def new_split_transaction(t):
 # TODO: When implementing unit testing, test what happens if the timestamp is not in the correct format
 def check_pending_transactions(uuid, timestamp):
     """
-    Given a timestamp passed in from the user's browser, apply or unapply the pending transactions in the database and set the pending flag accordingly
+    Given a timestamp passed in from the user's browser, apply or unapply the pending transactions in the database and set the pending flag accordingly.
+    If a transaction with a schedule is applied, also generate/insert the corresponding scheduled transactions
+    PARAMS:
+        uuid (str): User UUID
+        timestamp (str): Timestamp passed in from the user's browser with format "yyyy-mm-dd hh:mm:ss"
+    RETURNS:
+        None
     """
     with conn:
 
-        # 1. Apply pending transactions that are before the timestamp
+        # 1. Fetch all the pending transactions that are from on/before the timestamp and organize them into sublists by their grouping number
         c.execute("SELECT id FROM transactions WHERE pending=1 AND user_id=? AND date(day) <= date(?)",(uuid, timestamp[0:10],)) 
         t_ids = c.fetchall()
-        if len(t_ids) != 0:
-            for id in t_ids:
-                t = get_transaction(id[0])
+        grouped_ts = []
+        prev_t_grouping = None
+        for id in t_ids:
+            t = get_transaction(id[0])
+            if prev_t_grouping != t.grouping:
+                prev_t_grouping = t.grouping
+                grouped_ts.append([t])
+            else:
+                grouped_ts[len(grouped_ts)-1].append(t)
+                prev_t_grouping = t.grouping
+
+        # 2. Apply the transactions, then create scheduled transactions if applicable
+        for grouped_ts_list in grouped_ts:
+
+            # 2.1 Apply the transactions
+            for t in grouped_ts_list:
                 apply_transaction(t.account_id, t.envelope_id, t.amt)
                 c.execute("UPDATE transactions SET pending=0,schedule=null WHERE id=?",(t.id,))
+            
+            # 2.2 Create new scheduled transaction(s) if applicable
+            grouped_ts_list_to_check = grouped_ts_list # The transactions from which you will be creating new scheduled transactions
+            should_create_more = True
+            while should_create_more is True:
+
+                # 2.3 Generate a list of the grouped new scheduled transactions (list will be empty if there are no new scheduled transactions)
+                new_scheduled_grouped_t_list = []
+                for t in grouped_ts_list_to_check:
+                    new_scheduled_t = generate_scheduled_transaction(t, date_parse(timestamp), False)
+                    if new_scheduled_t is not None:
+                        new_scheduled_grouped_t_list.append(new_scheduled_t)
                 
-                # 1.1 Create scheduled transactions if the transaction is scheduled
-                if (t.schedule is not None):
-                    
-                    isPending = False
-                    next_t = t
-                    
-                    # Keep creating scheduled transactions until you create one with a date after the timestamp
-                    while isPending == False:
-                        scheduled_t = create_scheduled_transaction(next_t, date_parse(timestamp), False)
-                        isPending = scheduled_t.pending
-                        next_t = copy.deepcopy(scheduled_t)
-                        if isPending == False:
-                            scheduled_t.schedule = None  # Clear out the schedule field if it's not a pending transaction
-                        insert_transaction(scheduled_t)
-        
-        # 2. Unapply pending transactions that are after the timestamp
+                # 2.4 If there are new scheduled transactions to insert, update their grouping number and insert them into the database
+                if len(new_scheduled_grouped_t_list) > 0:
+                    grouping = gen_grouping_num()
+                    for t in new_scheduled_grouped_t_list:
+                        should_create_more = not t.pending # If the newly created transaction is pending (date is in the future compared to the user's timestamp), stop attempting to create new scheduled transactions
+                        t.grouping = grouping
+                        insert_transaction(t)
+                    grouped_ts_list_to_check = new_scheduled_grouped_t_list # Set the new transactions to be the transactions from which you will be creating new scheduled transactions
+                else:
+                    should_create_more = False # If there are no new scheduled transactions, stop attempting to create new scheduled transactions
+
+        # 3. Unapply pending transactions that are after the timestamp
         c.execute("SELECT id,account_id,envelope_id,amount FROM transactions WHERE pending=0 AND user_id=? AND date(day) > date(?)",(uuid, timestamp[0:10],))
         t_data_list = c.fetchall()
         if len(t_data_list) != 0:
@@ -726,12 +753,23 @@ def check_pending_transactions(uuid, timestamp):
     
     return None
 
-def create_scheduled_transaction(t, timestamp, should_consider_timestamp):
+def generate_scheduled_transaction(t, timestamp, should_consider_timestamp):
     """
-    Given a transaction, create a new transaction with the same parameters, but with a new date
+    Generate the next transaction that will occur after a given scheduled transaction.
+    (i.e. an identical transaction with a date a week later, a month later, etc.)
+    PARAMS:
+        t (Transaction): The scheduled transaction
+        timestamp (str): Timestamp passed in from the user's browser with format "yyyy-mm-dd hh:mm:ss"
+        should_consider_timestamp (bool): Whether to generate a transaction directly after the original transaction's date (False), or generate a transaction on the first valid date after the timestamp (True)
+    RETURNS:
+        (Transaction): An identical transaction to the input t but with a future date according to the original transaction's schedule (i.e. with date a week later, month later, etc.)
+        OR None If the original transaction has no schedule
     """
-    nextdate = schedule_date_calc(t.date, t.schedule, timestamp, should_consider_timestamp)
-    return Transaction(t.type, t.name, t.amt, nextdate, t.envelope_id, t.account_id, gen_grouping_num(), t.note, t.schedule, t.status, t.user_id, is_pending(nextdate, timestamp))
+    if (t.schedule is not None):
+        nextdate = schedule_date_calc(t.date, t.schedule, timestamp, should_consider_timestamp)
+        return Transaction(t.type, t.name, t.amt, nextdate, t.envelope_id, t.account_id, None, t.note, t.schedule, t.status, t.user_id, is_pending(nextdate, timestamp))
+    else:
+        return None
 
 # endregion TRANSACTION FUNCTIONS
 
