@@ -1,25 +1,15 @@
-import pytest, re
+import pytest
 from time import time
 
 from flask import url_for
 from flask_login import current_user
 
+from test.unit.conftest import get_csrf_token
 from blueprints.auth import *
 from database import User
 from secret import RECAPTCHA_SITE_KEY
 
 # region HELPERS
-
-def get_csrf_token(client):
-    """Get the CSRF token from the login page"""
-    response = client.get(url_for('auth.login'))
-    html = response.get_data(as_text=True)
-    match = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="([^"]+)">', html)
-    if match:
-        csrf_token = match.group(1)
-        return csrf_token
-    else:
-        raise ValueError("CSRF token not found in the login page")
 
 # Mock the reCAPTCHA validation to always return True
 def mock_verify_recaptcha(response):
@@ -38,32 +28,6 @@ def modify_dict(d, key, value):
 # endregion HELPERS
 
 # region FIXTURES
-
-# Define a fixture for the context of a logged-in user
-@pytest.fixture
-def logged_in_user_client(client):
-    """
-    Creates a fixture for a logged-in user in the Flask application context.
-
-    Parameters:
-    - app: The Flask application instance.
-    - client: The test client for the Flask application.
-
-    Returns:
-    - The test client with a logged-in user in the context.
-    """
-    
-    # 1. Insert a new user to the database
-    uuid = generate_uuid()
-    (new_password_hash, new_password_salt) = User.hash_password("password")
-    new_user = User(uuid, "email@example.com", new_password_hash, new_password_salt, "Firstname", "Lastname", datetime.now())
-    insert_user(new_user)
-
-    #2. Simulate a user login
-    login_user(new_user)
-
-    # 3. Yield the test client with the logged-in user in the context
-    yield client
 
 @pytest.fixture
 def mail_instance(app):

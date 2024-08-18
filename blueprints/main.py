@@ -15,7 +15,7 @@ from werkzeug.utils import secure_filename
 #Custom import
 from database import *
 from exceptions import *
-from forms import NewExpenseForm, NewTransferForm, NewIncomeForm
+from forms import NewExpenseForm, NewTransferForm, NewIncomeForm, BugReportForm
 from filters import datetimeformat
 from textLogging import log_write
 from blueprints.auth import check_confirmed, get_uuid_from_cookie, generate_uuid
@@ -36,7 +36,7 @@ def handle_exception(e):
       response = jsonify({'error_message': e.description})
       response.status_code = e.code
       return response
-    return render_template('error_page.html', message=f"Error {e.code}: {e.description}"), e.code
+    return render_template('error_page.html', message=f"Error {e.code}: {e.description}", bug_report_form = BugReportForm()), e.code
 
 @main_bp.route("/home", methods=['GET'])
 @login_required
@@ -75,7 +75,8 @@ def home():
         TType=TType,
         new_expense_form = NewExpenseForm(),
         new_transfer_form = NewTransferForm(),
-        new_income_form = NewIncomeForm()
+        new_income_form = NewIncomeForm(),
+        bug_report_form = BugReportForm()
       ))
       response.delete_cookie('timestamp')
       return response
@@ -250,9 +251,9 @@ def new_expense(edited=False):
 
     health_check(toasts)
     return jsonify({'success': True, 'toasts': toasts})
-  
-  except CustomException as e:
-    return jsonify({'success': False, "toasts": f"ERROR: {str(e)}"})
+  except Exception as e:
+    toasts.append(f"ERROR: {str(e)}")
+    return jsonify({'success': False, 'toasts': toasts})
 
 @main_bp.route('/new_transfer', methods=['POST'])
 @login_required
@@ -335,8 +336,8 @@ def new_transfer(edited=False):
     health_check(toasts)
     return jsonify({'success': True, 'toasts': toasts})
   
-  except CustomException as e:
-    toasts.append(str(e))
+  except Exception as e:
+    toasts.append(f"ERROR: {str(e)}")
     return jsonify({'success': False, 'toasts': toasts})
   
 
@@ -402,8 +403,8 @@ def new_income(edited=False):
     health_check(toasts)
     return jsonify({'success': True,'toasts': toasts})
   
-  except CustomException as e:
-    toasts.append(str(e))
+  except Exception as e:
+    toasts.append(f"ERROR: {str(e)}")
     return jsonify({'success': False, 'toasts': toasts})
 
 @main_bp.route('/fill_envelopes', methods=['POST'])
@@ -861,9 +862,9 @@ def bug_report():
     send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot)  # Send bug report email to the developer
     send_bug_report_email_user(name, email, bug_report_id) # Send confirmation email to the user
     
-    return jsonify({'toasts': ["Thank you! Your bug report has been submitted!"]})
+    return jsonify({'success': True,'toasts': ["Thank you! Your bug report has been submitted!"]})
   except CustomException as e:
-    return jsonify({"error": str(e)})
+    return jsonify({'success': False, "error": str(e)})
 
 def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot):
   msg = Message(f'Budgeteer: Bug Report from {email}', sender=current_app.config["MAIL_USERNAME"], recipients=[current_app.config["MAIL_USERNAME"]])

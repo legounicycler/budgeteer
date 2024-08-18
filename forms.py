@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, EmailField, SubmitField, validators, SelectField
+from wtforms import StringField, PasswordField, EmailField, SubmitField, validators, SelectField, FileField, TextAreaField
 
 class LoginForm(FlaskForm):
     email = EmailField("Email", [validators.InputRequired(), validators.Email()], render_kw={"autocomplete": "username"})
@@ -45,3 +45,9 @@ class NewIncomeForm(FlaskForm):
     # amount = StringField("Amount", [validators.InputRequired(), validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
     # note = StringField("Note", [validators.Length(min=1, max=300)], render_kw={"autocomplete": "off"})
     # schedule = StringField("Schedule", [validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+
+class BugReportForm(FlaskForm):
+    bug_reporter_name = StringField("Name", [validators.InputRequired(), validators.Length(min=1, max=300)], render_kw={"autocomplete": "name"})
+    bug_reporter_email = EmailField("Email", [validators.InputRequired(), validators.Email()], render_kw={"autocomplete": "email"})
+    bug_description = TextAreaField("Description", [validators.InputRequired(), validators.Length(min=1, max=3000)], render_kw={"autocomplete": "description"})
+    screenshot = FileField("Screenshot", render_kw={"autocomplete": "screenshot"})
