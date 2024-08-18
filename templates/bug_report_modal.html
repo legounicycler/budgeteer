@@ -14,22 +14,23 @@
         <div class="divider"></div>
     
         <form id="bug-report-form" method="POST" action="{{ url_for('main.bug_report') }}" enctype="multipart/form-data">
+            {{ bug_report_form.hidden_tag() }}
             <div class="row">
                 <div class="input-field col s6">
-                    <input id="bug_reporter_name" type="text" name="bug_reporter_name" required>
-                    <label for="bug_reporter_name">Name</label>
+                    {{bug_report_form.bug_reporter_name.label}}
+                    {{bug_report_form.bug_reporter_name(class="validate")}}
                     <span class="helper-text" data-error="Please include your name"></span>
                 </div>
                 <div class="input-field col s6">
-                    <input id="bug_reporter_email" class="validate" type="email" name="bug_reporter_email" required>
-                    <label for="bug_reporter_email">Email</label>
+                    {{bug_report_form.bug_reporter_email.label}}
+                    {{bug_report_form.bug_reporter_email(class="validate")}}
                     <span class="helper-text" data-error="Invalid email address"></span>
                 </div>
             </div>
             <div class="row">
                 <div class="input-field col s12">
-                    <textarea id="bug_description" class="materialize-textarea" name="bug_description" required></textarea>
-                    <label for="bug_description">Describe the bug:</label>
+                    {{bug_report_form.bug_description.label}}
+                    {{bug_report_form.bug_description(class="validate materialize-textarea")}}
                     <span class="helper-text" data-error="Please include a description"></span>
                 </div>
             </div>
@@ -40,7 +41,9 @@
                 <div class="col s8 file-field input-field">
                    <div class="btn">
                       <span>Browse</span>
-                      <input type="file" name="screenshot" accept="image/*"/>
+                      <!-- <input type="file" name="screenshot" accept="image/*"/> -->
+                      {{bug_report_form.screenshot(class="validate")}}
+                      <!-- TODO: Test this -->
                    </div>
                    
                    <div class="file-path-wrapper">
