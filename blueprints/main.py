@@ -844,26 +844,31 @@ def load_static_html():
 @check_confirmed
 def bug_report():
   try:
+    form = BugReportForm()
+    name = form.bug_reporter_name.data
+    email = form.bug_reporter_email.data
+    desc = form.bug_description.data
+    screenshot = form.screenshot.data
     uuid = get_uuid_from_cookie()
     bug_report_id = generate_uuid()
-    name = request.form.get('bug_reporter_name')
-    email = request.form.get('bug_reporter_email')
-    desc = request.form.get('bug_description')
     timestamp = request.form.get('timestamp')
-    screenshot = request.files['screenshot']
-    if screenshot.filename == '':
-        screenshot = None
+
+    if not form.validate():
+      return jsonify({'success': False, 'error': form.errors})
+
     if screenshot:
-        allowed_file_extension(screenshot)
-        allowed_file_size(screenshot)
-        screenshot.filename = secure_filename(screenshot.filename)
-        screenshot.save(os.path.join(current_app.config['UPLOAD_FOLDER'], screenshot.filename))
+      allowed_file_extension(screenshot)
+      allowed_file_size(screenshot)
+      screenshot.filename = secure_filename(screenshot.filename)
+      screenshot.save(os.path.join(current_app.config['UPLOAD_FOLDER'], screenshot.filename))
     
     send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot)  # Send bug report email to the developer
     send_bug_report_email_user(name, email, bug_report_id) # Send confirmation email to the user
     
     return jsonify({'success': True,'toasts': ["Thank you! Your bug report has been submitted!"]})
-  except CustomException as e:
+  except Exception as e:
+    log_write(f'BUG REPORT ERROR: {e}', "EventLog.txt")
+    log_write(f'\n{traceback.format_exc()}', "EventLog.txt")
     return jsonify({'success': False, "error": str(e)})
 
 def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot):
@@ -882,17 +887,17 @@ def send_bug_report_email_user(name, email, bug_report_id):
   current_app.mail.send(msg)
 
 def allowed_file_extension(file):
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-    file_extension = file.filename.rsplit('.', 1)[1].lower()
-    if '.' in file.filename and file_extension in ALLOWED_EXTENSIONS:
-      return True
-    else:
-      raise InvalidFileTypeError(f"ERROR: Invalid file type .{file_extension} for bug report screenshot!")
+  ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+  file_extension = file.filename.rsplit('.', 1)[1].lower()
+  if '.' in file.filename and file_extension in ALLOWED_EXTENSIONS:
+    return True
+  else:
+    raise InvalidFileTypeError(f"ERROR: Invalid file type .{file_extension} for bug report screenshot!")
 
 def allowed_file_size(file):
-    MAX_FILE_SIZE = 1024*1024*10 # 10Mb
-    file_data = file.read()
-    file_size = len(file_data) # in bytes
-    file.seek(0) # Reset the file pointer to the beginning of the file so it can be saved properly
-    if file_size >= MAX_FILE_SIZE:
-        raise InvalidFileSizeError(f"The file you uploaded is too large! ({round(file_size/(1024*1024), 2)}Mb). Please upload a file smaller than {round(MAX_FILE_SIZE/(1024*1024), 0)}Mb.")
+  MAX_FILE_SIZE = 1024*1024*10 # 10Mb
+  file_data = file.read()
+  file_size = len(file_data) # in bytes
+  file.seek(0) # Reset the file pointer to the beginning of the file so it can be saved properly
+  if file_size >= MAX_FILE_SIZE:
+      raise InvalidFileSizeError(f"The file you uploaded is too large! ({round(file_size/(1024*1024), 2)}Mb). Please upload a file smaller than {round(MAX_FILE_SIZE/(1024*1024), 0)}Mb.")

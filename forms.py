@@ -1,5 +1,12 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, EmailField, SubmitField, validators, SelectField, FileField, TextAreaField
+from wtforms import StringField, PasswordField, EmailField, SubmitField, validators, SelectField, TextAreaField
+from flask_wtf.file import FileField, FileAllowed
+
+# TODO: Make sure this works for all image types (See chagGPT example and change line 60)
+# from flask_uploads import UploadSet, IMAGES
+
+# images = UploadSet('images', IMAGES)
+
 
 class LoginForm(FlaskForm):
     email = EmailField("Email", [validators.InputRequired(), validators.Email()], render_kw={"autocomplete": "username"})
@@ -50,4 +57,4 @@ class BugReportForm(FlaskForm):
     bug_reporter_name = StringField("Name", [validators.InputRequired(), validators.Length(min=1, max=300)], render_kw={"autocomplete": "name"})
     bug_reporter_email = EmailField("Email", [validators.InputRequired(), validators.Email()], render_kw={"autocomplete": "email"})
     bug_description = TextAreaField("Description", [validators.InputRequired(), validators.Length(min=1, max=3000)], render_kw={"autocomplete": "description"})
-    screenshot = FileField("Screenshot", render_kw={"autocomplete": "screenshot"})
+    screenshot = FileField("Screenshot", validators=[FileAllowed(['jpg', 'png'], 'Images only!')] , render_kw={"autocomplete": "screenshot"})

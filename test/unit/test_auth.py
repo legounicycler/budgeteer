@@ -11,10 +11,6 @@ from secret import RECAPTCHA_SITE_KEY
 
 # region HELPERS
 
-# Mock the reCAPTCHA validation to always return True
-def mock_verify_recaptcha(response):
-    return {'score': 0.9}
-
 def remove_key(d, key):
     r = dict(d)
     del r[key]
