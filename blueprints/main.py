@@ -849,7 +849,7 @@ def bug_report():
     email = form.bug_reporter_email.data
     desc = form.bug_description.data
     screenshot = form.screenshot.data
-    uuid = get_uuid_from_cookie()
+    uuid = get_uuid_from_cookie() #TODO: Test this with a non-logged in client
     bug_report_id = generate_uuid()
     timestamp = request.form.get('timestamp')
 
@@ -857,7 +857,6 @@ def bug_report():
       return jsonify({'success': False, 'error': form.errors})
 
     if screenshot:
-      allowed_file_extension(screenshot)
       allowed_file_size(screenshot)
       screenshot.filename = secure_filename(screenshot.filename)
       screenshot.save(os.path.join(current_app.config['UPLOAD_FOLDER'], screenshot.filename))
@@ -885,14 +884,6 @@ def send_bug_report_email_user(name, email, bug_report_id):
   msg = Message('Budgeteer: Your Bug Report Has Been Received', sender=current_app.config["MAIL_USERNAME"], recipients=[email])
   msg.html = render_template("emails/bug_report_user.html", name=name, email=email, bug_report_id=bug_report_id)
   current_app.mail.send(msg)
-
-def allowed_file_extension(file):
-  ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-  file_extension = file.filename.rsplit('.', 1)[1].lower()
-  if '.' in file.filename and file_extension in ALLOWED_EXTENSIONS:
-    return True
-  else:
-    raise InvalidFileTypeError(f"ERROR: Invalid file type .{file_extension} for bug report screenshot!")
 
 def allowed_file_size(file):
   MAX_FILE_SIZE = 1024*1024*10 # 10Mb
