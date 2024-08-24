@@ -1,5 +1,8 @@
 """
-TODO: Update description of the file here
+budgeteer.py
+This file contains the create_app function which starts the Flask app.
+If you run this file directly, it will start the app. Depending on your platform,
+the app will start with either the development config or the production config.
 """
 
 # Flask imports

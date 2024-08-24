@@ -26,10 +26,6 @@ def modify_dict(d, key, value):
 # region FIXTURES
 
 @pytest.fixture
-def mail_instance(app):
-    return app.mail
-
-@pytest.fixture
 def mock_verify_recaptcha(mocker):
     return mocker.patch('blueprints.auth.verify_recaptcha', return_value=True)
 

@@ -1,6 +1,7 @@
 import pytest, re
 from datetime import datetime
 from flask import url_for
+from flask_login import current_user
 
 from budgeteer import create_app
 from database import Database, User
@@ -20,14 +21,6 @@ def app(db):
     """Create and configure a new app instance for testing."""
     app = create_app('config.TestingConfig')
     yield app
-
-
-# @pytest.fixture
-# def app_with_context(app):
-#     """Create and configure a new app instance for testing."""
-#     with app.app_context():
-#         yield app
-
 
 @pytest.fixture
 def client(app):
@@ -59,6 +52,14 @@ def logged_in_user_client(client):
 
     # 3. Yield the test client with the logged-in user in the context
     yield client
+
+@pytest.fixture
+def mail_instance(app):
+    return app.mail
+
+@pytest.fixture
+def mock_get_uuid_from_cookie(mocker):
+    return mocker.patch('blueprints.main.get_uuid_from_cookie', return_value=current_user.id)
 
 def get_csrf_token(client):
     """Get the CSRF token from the login page"""
