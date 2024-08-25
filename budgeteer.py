@@ -6,7 +6,7 @@ the app will start with either the development config or the production config.
 """
 
 # Flask imports
-from flask import Flask, request, render_template
+from flask import Flask
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
 
@@ -19,6 +19,7 @@ from database import *
 from filters import balanceformat, datetimeformat, datetimeformatshort, inputformat
 from blueprints.auth import auth_bp, login_manager
 from blueprints.main import main_bp
+from blueprints.error_handling import error_handling_bp
 
 def create_app(config_object="config.DevelopmentConfig"):
   app = Flask(__name__)
@@ -52,16 +53,7 @@ def create_app(config_object="config.DevelopmentConfig"):
   # Register blueprints
   app.register_blueprint(auth_bp)
   app.register_blueprint(main_bp)
-
-  # Error handler for HTTP exceptions (for ajax requests)
-  @app.route('/error/<int:error_code>')
-  def error_page(error_code):
-      error_desc = request.args.get('errorDesc') # Fetch the errorDesc query parameter from the ajax request
-      return render_template("error_page.html", message=f"Error {error_code}: {error_desc}"), error_code
-
-  @app.errorhandler(404)
-  def not_found(e):
-    return render_template("error_page.html", message=f"404 Error: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."), 404
+  app.register_blueprint(error_handling_bp)
 
   return app
 
