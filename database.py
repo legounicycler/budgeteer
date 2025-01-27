@@ -30,7 +30,7 @@ class TType(Enum):
     SPLIT_TRANSACTION = (4, "Split Transaction", "call_split")
     ENVELOPE_FILL = (5, "Envelope Fill", "input")
     ENVELOPE_DELETE = (6, "Envelope Delete", "layers_clear")
-    ACCOUNT_DELETE = (7, "Account Delete", "lmoney_off")
+    ACCOUNT_DELETE = (7, "Account Delete", "money_off")
     ACCOUNT_ADJUST = (8, "Account Adjust", "build")
 
     def __init__(self, id, desc, icon):
