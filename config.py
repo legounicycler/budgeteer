@@ -35,7 +35,7 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     """Configuration for production environment."""
     ENV = 'production'
-    DATABASE_URI = '/home/opc/database.sqlite'
+    DATABASE_URI = '/home/anthony/database.sqlite'
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
 
 # Configuration dictionary mapping names to classes
