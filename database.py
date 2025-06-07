@@ -3,14 +3,13 @@ This file contains functions relevant to actually manipulating values in the dat
 """
 
 # Library imports
-import sqlite3, datetime, hashlib, secrets, calendar, copy
+import sqlite3, datetime, hashlib, secrets, calendar
 from datetime import datetime, timedelta, date
 from flask_login import UserMixin
 from enum import Enum
 
 # Custom Imports
 from exceptions import *
-from logging import *
 from filters import balanceformat
 
 # Global variables
@@ -252,6 +251,7 @@ class User(UserMixin):
         self.confirmed = confirmed
         self.confirmed_on = confirmed_on
         self.last_login = last_login
+    @staticmethod
     def hash_password(password, salt=None):
         if salt is None:
             salt = secrets.token_hex(16)
@@ -853,6 +853,19 @@ def delete_account(account_id):
         #3. Set the displaly_order to NULL
         c.execute("UPDATE accounts SET display_order=NULL WHERE id=?", (account_id,))
 
+def edit_account_delete_transaction(uuid, t_id, new_name, new_description):
+    """
+    Edits the name and note of an ACCOUNT_DELETE transaction
+    These are the ONLY values that can be edited for this type of transaction
+    """
+    with conn:
+        c.execute("UPDATE transactions SET name=?, note=? WHERE (id=? AND user_id=?)", (new_name, new_description, t_id, uuid))
+        if c.rowcount == 0:
+            # If no rows were updated, the transaction with the given id and user_id does not exist
+            raise TransactionNotFoundError(f"ERROR: You don't have permission to edit transaction with id {t_id} or it does not exist!")
+        log_write(f'T UPDATE: Updated ACCOUNT_DELETE transaction with id {t_id} to have name "{new_name}" and note "{new_description}"')
+
+
 def restore_account(account_id):
     """
     Restores an account by setting its deleted flag to false
@@ -1045,6 +1058,18 @@ def delete_envelope(envelope_id):
             c.execute("UPDATE envelopes SET display_order=NULL WHERE id=?", (envelope_id,))
         else:
             raise OtherError(f"ERROR: User {u.uuid} tried to delete unallocated envelope with id {envelope_id}")
+
+def edit_envelope_delete_transaction(uuid, t_id, new_name, new_description):
+    """
+    Edits the name and note of an ENVELOPE_DELETE transaction
+    These are the ONLY values that can be edited for this type of transaction
+    """
+    with conn:
+        c.execute("UPDATE transactions SET name=?, note=? WHERE (id=? AND user_id=?)", (new_name, new_description, t_id, uuid))
+        if c.rowcount == 0:
+            # If no rows were updated, the transaction with the given id and user_id does not exist
+            raise TransactionNotFoundError(f"ERROR: You don't have permission to edit transaction with id {t_id} or it does not exist!")
+        log_write(f'T UPDATE: Updated ENVELOPE_DELETE transaction with id {t_id} to have name "{new_name}" and note "{new_description}"')
 
 def restore_envelope(envelope_id):
     """

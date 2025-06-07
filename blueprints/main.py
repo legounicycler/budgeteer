@@ -444,73 +444,36 @@ def fill_envelopes(edited=False):
   except CustomException as e:
     return jsonify({"error": str(e)})
 
-@main_bp.route('/edit_delete_envelope', methods=['POST'])
+@main_bp.route('/edit_envelope_delete', methods=['POST'])
 @login_required
 @check_confirmed
-def edit_delete_envelope():
+def edit_envelope_delete():
   try:
     uuid = get_uuid_from_cookie()
-    u = get_user_by_uuid(uuid)
-    name = request.form['name']
-    note = request.form['note']
-    date = datetime.strptime(request.form['date'], "%m/%d/%Y")
-    envelope_id = request.form['envelope_id']
-    # timestamp = date_parse(request.form['timestamp']) #Don't need to check timestamp in this function
+    new_name = request.form['name']
+    new_note = request.form['note']
+    t_id = int(request.form['edit-id'])
     toasts = []
-
-    # A copy of the delete_envelope() function from database.py but with the info from the form pasted in
-    with conn:
-      if (envelope_id != u.unallocated_e_id): #You can't delete the unallocated envelope
-        e = get_envelope(envelope_id)
-        grouping = gen_grouping_num()
-        # 1. Empty the deleted envelope
-        t_envelope = Transaction(TType.ENVELOPE_DELETE, name, e.balance, date, envelope_id, None, grouping, note, None, 0, uuid, False)
-        insert_transaction(t_envelope)
-        # 2. Fill the unallocated envelope
-        t_unallocated = Transaction(TType.ENVELOPE_DELETE, name, -1*e.balance, date, u.unallocated_e_id, None, grouping, note, None, 0, uuid, False)
-        insert_transaction(t_unallocated)
-        # 3. Mark the envelope as deleted
-        c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
-        toasts.append("Transaction updated!")
-        log_write('E DELETE: ' + str(get_envelope(envelope_id)))
-      else:
-        raise InvalidFormDataError("ERROR: You cannot delete the unallocated envelope!")
-
+    edit_envelope_delete_transaction(uuid, t_id, new_name, new_note)
+    toasts.append("Transaction details updated!")
     health_check(toasts)
     return jsonify({'toasts': toasts})
   
   except CustomException as e:
     return jsonify({"error": str(e)})
 
-# TODO: Revisit this. There's probably no need to delete and recreate the transaction. Test to see what happens if you directly
-#       update the transaction details in the database
-@main_bp.route('/edit_delete_account', methods=['POST'])
+@main_bp.route('/edit_account_delete', methods=['POST'])
 @login_required
 @check_confirmed
-def edit_delete_account():
+def edit_account_delete():
   try:
     uuid = get_uuid_from_cookie()
-    u = get_user_by_uuid(uuid)
-    name = request.form['name']
-    note = request.form['note']
-    date = datetime.strptime(request.form['date'], "%m/%d/%Y")
-    account_id = request.form['account_id']
-    # timestamp = date_parse(request.form['timestamp']) #Don't need to check timestamp in this function
+    new_name = request.form['name']
+    new_note = request.form['note']
+    t_id = int(request.form['edit-id'])
     toasts = []
-    
-    # TODO: Look into why this can't be an account delete function in database.py so there is no sqlite here.
-    # A copy of the delete_account() function from database.py but with the info from the form pasted in
-    with conn:
-      a = get_account(account_id)
-      
-      # 1. Empty the deleted account
-      insert_transaction(Transaction(TType.ACCOUNT_DELETE, name, a.balance, date, u.unallocated_e_id, a.id, gen_grouping_num(), note, None, 0, uuid, False))
-
-      # 2. Mark the account as deleted
-      c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
-      toasts.append("Transaction updated!")
-      log_write('A DELETE: ' + str(get_account(account_id)))
-
+    edit_account_delete_transaction(uuid, t_id, new_name, new_note)
+    toasts.append("Transaction details updated!")
     health_check(toasts)
     return jsonify({'toasts': toasts})
   
@@ -565,14 +528,16 @@ def edit_transaction():
     elif (type == TType.ENVELOPE_FILL):
       response = fill_envelopes(True)
     elif (type == TType.ENVELOPE_DELETE):
-      response = edit_delete_envelope()
+      response = edit_envelope_delete()
     elif (type == TType.ACCOUNT_DELETE):
-      response = edit_delete_account()
+      response = edit_account_delete()
     elif (type == TType.ACCOUNT_ADJUST):
       response =  edit_account_adjust()
 
     if not response.json.get('error'):
-      delete_transaction(uuid, id) #Only delete the original transaction if you were successful in creating the replacement edited transaction
+      # If the transaction was an ENVELOPE_DELETE or ACCOUNT_DELETE, only the name/note was edited, so no need to delete the original transaction
+      if (type != TType.ENVELOPE_DELETE and type != TType.ACCOUNT_DELETE): 
+        delete_transaction(uuid, id) #Only delete the original transaction if you were successful in creating the replacement edited transaction
       
     return response
   
