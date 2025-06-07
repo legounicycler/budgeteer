@@ -775,7 +775,7 @@ def generate_scheduled_transaction(t, timestamp, should_consider_timestamp):
 
 # region ---------------ACCOUNT FUNCTIONS---------------
 
-def insert_account(a):
+def insert_account(a, timestamp):
     """
     Inserts new account and creates "initial account balance" transaction
     """
@@ -785,7 +785,7 @@ def insert_account(a):
     account_id = c.lastrowid
     income_name = 'Initial Account Balance: ' + a.name
     log_write('A INSERT: ' + str(get_account(account_id)))
-    insert_transaction(Transaction(TType.INCOME, income_name, -1 * a.balance, datetime.combine(date.today(), datetime.min.time()), u.unallocated_e_id, account_id, gen_grouping_num(), '', None, False, a.user_id, False))
+    insert_transaction(Transaction(TType.INCOME, income_name, -1 * a.balance, timestamp, u.unallocated_e_id, account_id, gen_grouping_num(), '', None, False, a.user_id, False))
 
 def get_account(id):
     """
@@ -916,7 +916,7 @@ def edit_accounts(uuid, accounts_to_edit, new_accounts, present_ids, timestamp):
         done_something = True
     # 2. Adds new accounts not present in old list
     for a in new_accounts:
-        insert_account(a)
+        insert_account(a, timestamp)
         done_something = True
     # 3. Deletes old accounts not present in new list
     for id in original_account_ids:
