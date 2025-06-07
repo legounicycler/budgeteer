@@ -1,4 +1,4 @@
-from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME, SECURITY_PASSWORD_SALT
+from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME, SECURITY_PASSWORD_SALT, WINDOWS_DATABASE_PATH, LINUX_DATABASE_PATH
 
 class Config:
     """Base configuration class with default settings."""
@@ -23,7 +23,7 @@ class Config:
 class DevelopmentConfig(Config):
     """Configuration for development environment."""
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
-    DATABASE_URI = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
+    DATABASE_URI = WINDOWS_DATABASE_PATH
 
 class TestingConfig(Config):
     """Configuration for testing environment."""
@@ -35,7 +35,7 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     """Configuration for production environment."""
     ENV = 'production'
-    DATABASE_URI = '/home/anthony/database.sqlite'
+    DATABASE_URI = LINUX_DATABASE_PATH
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
 
 # Configuration dictionary mapping names to classes

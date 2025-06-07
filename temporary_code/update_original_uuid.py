@@ -1,10 +1,11 @@
 import sqlite3, platform
+from secret import WINDOWS_DATABASE_PATH, LINUX_DATABASE_PATH
 
 platform = platform.system()
 if platform == 'Windows':
-    database = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
+    database = WINDOWS_DATABASE_PATH
 else:
-    database = '/home/opc/database.sqlite'
+    database = LINUX_DATABASE_PATH
 
 conn = sqlite3.connect(database, check_same_thread=False)
 c = conn.cursor()

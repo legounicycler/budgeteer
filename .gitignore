@@ -2,10 +2,7 @@
 static/node_modules/
 Things To Do.txt
 Exported_Transactions/
-EventLog.txt
 *.sqlite
-*.ppk
-*.key
 secret.py
 
 uploads/*
