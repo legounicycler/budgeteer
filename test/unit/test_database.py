@@ -17,7 +17,7 @@ def test_insert_transaction():
     cursor.execute("CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY, type TEXT, name TEXT, amount REAL, date TEXT, envelope_id INTEGER, account_id INTEGER, grouping TEXT, note TEXT, reconciled INTEGER, status TEXT, user_id TEXT, deleted INTEGER)")
     
     # Insert the transaction into the in-memory database
-    insert_transaction(t, conn)
+    insert_transaction(t)
     
     # Read the in-memory database to check if the inserted transaction is present
     cursor.execute("SELECT * FROM transactions WHERE id = ?", (t.id,))
@@ -27,7 +27,7 @@ def test_insert_transaction():
     assert result is not None, "Inserted transaction not found in the database"
     
     # Clean up the inserted transaction
-    delete_transaction("user_id", t.id, conn)
+    delete_transaction("user_id", t.id)
 
 def test_apply_transaction():
     # Test case for apply_transaction function

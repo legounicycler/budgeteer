@@ -12,9 +12,11 @@ from enum import Enum
 from exceptions import *
 from filters import balanceformat
 
-# Global variables
-conn = None
-c = None
+# Initialize global variables to dummy values to stop pytest warnings
+# These will be set to the actual database connection and cursor when the Database class is instantiated
+# when the app starts in budgeteer.py
+conn = sqlite3.connect(':memory:', check_same_thread=False)
+c = conn.cursor()
 
 # region ---------------CLASS DEFINITIONS---------------
 
@@ -106,12 +108,14 @@ class Database:
             log_write('NEW DATABASE HAS BEEN CREATED')
 
     def __str__(self):
-        return self.print_database()
+        self.print_database()
+        return ""
 
     def __repr__(self):
-        return self.print_database()
+        self.print_database()
+        return ""
 
-    def print_database(print_all=0,reverse=1):
+    def print_database(self, print_all=0, reverse=1):
         """
         Prints the contents of the database to the console.
         If the parameter print_all is 1, it will print all the transactions.
@@ -163,7 +167,7 @@ class Database:
         for row in c:
             colnames = colnames + row[1] + ', '
         print("(" + colnames[:-2] + ")\n")
-        c.execute("SELECT * FROM users ORDER BY user_id ASC")
+        c.execute("SELECT * FROM users ORDER BY uuid ASC")
         for row in c:
             print(row)
         print()
@@ -1057,7 +1061,7 @@ def delete_envelope(envelope_id):
             # 4. Set display_order of deleted envelope to NULL
             c.execute("UPDATE envelopes SET display_order=NULL WHERE id=?", (envelope_id,))
         else:
-            raise OtherError(f"ERROR: User {u.uuid} tried to delete unallocated envelope with id {envelope_id}")
+            raise OtherError(f"ERROR: User {u.id} tried to delete unallocated envelope with id {envelope_id}")
 
 def edit_envelope_delete_transaction(uuid, t_id, new_name, new_description):
     """
