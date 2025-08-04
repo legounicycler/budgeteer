@@ -2,7 +2,7 @@ from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME, SECURITY_PASSWORD_S
 
 class Config:
     """Base configuration class with default settings."""
-    ENV = 'development'
+    FLASK_ENV = 'development'
     SECRET_KEY = SECRET_KEY
     WTF_CSRF_ENABLED = True
     TESTING = False
@@ -22,6 +22,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     """Configuration for development environment."""
+    DEBUG = True
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
     DATABASE_URI = WINDOWS_DATABASE_PATH
 
@@ -34,7 +35,7 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     """Configuration for production environment."""
-    ENV = 'production'
+    FLASK_ENV = 'production'
     DATABASE_URI = LINUX_DATABASE_PATH
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
 

@@ -193,8 +193,8 @@ def new_expense(edited=False):
     envelope_ids = []
     try: 
       for i in range(len(str_amounts)):
-        amounts[i] = int(round(float(str_amounts[i]) * 100))
-        envelope_ids[i] = int(str_envelope_ids[i])
+        amounts.append(int(round(float(str_amounts[i]) * 100)))
+        envelope_ids.append(int(str_envelope_ids[i]))
     except:
       raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for new_expense!")
     
@@ -405,8 +405,8 @@ def fill_envelopes(edited=False):
         if str_amounts[i] == "":
           deletes.append(i)
         else:
-          amounts[i] = int(round(float(str_amounts[i])*100))
-          envelope_ids[i] = int(str_envelope_ids[i])
+          amounts.append(int(round(float(str_amounts[i])*100)))
+          envelope_ids.append(int(str_envelope_ids[i]))
       for index in reversed(deletes):
         amounts.pop(index)
         envelope_ids.pop(index)
