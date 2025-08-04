@@ -3,24 +3,170 @@ This file contains functions relevant to actually manipulating values in the dat
 """
 
 # Library imports
-import sqlite3, datetime, platform, hashlib, secrets, calendar, copy
-from datetime import datetime, timedelta
-from datetime import date
+import sqlite3, datetime, hashlib, secrets, calendar
+from datetime import datetime, timedelta, date
 from flask_login import UserMixin
 from enum import Enum
 
 # Custom Imports
 from exceptions import *
-from logging import *
+from filters import balanceformat
 
-app_platform = platform.system()
-if app_platform == 'Windows':
-    database = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
-else:
-    database = '/home/opc/database.sqlite'
+# Global variables
+conn = None
+c = None
 
-conn = sqlite3.connect(database, check_same_thread=False)
-c = conn.cursor()
+# region ---------------CLASS DEFINITIONS---------------
+
+class Database:
+
+    def __init__(self, uri):
+        """
+        Initialize the Database object with the given URI (universal resource indicator).
+        
+        Parameters:
+        - uri (str): The database URI.
+        """
+        self.uri = uri
+
+    def get_conn(self):
+        global conn, c
+        conn = sqlite3.connect(self.uri, check_same_thread=False)
+        c = conn.cursor()
+
+    def close_conn(self, exception=None):
+        print("Closing database connection...")
+        if exception is not None:
+            log_write(f"CONN CLOSE EXCEPTION: {str(exception)}")
+        conn.close()
+
+    def create_tables(self):
+        with conn:
+            c.execute("""
+                CREATE TABLE transactions (
+                    id INTEGER PRIMARY KEY,
+                    type INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    amount INTEGER NOT NULL,
+                    day DATE NOT NULL,
+                    envelope_id INTEGER,
+                    account_id INTEGER,
+                    grouping INTEGER NOT NULL,
+                    note TEXT NOT NULL DEFAULT '',
+                    schedule TEXT,
+                    status BOOLEAN NOT NULL DEFAULT 0,
+                    user_id TEXT NOT NULL,
+                    a_reconcile_bal INTEGER NOT NULL DEFAULT 0,
+                    e_reconcile_bal INTEGER NOT NULL DEFAULT 0,
+                    pending BOOLEAN NOT NULL DEFAULT 0
+                    )
+                """)
+
+            c.execute("""
+                CREATE TABLE accounts (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    balance INTEGER NOT NULL DEFAULT 0,
+                    deleted BOOLEAN NOT NULL DEFAULT 0,
+                    user_id TEXT NOT NULL,
+                    display_order INTEGER
+                    )
+                """)
+
+            c.execute("""
+                CREATE TABLE envelopes (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    balance INTEGER NOT NULL DEFAULT 0,
+                    budget INTEGER NOT NULL DEFAULT 0,
+                    deleted BOOLEAN NOT NULL DEFAULT 0,
+                    user_id TEXT NOT NULL,
+                    display_order INTEGER
+                    )
+                """)
+
+            c.execute("""
+                CREATE TABLE users (
+                    uuid TEXT PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    password_salt TEXT NOT NULL,
+                    first_name TEXT NOT NULL,
+                    last_name TEXT NOT NULL,
+                    registered_on TEXT NOT NULL,
+                    unallocated_e_id INTEGER NOT NULL,
+                    confirmed BOOLEAN NOT NULL DEFAULT 0,
+                    confirmed_on TEXT,
+                    last_login TEXT,
+                    FOREIGN KEY (unallocated_e_id) REFERENCES envelopes(id)
+                    )
+                """)
+
+            print("New database has been created!")
+            log_write('NEW DATABASE HAS BEEN CREATED')
+
+    def __str__(self):
+        return self.print_database()
+
+    def __repr__(self):
+        return self.print_database()
+
+    def print_database(print_all=0,reverse=1):
+        """
+        Prints the contents of the database to the console.
+        If the parameter print_all is 1, it will print all the transactions.
+        If no parameter is provided, it will only print the envelopes and accounts
+        """
+        print()
+        if print_all == 1:
+            print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
+            print("TRANSACTIONS:")
+            c.execute("PRAGMA table_info(transactions)")
+            colnames = ''
+            for row in c:
+                colnames = colnames + row[1] + ', '
+            print("(" + colnames[:-2] + ")\n")
+            if reverse == 1:
+                c.execute("SELECT * FROM transactions ORDER BY day ASC, id ASC")
+            else:
+                c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
+            for row in c:
+                print(row)
+            print()
+        
+        print('ACCOUNTS:')
+        c.execute("PRAGMA table_info(accounts)")
+        colnames = ''
+        for row in c:
+            colnames = colnames + row[1] + ', '
+        print("(" + colnames[:-2] + ")\n")
+        c.execute("SELECT * FROM accounts ORDER BY display_order ASC, id ASC")
+        for row in c:
+            print(row)
+        print()
+
+        print('ENVELOPES:')
+        c.execute("PRAGMA table_info(envelopes)")
+        colnames = ''
+        for row in c:
+            colnames = colnames + row[1] + ', '
+        print("(" + colnames[:-2] + ")\n")
+        c.execute("SELECT * FROM envelopes ORDER BY display_order ASC, id ASC")
+        for row in c:
+            print(row)
+        print()
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
+
+        print('USERS:')
+        c.execute("PRAGMA table_info(users)")
+        colnames = ''
+        for row in c:
+            colnames = colnames + row[1] + ', '
+        print("(" + colnames[:-2] + ")\n")
+        c.execute("SELECT * FROM users ORDER BY user_id ASC")
+        for row in c:
+            print(row)
+        print()
 
 class TType(Enum):
     BASIC_TRANSACTION = (0, "Basic Transaction", "local_atm")
@@ -30,7 +176,7 @@ class TType(Enum):
     SPLIT_TRANSACTION = (4, "Split Transaction", "call_split")
     ENVELOPE_FILL = (5, "Envelope Fill", "input")
     ENVELOPE_DELETE = (6, "Envelope Delete", "layers_clear")
-    ACCOUNT_DELETE = (7, "Account Delete", "lmoney_off")
+    ACCOUNT_DELETE = (7, "Account Delete", "money_off")
     ACCOUNT_ADJUST = (8, "Account Adjust", "build")
 
     def __init__(self, id, desc, icon):
@@ -44,10 +190,6 @@ class TType(Enum):
             if t.value[0] == value:
                 return t
         raise ValueError(f"ERROR: {value} is not a valid TType value!")
-
-    
-
-# region ---------------CLASS DEFINITIONS---------------
 
 class Transaction:
     def __init__(self, type: 'TType', name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id, pending):
@@ -97,20 +239,30 @@ class Envelope:
         return "ID:{}, NAME:{}, BAL:{}, BUDG:{}, DEL:{}, U_ID:{}, DISP:{}".format(self.id,self.name,self.balance,self.budget,self.deleted,self.user_id,self.display_order)
 
 class User(UserMixin):
-    def __init__(self, uuid, email, password_hash, password_salt, first_name, last_name, unallocated_e_id=None):
+    def __init__(self, uuid, email, password_hash, password_salt, first_name, last_name, registered_on, unallocated_e_id=None, confirmed=False, confirmed_on=None, last_login=None):
         self.id = uuid
         self.email = email
         self.password_hash = password_hash
         self.password_salt = password_salt
         self.first_name = first_name
         self.last_name = last_name
+        self.registered_on = registered_on
         self.unallocated_e_id = unallocated_e_id
+        self.confirmed = confirmed
+        self.confirmed_on = confirmed_on
+        self.last_login = last_login
+    @staticmethod
+    def hash_password(password, salt=None):
+        if salt is None:
+            salt = secrets.token_hex(16)
+        hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
+        return hashed_password, salt
     def check_password(self, password):
-        return hash_password(password, self.password_salt)[0] == self.password_hash
+        return User.hash_password(password, self.password_salt)[0] == self.password_hash
     def __repr__(self):
-        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, U_EID: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.unallocated_e_id)
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, REG_ON: {}, U_EID: {}, CONF: {}, CONF_ON: {}, LAST_LOGIN: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.registered_on, self.unallocated_e_id, self.confirmed, self.confirmed_on, self.last_login)
     def __str__(self):
-        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, U_EID: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.unallocated_e_id)
+        return '<UUID: {}, EMAIL: {}, PWD_HASH: {}, SALT: {}, FIRST: {}, LAST: {}, REG_ON: {} , U_EID: {}, CONF: {}, CONF_ON: {}, LAST_LOGIN: {}>'.format(self.id, self.email, self.password_hash, self.password_salt, self.first_name, self.last_name, self.registered_on, self.unallocated_e_id, self.confirmed, self.confirmed_on, self.last_login)
 
 # endregion CLASS DEFINITIONS
 
@@ -120,24 +272,6 @@ def unpack(list_of_tuples):
     for item in list_of_tuples:
         unpacked_array.append(item[0])
     return unpacked_array
-
-def hash_password(password, salt=None):
-  if salt is None:
-    salt = secrets.token_hex(16)
-  hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
-  return hashed_password, salt
-
-def balanceformat(number):
-    """
-    Formats amount numbers into a string with a "$" and "-" if necessary for display
-    """
-    if number is None:
-        string = "NAN"
-    else:
-        string = '$%.2f' % abs(number)
-        if number < 0:
-            string = '-' + string
-    return string
 
 def date_parse(date_str):
     """
@@ -554,35 +688,62 @@ def new_split_transaction(t):
 # TODO: When implementing unit testing, test what happens if the timestamp is not in the correct format
 def check_pending_transactions(uuid, timestamp):
     """
-    Given a timestamp passed in from the user's browser, apply or unapply the pending transactions in the database and set the pending flag accordingly
+    Given a timestamp passed in from the user's browser, apply or unapply the pending transactions in the database and set the pending flag accordingly.
+    If a transaction with a schedule is applied, also generate/insert the corresponding scheduled transactions
+    PARAMS:
+        uuid (str): User UUID
+        timestamp (str): Timestamp passed in from the user's browser with format "yyyy-mm-dd hh:mm:ss"
+    RETURNS:
+        None
     """
     with conn:
 
-        # 1. Apply pending transactions that are before the timestamp
+        # 1. Fetch all the pending transactions that are from on/before the timestamp and organize them into sublists by their grouping number
         c.execute("SELECT id FROM transactions WHERE pending=1 AND user_id=? AND date(day) <= date(?)",(uuid, timestamp[0:10],)) 
         t_ids = c.fetchall()
-        if len(t_ids) != 0:
-            for id in t_ids:
-                t = get_transaction(id[0])
+        grouped_ts = []
+        prev_t_grouping = None
+        for id in t_ids:
+            t = get_transaction(id[0])
+            if prev_t_grouping != t.grouping:
+                prev_t_grouping = t.grouping
+                grouped_ts.append([t])
+            else:
+                grouped_ts[len(grouped_ts)-1].append(t)
+                prev_t_grouping = t.grouping
+
+        # 2. Apply the transactions, then create scheduled transactions if applicable
+        for grouped_ts_list in grouped_ts:
+
+            # 2.1 Apply the transactions
+            for t in grouped_ts_list:
                 apply_transaction(t.account_id, t.envelope_id, t.amt)
                 c.execute("UPDATE transactions SET pending=0,schedule=null WHERE id=?",(t.id,))
+            
+            # 2.2 Create new scheduled transaction(s) if applicable
+            grouped_ts_list_to_check = grouped_ts_list # The transactions from which you will be creating new scheduled transactions
+            should_create_more = True
+            while should_create_more is True:
+
+                # 2.3 Generate a list of the grouped new scheduled transactions (list will be empty if there are no new scheduled transactions)
+                new_scheduled_grouped_t_list = []
+                for t in grouped_ts_list_to_check:
+                    new_scheduled_t = generate_scheduled_transaction(t, date_parse(timestamp), False)
+                    if new_scheduled_t is not None:
+                        new_scheduled_grouped_t_list.append(new_scheduled_t)
                 
-                # 1.1 Create scheduled transactions if the transaction is scheduled
-                if (t.schedule is not None):
-                    
-                    isPending = False
-                    next_t = t
-                    
-                    # Keep creating scheduled transactions until you create one with a date after the timestamp
-                    while isPending == False:
-                        scheduled_t = create_scheduled_transaction(next_t, date_parse(timestamp), False)
-                        isPending = scheduled_t.pending
-                        next_t = copy.deepcopy(scheduled_t)
-                        if isPending == False:
-                            scheduled_t.schedule = None  # Clear out the schedule field if it's not a pending transaction
-                        insert_transaction(scheduled_t)
-        
-        # 2. Unapply pending transactions that are after the timestamp
+                # 2.4 If there are new scheduled transactions to insert, update their grouping number and insert them into the database
+                if len(new_scheduled_grouped_t_list) > 0:
+                    grouping = gen_grouping_num()
+                    for t in new_scheduled_grouped_t_list:
+                        should_create_more = not t.pending # If the newly created transaction is pending (date is in the future compared to the user's timestamp), stop attempting to create new scheduled transactions
+                        t.grouping = grouping
+                        insert_transaction(t)
+                    grouped_ts_list_to_check = new_scheduled_grouped_t_list # Set the new transactions to be the transactions from which you will be creating new scheduled transactions
+                else:
+                    should_create_more = False # If there are no new scheduled transactions, stop attempting to create new scheduled transactions
+
+        # 3. Unapply pending transactions that are after the timestamp
         c.execute("SELECT id,account_id,envelope_id,amount FROM transactions WHERE pending=0 AND user_id=? AND date(day) > date(?)",(uuid, timestamp[0:10],))
         t_data_list = c.fetchall()
         if len(t_data_list) != 0:
@@ -592,18 +753,29 @@ def check_pending_transactions(uuid, timestamp):
     
     return None
 
-def create_scheduled_transaction(t, timestamp, should_consider_timestamp):
+def generate_scheduled_transaction(t, timestamp, should_consider_timestamp):
     """
-    Given a transaction, create a new transaction with the same parameters, but with a new date
+    Generate the next transaction that will occur after a given scheduled transaction.
+    (i.e. an identical transaction with a date a week later, a month later, etc.)
+    PARAMS:
+        t (Transaction): The scheduled transaction
+        timestamp (str): Timestamp passed in from the user's browser with format "yyyy-mm-dd hh:mm:ss"
+        should_consider_timestamp (bool): Whether to generate a transaction directly after the original transaction's date (False), or generate a transaction on the first valid date after the timestamp (True)
+    RETURNS:
+        (Transaction): An identical transaction to the input t but with a future date according to the original transaction's schedule (i.e. with date a week later, month later, etc.)
+        OR None If the original transaction has no schedule
     """
-    nextdate = schedule_date_calc(t.date, t.schedule, timestamp, should_consider_timestamp)
-    return Transaction(t.type, t.name, t.amt, nextdate, t.envelope_id, t.account_id, gen_grouping_num(), t.note, t.schedule, t.status, t.user_id, is_pending(nextdate, timestamp))
+    if (t.schedule is not None):
+        nextdate = schedule_date_calc(t.date, t.schedule, timestamp, should_consider_timestamp)
+        return Transaction(t.type, t.name, t.amt, nextdate, t.envelope_id, t.account_id, None, t.note, t.schedule, t.status, t.user_id, is_pending(nextdate, timestamp))
+    else:
+        return None
 
 # endregion TRANSACTION FUNCTIONS
 
 # region ---------------ACCOUNT FUNCTIONS---------------
 
-def insert_account(a):
+def insert_account(a, timestamp):
     """
     Inserts new account and creates "initial account balance" transaction
     """
@@ -613,7 +785,7 @@ def insert_account(a):
     account_id = c.lastrowid
     income_name = 'Initial Account Balance: ' + a.name
     log_write('A INSERT: ' + str(get_account(account_id)))
-    insert_transaction(Transaction(TType.INCOME, income_name, -1 * a.balance, datetime.combine(date.today(), datetime.min.time()), u.unallocated_e_id, account_id, gen_grouping_num(), '', None, False, a.user_id, False))
+    insert_transaction(Transaction(TType.INCOME, income_name, -1 * a.balance, timestamp, u.unallocated_e_id, account_id, gen_grouping_num(), '', None, False, a.user_id, False))
 
 def get_account(id):
     """
@@ -681,6 +853,19 @@ def delete_account(account_id):
         #3. Set the displaly_order to NULL
         c.execute("UPDATE accounts SET display_order=NULL WHERE id=?", (account_id,))
 
+def edit_account_delete_transaction(uuid, t_id, new_name, new_description):
+    """
+    Edits the name and note of an ACCOUNT_DELETE transaction
+    These are the ONLY values that can be edited for this type of transaction
+    """
+    with conn:
+        c.execute("UPDATE transactions SET name=?, note=? WHERE (id=? AND user_id=?)", (new_name, new_description, t_id, uuid))
+        if c.rowcount == 0:
+            # If no rows were updated, the transaction with the given id and user_id does not exist
+            raise TransactionNotFoundError(f"ERROR: You don't have permission to edit transaction with id {t_id} or it does not exist!")
+        log_write(f'T UPDATE: Updated ACCOUNT_DELETE transaction with id {t_id} to have name "{new_name}" and note "{new_description}"')
+
+
 def restore_account(account_id):
     """
     Restores an account by setting its deleted flag to false
@@ -744,7 +929,7 @@ def edit_accounts(uuid, accounts_to_edit, new_accounts, present_ids, timestamp):
         done_something = True
     # 2. Adds new accounts not present in old list
     for a in new_accounts:
-        insert_account(a)
+        insert_account(a, timestamp)
         done_something = True
     # 3. Deletes old accounts not present in new list
     for id in original_account_ids:
@@ -874,6 +1059,18 @@ def delete_envelope(envelope_id):
         else:
             raise OtherError(f"ERROR: User {u.uuid} tried to delete unallocated envelope with id {envelope_id}")
 
+def edit_envelope_delete_transaction(uuid, t_id, new_name, new_description):
+    """
+    Edits the name and note of an ENVELOPE_DELETE transaction
+    These are the ONLY values that can be edited for this type of transaction
+    """
+    with conn:
+        c.execute("UPDATE transactions SET name=?, note=? WHERE (id=? AND user_id=?)", (new_name, new_description, t_id, uuid))
+        if c.rowcount == 0:
+            # If no rows were updated, the transaction with the given id and user_id does not exist
+            raise TransactionNotFoundError(f"ERROR: You don't have permission to edit transaction with id {t_id} or it does not exist!")
+        log_write(f'T UPDATE: Updated ENVELOPE_DELETE transaction with id {t_id} to have name "{new_name}" and note "{new_description}"')
+
 def restore_envelope(envelope_id):
     """
     Restores an envelope by setting its deleted flag to false
@@ -974,7 +1171,7 @@ def envelope_fill(t):
 
 # endregion ENVELOPE FUNCTIONS
 
-# region USER FUNCTIONS ------ #
+# region ---------------USER FUNCTIONS---------------
 def get_user_by_email(email):
     """
     Given an email address, return a User object if the email is in the database, or return none if not
@@ -984,6 +1181,7 @@ def get_user_by_email(email):
         u = c.fetchone()
         if u is not None:
             user = User(*u)
+            user.confirmed = bool(user.confirmed)
             return user
         else:
             return None
@@ -991,44 +1189,78 @@ def get_user_by_email(email):
 def get_user_for_flask(uuid):
     """
     Given a uuid, return a User object if the uuid is in the database, or return None if not
-    Note: Must return None, and not throw an exception
+    Note: Used by the flask user_loader function, which requires that this function returns None and NOT throw an exception
     """
-    conn = sqlite3.connect(database, check_same_thread=False)
-    c = conn.cursor()
     c.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
     u = c.fetchone()
-    c.close()
+    # c.close()
     if u is not None:
         user = User(*u)
+        user.confirmed = bool(user.confirmed)
         return user
     else:
         return None
 
 def get_user_by_uuid(uuid):
     """
-    Given a uuid address, return a User object if the uuid is in the database, or return none if not
+    Given a uuid address, return a User object if the uuid is in the database, or return an error if not
     """
     c.execute("SELECT * FROM users WHERE uuid=?",(uuid,))
     udata = c.fetchone()
     if udata is not None:
         user = User(*udata)
+        user.confirmed = bool(user.confirmed)
         return user
     else:
         raise UserNotFoundError(f"No user exists with uuid {uuid}")
 
 def insert_user(u):
+    """
+    Given a user object, insert a new user entry into the users table
+    """
     with conn:
         # 1. Create a new unallocated envelope for the user
         insert_envelope(Envelope(None, "Unallocated", 0, 0, False, u.id, 0))
 
         # 2. Insert the new user into the database referencing the ID of the newly created unallocated envelope
-        c.execute("INSERT INTO users (uuid, email, password_hash, password_salt, first_name, last_name, unallocated_e_id) VALUES (?,?,?,?,?,?, (SELECT id FROM envelopes WHERE user_id=? LIMIT 1))", (u.id, u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.id))
+        c.execute("INSERT INTO users (uuid, email, password_hash, password_salt, first_name, last_name, registered_on, unallocated_e_id) VALUES (?,?,?,?,?,?,?, (SELECT id FROM envelopes WHERE user_id=? LIMIT 1))", (u.id, u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.registered_on, u.id))
 
-# TODO: Implement soft and hard user deletes (hard deletes delete all user data, soft deletes sets a deleted flag to true)
+def confirm_user(u):
+    """
+    Given a user object, set the user's confirmed field to True in the database
+    """
+    with conn:
+        date = datetime.now()
+        c.execute("UPDATE users SET confirmed=1, confirmed_on=? WHERE uuid=?", (date, u.id))
+        
+        # Update the user object to reflect the database changes
+        u.confirmed = True
+        u.registered_on = date
+
 def delete_user(uuid):
+    """
+    Deletes the user from the database along with all envelopes, accounts, and transactions associated with the user
+    """
     with conn:
         c.execute("DELETE FROM users WHERE uuid=?", (uuid,))
+        c.execute("DELETE FROM envelopes WHERE user_id=?", (uuid,))
+        c.execute("DELETE FROM accounts WHERE user_id=?", (uuid,))
+        c.execute("DELETE FROM transactions WHERE user_id=?", (uuid,))
         
+def update_user(u):
+    """
+    Given a user, update all the fields in the database to match the user object's fields
+    """
+    with conn:
+        c.execute("UPDATE users SET email=?, password_hash=?, password_salt=?, first_name=?, last_name=?, registered_on=?, unallocated_e_id=?, confirmed=?, confirmed_on=? WHERE uuid=?", (u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.registered_on, u.unallocated_e_id, u.confirmed, u.confirmed_on, u.id))
+
+def update_user_last_login(u, date):
+    """
+    Set the last_login field in the database to be the provided date
+    This function is called each time a user logs in.
+    """
+    with conn:
+        c.execute("UPDATE users SET last_login=? WHERE uuid=?", (date, u.id))
 
 # endregion USER FUNCTIONS
 
@@ -1292,69 +1524,6 @@ def health_check(toasts, interactive=False):
 
 # endregion OTHER FUNCTIONS
 
-# region ---------------DEBUGGING FUNCTIONS---------------
-
-def print_database(print_all=0,reverse=1):
-    """
-    Prints the contents of the database to the console.
-    If the parameter print_all is 1, it will print all the transactions.
-    If no parameter is provided, it will only print the envelopes and accounts
-    """
-    print()
-    if print_all == 1:
-        print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
-        print("TRANSACTIONS:")
-        c.execute("PRAGMA table_info(transactions)")
-        colnames = ''
-        for row in c:
-            colnames = colnames + row[1] + ', '
-        print("(" + colnames[:-2] + ")\n")
-        if reverse == 1:
-            c.execute("SELECT * FROM transactions ORDER BY day ASC, id ASC")
-        else:
-            c.execute("SELECT * FROM transactions ORDER BY day DESC, id DESC")
-        for row in c:
-            print(row)
-        print()
-    
-    print('ACCOUNTS:')
-    c.execute("PRAGMA table_info(accounts)")
-    colnames = ''
-    for row in c:
-        colnames = colnames + row[1] + ', '
-    print("(" + colnames[:-2] + ")\n")
-    c.execute("SELECT * FROM accounts ORDER BY display_order ASC, id ASC")
-    for row in c:
-        print(row)
-    print()
-
-    print('ENVELOPES:')
-    c.execute("PRAGMA table_info(envelopes)")
-    colnames = ''
-    for row in c:
-        colnames = colnames + row[1] + ', '
-    print("(" + colnames[:-2] + ")\n")
-    c.execute("SELECT * FROM envelopes ORDER BY display_order ASC, id ASC")
-    for row in c:
-        print(row)
-    print()
-    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
-
-    print('USERS:')
-    c.execute("PRAGMA table_info(users)")
-    colnames = ''
-    for row in c:
-        colnames = colnames + row[1] + ', '
-    print("(" + colnames[:-2] + ")\n")
-    c.execute("SELECT * FROM users ORDER BY user_id ASC")
-    for row in c:
-        print(row)
-    print()
-
-# endregion DEBUGGING FUNCTIONS
-
-def main():
-    print_database()
-
 if __name__ == "__main__":
-    main()
+    # If you're running this file directly from the command line...
+    print("This is a module, not meant to be run directly!")

@@ -13,7 +13,7 @@
         </div>
         <div class="divider"></div>
     
-        <form id="bug-report-form" method="POST" action="{{ url_for('bug_report') }}" enctype="multipart/form-data">
+        <form id="bug-report-form" method="POST" action="{{ url_for('main.bug_report') }}" enctype="multipart/form-data">
             <div class="row">
                 <div class="input-field col s6">
                     <input id="bug_reporter_name" type="text" name="bug_reporter_name" required>

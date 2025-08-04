@@ -1,73 +1,36 @@
 from database import *
-import platform
-import sys, os
+from secret import WINDOWS_DATABASE_PATH, LINUX_DATABASE_PATH
+import platform, sys
+from blueprints.auth import generate_uuid
+from database import User, insert_user, confirm_user
 
-platform = platform.system()
-if platform == 'Windows':
-    database = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\database.sqlite'
-else:
-    database = '/home/opc/database.sqlite'
+create_default_user = False
+    
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        for i, arg in enumerate(sys.argv):
+            if arg == "--default-user" or arg == "-du":
+                # Check if the script is run with the --default-user or -du argument
+                 # If so, create a default user to avoid having to manually create one and sending a confirmation email
+                create_default_user = True
+                
+    platform = platform.system()
+    if platform == 'Windows':
+        database = WINDOWS_DATABASE_PATH
+    else:
+        database = LINUX_DATABASE_PATH
 
-conn = sqlite3.connect(database, check_same_thread=False)
-c = conn.cursor()
-
-c.execute("""
-    CREATE TABLE transactions (
-        id INTEGER PRIMARY KEY,
-        type INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        amount INTEGER NOT NULL,
-        day DATE NOT NULL,
-        envelope_id INTEGER,
-        account_id INTEGER,
-        grouping INTEGER NOT NULL,
-        note TEXT NOT NULL DEFAULT '',
-        schedule TEXT,
-        status BOOLEAN NOT NULL DEFAULT 0,
-        user_id NOT NULL,
-        a_reconcile_bal INTEGER NOT NULL DEFAULT 0,
-        e_reconcile_bal INTEGER NOT NULL DEFAULT 0,
-        pending BOOLEAN NOT NULL DEFAULT 0
-        )
-    """)
-
-c.execute("""
-    CREATE TABLE accounts (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,
-        balance INTEGER NOT NULL DEFAULT 0,
-        deleted BOOLEAN NOT NULL DEFAULT 0,
-        user_id INTEGER NOT NULL,
-        display_order INTEGER
-        )
-    """)
-
-c.execute("""
-    CREATE TABLE envelopes (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,
-        balance INTEGER NOT NULL DEFAULT 0,
-        budget INTEGER NOT NULL DEFAULT 0,
-        deleted BOOLEAN NOT NULL DEFAULT 0,
-        user_id INTEGER NOT NULL,
-        display_order INTEGER
-        )
-    """)
-
-c.execute("""
-    CREATE TABLE users (
-        uuid TEXT PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        password_salt TEXT NOT NULL,
-        first_name TEXT NOT NULL,
-        last_name TEXT NOT NULL,
-        unallocated_e_id INTEGER NOT NULL,
-        FOREIGN KEY (unallocated_e_id) REFERENCES envelopes(id)
-        )
-    """)
-
-c.close()
-
-print("New database has been created!")
-log_write('\n\n\nNEW DATABASE HAS BEEN CREATED \n\n\n')
+    try:
+        with open(database, "x") as f:
+            db = Database(database)
+            db.get_conn()
+            db.create_tables()
+            if create_default_user:
+                (new_password_hash, new_password_salt) = User.hash_password("password")
+                new_user = User(generate_uuid(), "email@example.com", new_password_hash, new_password_salt, "Firstname", "Lastname", datetime.now())
+                insert_user(new_user)
+                confirm_user(new_user)
+            db.close_conn()
+    except FileExistsError:
+        print(f"Database file already exists at {database}")
+        print("If you want to recreate the database, please delete the existing file and run this script again.")

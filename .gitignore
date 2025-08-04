@@ -2,10 +2,16 @@
 static/node_modules/
 Things To Do.txt
 Exported_Transactions/
-EventLog.txt
 *.sqlite
-*.ppk
-*.key
 secret.py
+
 uploads/*
 !uploads/.gitkeep
+
+logs/*
+!logs/.gitkeep
+
+test/unit/logs/*
+!test/unit/logs/.gitkeep
+
+.venv

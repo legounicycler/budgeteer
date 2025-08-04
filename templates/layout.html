@@ -16,6 +16,9 @@
 
 <body>
 
+  <!-- Hidden CSRF token input -->
+  <input id="csrf-token" type="hidden" value="{{csrf_token()}}">
+
   <!-- Loading spinner overlay -->
   <div id="loading-div">
     <div class="preloader-wrapper big active">
@@ -46,7 +49,7 @@
     <li id="settings"><a href="#" class="waves-effect"><i class="material-icons">settings</i>Settings</a></li>
     <li id="bug-report"><a href="#bug-report-modal" class="waves-effect modal-trigger"><i class="material-icons">bug_report</i>Report a bug</a></li>
     <li id="about"><a href="#" class="waves-effect"><i class="material-icons">info</i>About Budgeteer</a></li>
-    <li id="logout"><a href="{{url_for('logout')}}" class="waves-effect"><i class="material-icons">vpn_key</i>Log Out</a></li>
+    <li id="logout"><a href="{{url_for('auth.logout')}}" class="waves-effect"><i class="material-icons">vpn_key</i>Log Out</a></li>
   </ul>
 
 	<!-- Main Nav -->
@@ -120,7 +123,7 @@
 
       <!-- RIGHT CONTENT -->
       <div class="col s12 m12 l8" id="transactions-column">
-        <form id="multi-delete-form" action="{{ url_for('multi_delete') }}" method="post">
+        <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
           <div id="transaction-header" class="orange lighten-1 white-text">
             <div class="row" id="title-row">
               <div id = "page-title-col" class="col s11 left-align">
@@ -142,6 +145,17 @@
         </div>
       </form>
     </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul id="flash-toasts" class="hidden">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
   </main>
 
   <div id="fullscreen-wrapper"></div>

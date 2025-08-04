@@ -12,7 +12,7 @@
       <div id="expense" class="col s12">
         <h3>Expense</h3>
         <div class="row">
-          <form class="col s12" id="new-expense-form" action="{{ url_for('new_expense') }}" data-remain-open ="0" method="post">
+          <form class="col s12" id="new-expense-form" action="{{ url_for('main.new_expense') }}" data-remain-open ="0" method="post">
             <div class="row">
               <div class="input-field col s12">
                 <input class="validate" type="text" name="name" required>
@@ -125,7 +125,7 @@
         <h3>Transfer</h3>
         <div class="row">
 
-          <form class="col s12" id="new-transfer-form" action="{{ url_for('new_transfer') }}" data-remain-open ="0" method="post">
+          <form class="col s12" id="new-transfer-form" action="{{ url_for('main.new_transfer') }}" data-remain-open ="0" method="post">
 
             <div class="row">
               <div class="input-field col s12">
@@ -268,7 +268,7 @@
         <h3>Income</h3>
 
         <div class="row">
-          <form class="col s12" id="new-income-form" action="{{ url_for('new_income') }}" data-remain-open ="0" method="post">
+          <form class="col s12" id="new-income-form" action="{{ url_for('main.new_income') }}" data-remain-open ="0" method="post">
             <div class="row">
               <div class="input-field col s12">
                 <input class="validate" type="text" name="name" required>

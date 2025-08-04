@@ -42,6 +42,11 @@ body {
     cursor: pointer
 }
 
+/* Adds margin for the forgot-your-password modal header */
+.modal-content h3 {
+    margin-bottom: .5em;
+}
+
 @media only screen and (max-width: 992px) {
     
     #orange-div {

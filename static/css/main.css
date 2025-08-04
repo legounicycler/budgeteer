@@ -62,6 +62,10 @@
   scrollbar-width: none;  /* Firefox */
 }
 
+.hidden {
+  display: none;
+}
+
 .table-header {
   margin: 0;
 }
@@ -247,6 +251,10 @@ input[type="text"]:not(.special-fill-input, .special-input-envelope-editor, .spe
   cursor: pointer;
 }
 
+.transaction-row {
+  cursor: default;
+}
+
 .transaction-link {
   color: black;
   padding: 0 !important;
@@ -403,7 +411,7 @@ h5.no-margin {
   pointer-events: none !important;
 }
 
-.transaction-status, .envelope-budget, .transaction-name, .transaction-amount, .envelope-balance, .account-balance, .transaction-type, .delete-account, .delete-envelope {
+.transaction-status, .envelope-budget, .transaction-name, .transaction-amount, .envelope-balance, .envelope-balance-col, .account-balance, .transaction-type, .delete-account, .delete-envelope {
   border-left: 1px solid #e0e0e0;
 }
 

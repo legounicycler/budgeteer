@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+  <title>Budgeteer</title>
+
+  <!-- CSS  -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="{{url_for('static', filename='css/materialize.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/style.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/main.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/unconfirmed.css')}}" type = text/css rel="stylesheet" media="screen,projection"/>
+  <link rel="icon" href="/static/img/icon.png">
+</head>
+
+<body>
+
+    <!-- Main Nav -->
+    <div class="navbar-fixed">
+      <nav class="yellow darken-4">
+        <div class="nav-wrapper">
+            <div id="logo-container" class="brand-logo center"><img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo"></div>
+        </div>
+      </nav>
+    </div>
+
+  <!-- Content -->
+  <main>
+    <div class="row">
+        <div class="col s12 m6 offset-m3">
+            <div class="card-panel">
+                <h1 class="center-align">Whoops!</h1>
+                <div class="divider"></div>
+                <h5>You've encountered the following error:</h5>
+                <p class="center-align red-text text-darken-2">{{message}}</p>
+                <h5 class="center-align">Return to <a href="{{url_for('main.home')}}">budgeteerapp.com</a></h5>
+            </div>
+        </div>
+    </div>
+  </main>
+
+  <script src="{{url_for('static', filename='node_modules/jquery/dist/jquery.min.js')}}"></script>
+  <script src="{{url_for('static', filename='node_modules/jquery-ui/dist/jquery-ui.min.js')}}"></script>
+</body>
+</html>

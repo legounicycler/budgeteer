@@ -6,7 +6,7 @@
     <ul id="envelopes-scroller" class="collection scroller">
         {% for id, envelope in envelopes_data.items() %}
           {% if envelope.deleted == false and envelope.id != unallocated_e_id %}
-            <a class="waves-effect collection-item envelope-link" data-url="{{ url_for('get_envelope_page') }}" data-envelope-id={{envelope.id}} data-envelope-balance={{envelope.balance}} data-envelope-budget="{{envelope.budget}}">
+            <a class="waves-effect collection-item envelope-link" data-url="{{ url_for('main.get_envelope_page') }}" data-envelope-id={{envelope.id}} data-envelope-balance={{envelope.balance}} data-envelope-budget="{{envelope.budget}}">
               <li class="envelope-row">
                 <div class="row flex-parent">
                   <div class="flex-child envelope-name no-padding blue-grey-text text-darken-3">

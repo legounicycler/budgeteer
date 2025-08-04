@@ -12,7 +12,7 @@
   {% if transactions_data|length %}
     <ul id="transactions-scroller" class="collection scroller">
       {% for transaction in transactions_data %}
-        <li class="row transaction-row collection-item {% if transaction.pending == 1 %}pending{% endif %}">
+        <li class="row transaction-row collection-item waves-effect {% if transaction.pending == 1 %}pending{% endif %}">
           <div class="col s2 valign-wrapper transaction-date">
             <div class="date-bucket">
               <span class="long-date non-selectable">{{transaction.date|datetimeformat}}</span><span class="short-date hide non-selectable">{{transaction.date|datetimeformatshort}}</span>
