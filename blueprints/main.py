@@ -199,11 +199,11 @@ def new_expense(edited=False):
       raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for new_expense!")
     
     for name in names:
-      t = Transaction(TType.BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, uuid, pending)
+      t = Transaction(TType.BASIC_TRANSACTION, name, amounts, date, envelope_ids, account_id, None, note, None, False, uuid, pending, DISPLAY_ORDER)
       if scheduled and not pending:
         # Create pending scheduled transaction
         nextdate = schedule_date_calc(date, schedule, timestamp, True)
-        scheduled_t = Transaction(TType.BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, uuid, is_pending(nextdate, timestamp))
+        scheduled_t = Transaction(TType.BASIC_TRANSACTION, name, amounts, nextdate, envelope_ids, account_id, None, note, schedule, False, uuid, is_pending(nextdate, timestamp), DISPLAY_ORDER)
       elif scheduled and pending:
         t.schedule = schedule
 
@@ -345,11 +345,11 @@ def new_income(edited=False):
       raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for new_income!")
     
     for name in names:
-      t = Transaction(TType.INCOME, name, -1 * amount, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, pending)
+      t = Transaction(TType.INCOME, name, -1 * amount, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, pending, DISPLAY_ORDER)
       if scheduled and not pending:
         insert_transaction(t)
         nextdate = schedule_date_calc(date, schedule, timestamp, True)
-        scheduled_t = Transaction(TType.INCOME, name, -1 * amount, nextdate, u.unallocated_e_id, account_id, gen_grouping_num(), note, schedule, False, uuid, is_pending(nextdate, timestamp))
+        scheduled_t = Transaction(TType.INCOME, name, -1 * amount, nextdate, u.unallocated_e_id, account_id, gen_grouping_num(), note, schedule, False, uuid, is_pending(nextdate, timestamp), DISPLAY_ORDER)
         insert_transaction(scheduled_t)
         sched_t_submitted = True
       elif scheduled and pending:
@@ -415,11 +415,11 @@ def fill_envelopes(edited=False):
     
     if amounts:
       for name in names:
-        t = Transaction(TType.ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, uuid, pending)
+        t = Transaction(TType.ENVELOPE_FILL, name, amounts, date, envelope_ids, None, None, note, None, False, uuid, pending, DISPLAY_ORDER)
         if scheduled and not pending:
           envelope_fill(t)
           nextdate = schedule_date_calc(date, schedule, timestamp, True)
-          scheduled_t = Transaction(TType.ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, uuid, is_pending(nextdate, timestamp))
+          scheduled_t = Transaction(TType.ENVELOPE_FILL, name, amounts, nextdate, envelope_ids, None, None, note, schedule, False, uuid, is_pending(nextdate, timestamp), DISPLAY_ORDER)
           envelope_fill(scheduled_t)
           sched_t_submitted = True
         elif scheduled and pending:
@@ -505,7 +505,7 @@ def edit_account_adjust():
     except:
       raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for edit_account_adjust!")
     
-    insert_transaction(Transaction(TType.ACCOUNT_ADJUST, name, -1*balance_diff, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, is_pending(date, timestamp)))
+    insert_transaction(Transaction(TType.ACCOUNT_ADJUST, name, -1*balance_diff, date, u.unallocated_e_id, account_id, gen_grouping_num(), note, None, False, uuid, is_pending(date, timestamp), DISPLAY_ORDER))
     toasts.append("Transaction updated!")
 
     health_check(toasts)

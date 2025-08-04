@@ -9,7 +9,7 @@ import sqlite3
 
 def test_insert_transaction():
     # Test a valid transaction insertion
-    t = Transaction(TType.BASIC_TRANSACTION, "Test Transaction", 100, datetime.now(), 1, 1, "Grouping", "Note", False, "status", "user_id", False)
+    t = Transaction(TType.BASIC_TRANSACTION, "Test Transaction", 100, datetime.now(), 1, 1, "Grouping", "Note", False, "status", "user_id", False, DISPLAY_ORDER)
     
     # Create an in-memory database with the same structure as the main database
     conn = sqlite3.connect(':memory:')
