@@ -807,12 +807,12 @@ def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, time
       msg.attach(screenshot.filename, "image/png", fp.read())
     os.remove(file_path)
   msg.html = render_template("emails/bug_report_developer.html", uuid=uuid, name=name, email=email, desc=desc, bug_report_id=bug_report_id, timestamp=timestamp)
-  current_app.mail.send(msg)
+  current_app.extensions['mail'].send(msg)
 
 def send_bug_report_email_user(name, email, bug_report_id):
   msg = Message('Budgeteer: Your Bug Report Has Been Received', sender=current_app.config["MAIL_USERNAME"], recipients=[email])
   msg.html = render_template("emails/bug_report_user.html", name=name, email=email, bug_report_id=bug_report_id)
-  current_app.mail.send(msg)
+  current_app.extensions['mail'].send(msg)
 
 def allowed_file_extension(file):
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}

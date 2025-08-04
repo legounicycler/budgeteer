@@ -127,7 +127,7 @@ def register():
     confirm_url = url_for('auth.confirm_email', token=token, _external=True)
     msg = Message('Budgeteer: Confirm your email address', sender=current_app.config['MAIL_USERNAME'], recipients=[new_email])
     msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
-    current_app.mail.send(msg)
+    current_app.extensions['mail'].send(msg)
     log_write(f"REGISTER EMAIL SENT: For user {uuid} to email {new_email}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'A confirmation email has been sent to your email address!', 'register_success': True})
   except RecaptchaFailError as e:
@@ -184,7 +184,7 @@ def resend_confirmation():
     confirm_url = url_for('auth.confirm_email', token=token, _external=True)
     msg = Message('Budgeteer: Confirm your email address', sender=current_app.config['MAIL_USERNAME'], recipients=[current_user.email])
     msg.html = render_template('emails/email_confirmation.html', confirm_url=confirm_url)
-    current_app.mail.send(msg)
+    current_app.extensions['mail'].send(msg)
     log_write(f"EMAIL CONFIRM RESEND: Email confirmation email resent to {current_user.email} for user {current_user.id}", "LoginAttemptsLog.txt")
     flash('A new confirmation email has been sent to your email address.', 'success')
     return redirect(url_for('auth.login'))
@@ -220,7 +220,7 @@ def forgot_password():
     reset_url = url_for('auth.reset_password', token=token, _external=True)
     msg = Message('Budgeteer: Reset Your Password', sender=current_app.config["MAIL_USERNAME"], recipients=[email])
     msg.html = render_template('emails/password_reset.html', reset_url=reset_url)
-    current_app.mail.send(msg)
+    current_app.extensions['mail'].send(msg)
     log_write(f"FORGOT PWD SUCCESS: Forgot password email for user {user.id} sent to {email}", "LoginAttemptsLog.txt")
     return jsonify({'message': 'Password reset email has been sent!', 'success': True})
   except RecaptchaFailError as e:
@@ -311,23 +311,23 @@ def generate_uuid():
   return str(uuid.uuid4())
 
 def set_secure_cookie(response, key, value):
-  encrypted_value = current_app.serializer.dumps(value)
+  encrypted_value = current_app.extensions['serializer'].dumps(value)
   response.set_cookie(key, encrypted_value, httponly=True, secure=True, max_age=30*24*60*60) #Make age is 30 days
   return response
 
 def get_uuid_from_cookie():
   encrypted_uuid = request.cookies.get('uuid')
   if encrypted_uuid:
-    return current_app.serializer.loads(encrypted_uuid)    
+    return current_app.extensions['serializer'].loads(encrypted_uuid)    
   else:
     raise UserIdCookieNotFoundError()
 
 def generate_token(email):
-  return current_app.timed_serializer.dumps(email, salt=current_app.config["SECURITY_PASSWORD_SALT"])
+  return current_app.extensions['timed_serializer'].dumps(email, salt=current_app.config["SECURITY_PASSWORD_SALT"])
 
 def confirm_token(token, expiration=3600):
   try:
-    email = current_app.timed_serializer.loads(token, salt=current_app.config["SECURITY_PASSWORD_SALT"], max_age=expiration)
+    email = current_app.extensions['timed_serializer'].loads(token, salt=current_app.config["SECURITY_PASSWORD_SALT"], max_age=expiration)
     return email
   except Exception as e:
     raise e

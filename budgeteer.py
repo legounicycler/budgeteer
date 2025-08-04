@@ -23,19 +23,19 @@ def create_app(config_object="config.DevelopmentConfig"):
 
   # Initilze csrf extension (TODO: May not need this if all forms are Flask WTForms)
   csrf = CSRFProtect(app)
-  app.csrf = csrf
+  app.extensions['csrf'] = csrf
 
   # Initialize mail extension
   mail = Mail(app)
-  app.mail = mail
+  app.extensions['mail'] = mail
 
   # Initialize URLSafeTimedSerializer
   timed_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-  app.timed_serializer = timed_serializer
+  app.extensions['timed_serializer'] = timed_serializer
 
   # Initialize URLSafeSerializer
   serializer = URLSafeSerializer(app.config['SECRET_KEY'])
-  app.serializer = serializer
+  app.extensions['serializer'] = serializer
 
   # Initalize the LoginManager extension
   login_manager.init_app(app)

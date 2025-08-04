@@ -67,7 +67,7 @@ def logged_in_user_client(client):
 
 @pytest.fixture
 def mail_instance(app):
-    return app.mail
+    return app.extensions['mail']
 
 @pytest.fixture
 def mock_verify_recaptcha(mocker):
