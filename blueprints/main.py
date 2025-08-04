@@ -176,8 +176,8 @@ def new_expense(edited=False):
   try:
     uuid = get_uuid_from_cookie()
     names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
-    amounts = request.form.getlist('amount')
-    envelope_ids = request.form.getlist('envelope_id')
+    str_amounts = request.form.getlist('amount')
+    str_envelope_ids = request.form.getlist('envelope_id')
     account_id = request.form['account_id']
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     timestamp = date_parse(request.form['timestamp'])
@@ -188,10 +188,13 @@ def new_expense(edited=False):
     pending = is_pending(date, timestamp)
     toasts = []
 
+    # Convert the amounts and envelope_ids from strings to integers
+    amounts = []
+    envelope_ids = []
     try: 
-      for i in range(len(amounts)):
-        amounts[i] = int(round(float(amounts[i]) * 100))
-        envelope_ids[i] = int(envelope_ids[i])
+      for i in range(len(str_amounts)):
+        amounts[i] = int(round(float(str_amounts[i]) * 100))
+        envelope_ids[i] = int(str_envelope_ids[i])
     except:
       raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for new_expense!")
     
@@ -382,8 +385,8 @@ def fill_envelopes(edited=False):
   try:
     uuid = get_uuid_from_cookie()
     names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
-    amounts = request.form.getlist('fill-amount')
-    envelope_ids = request.form.getlist('envelope_id')
+    str_amounts = request.form.getlist('fill-amount')
+    str_envelope_ids = request.form.getlist('envelope_id')
     date = datetime.strptime(request.form['date'], '%m/%d/%Y')
     timestamp = date_parse(request.form['timestamp'])
     note = request.form['note']
@@ -393,14 +396,17 @@ def fill_envelopes(edited=False):
     pending = is_pending(date, timestamp)
     toasts = []
     
+    # Convert the amounts and envelope_ids from strings to integers
+    amounts = []
+    envelope_ids = []
     try:
       deletes = []
-      for i in range(len(amounts)):
-        if amounts[i] == "":
+      for i in range(len(str_amounts)):
+        if str_amounts[i] == "":
           deletes.append(i)
         else:
-          amounts[i] = int(round(float(amounts[i])*100))
-          envelope_ids[i] = int(envelope_ids[i])
+          amounts[i] = int(round(float(str_amounts[i])*100))
+          envelope_ids[i] = int(str_envelope_ids[i])
       for index in reversed(deletes):
         amounts.pop(index)
         envelope_ids.pop(index)
@@ -534,7 +540,8 @@ def edit_transaction():
     elif (type == TType.ACCOUNT_ADJUST):
       response =  edit_account_adjust()
 
-    if not response.json.get('error'):
+    response_json = response.get_json()
+    if response_json is not None and not response_json.get('error'):
       # If the transaction was an ENVELOPE_DELETE or ACCOUNT_DELETE, only the name/note was edited, so no need to delete the original transaction
       if (type != TType.ENVELOPE_DELETE and type != TType.ACCOUNT_DELETE): 
         delete_transaction(uuid, id) #Only delete the original transaction if you were successful in creating the replacement edited transaction
@@ -660,12 +667,12 @@ def data_reload():
     reload_transactions = js_data['reload_transactions']
     check_pending_transactions(uuid, timestamp) #Apply any pending transactions that need to before rendering the template
     if 'account/' in current_page:
-      regex = re.compile('account/(\d+)')
+      regex = re.compile(r'account/(\d+)')
       account_id = int(regex.findall(current_page)[0])
       (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,0,50)
       page_total = balanceformat(get_account(account_id).balance/100)
     elif 'envelope/' in current_page:
-      regex = re.compile('envelope/(\d+)')
+      regex = re.compile(r'envelope/(\d+)')
       envelope_id = int(regex.findall(current_page)[0])
       (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,0,50)
       page_total = balanceformat(get_envelope(envelope_id).balance/100)
@@ -712,11 +719,11 @@ def load_more():
     # TODO: When implementing unit test framework, test what happens if the user somehow manually changes the current_page variable so that it doesn't include a valid account or envelope id
     # TODO: When implementing unit test framework, if the user manually changes the offset variable to something other than a valid integer, the app will crash. Test for this.
     if 'account/' in current_page:
-      regex = re.compile('account/(\d+)')
+      regex = re.compile(r'account/(\d+)')
       account_id = int(regex.findall(current_page)[0])
       (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,current_offset,50)
     elif 'envelope/' in current_page:
-      regex = re.compile('envelope/(\d+)')
+      regex = re.compile(r'envelope/(\d+)')
       envelope_id = int(regex.findall(current_page)[0])
       (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,current_offset,50)
     else:
@@ -786,7 +793,7 @@ def bug_report():
     screenshot = request.files['screenshot']
     if screenshot.filename == '':
         screenshot = None
-    if screenshot:
+    if screenshot and screenshot.filename:
         allowed_file_extension(screenshot)
         allowed_file_size(screenshot)
         screenshot.filename = secure_filename(screenshot.filename)
