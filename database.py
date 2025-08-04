@@ -363,8 +363,8 @@ def insert_transaction(t):
     """
     with conn:
         # ---1. INSERT THE TRANSACTION INTO THE TABLE---
-        c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)",
-        (t.id, t.type.id, t.name, t.amt, t.date, t.envelope_id, t.account_id, t.grouping, t.note, t.schedule, t.status, t.user_id, t.pending))
+        c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)",
+        (t.id, t.type.id, t.name, t.amt, t.date, t.envelope_id, t.account_id, t.grouping, t.note, t.schedule, t.status, t.user_id, t.pending, t.display_order))
         
         # ---2. UPDATE THE ACCOUNT/ENVELOPE BALANCES---
         if not t.pending: #Only update balances if transaction is not pending
@@ -778,7 +778,7 @@ def generate_scheduled_transaction(t, timestamp, should_consider_timestamp):
     """
     if (t.schedule is not None):
         nextdate = schedule_date_calc(t.date, t.schedule, timestamp, should_consider_timestamp)
-        return Transaction(t.type, t.name, t.amt, nextdate, t.envelope_id, t.account_id, None, t.note, t.schedule, t.status, t.user_id, is_pending(nextdate, timestamp), DISPLAY_ORDER)
+        return Transaction(t.type, t.name, t.amt, nextdate, t.envelope_id, t.account_id, None, t.note, t.schedule, t.status, t.user_id, is_pending(nextdate, timestamp), t.display_order)
     else:
         return None
 
