@@ -586,11 +586,45 @@
         },
         stop: function(event, ui) {
           $(ui.item).removeClass("active-drag");
+         // JQuery UI will place a fixed "width" style on the columns of the reordered element, which means that resizing
+          // the page means columns don't dynamically resize, so this is the fix.
+          $(ui.item).removeAttr("style");
+          $(ui.item).children().removeAttr("style");
         },
         items: "li:not(.unsortable)"
       });
 
-      // Makes the accounts in the account editor modal sortable
+      // Makes the envelopes in the editor sortable
+      $('#transactions-scroller').sortable({
+        handle: ".checkbox-special",
+        containment: "parent",
+        dropOnEmpty: true,
+        start: function(e, ui) {
+          $(ui.item).addClass("active-drag");
+          // Fix to enable sorting drag for first and last positions
+          // https://stackoverflow.com/questions/57733176/first-and-last-sortable-items-dont-consistently-move-out-of-the-way-in-jquery-u
+          var sort = $(this).sortable('instance');
+          ui.placeholder.height(ui.helper.height());
+          sort.containment[3] += ui.helper.height() * 1.5 - sort.offset.click.top;
+          sort.containment[1] -= sort.offset.click.top;
+        },
+        helper: function(e, row) {
+            row.children().each(function() {
+              $(this).width($(this).width());
+            });
+            return row;
+        },
+        stop: function(event, ui) {
+          $(ui.item).removeClass("active-drag");
+          // JQuery UI will place a fixed "width" style on the columns of the reordered element, which means that resizing
+          // the page means columns don't dynamically resize, so this is the fix.
+          $(ui.item).removeAttr("style");
+          $(ui.item).children().removeAttr("style");
+        },
+          items: "li:not(.unsortable)"
+      });
+
+      // Makes the accounts in the editor sortable
       $('#account-editor-bin').sortable({
         handle: ".sort-icon",
         containment: "parent",
@@ -612,6 +646,10 @@
         },
         stop: function(event, ui) {
           $(ui.item).removeClass("active-drag");
+          // JQuery UI will place a fixed "width" style on the columns of the reordered element, which means that resizing
+          // the page means columns don't dynamically resize, so this is the fix.
+          $(ui.item).removeAttr("style");
+          $(ui.item).children().removeAttr("style");
         },
         items: "li:not(.unsortable)"
       });
@@ -1173,7 +1211,84 @@
       });
     });
 
-    // Sends date from datepicker and frequency from select to update_schedule_msg()
+    // MULTIDELETE CODE
+    $('#bin').on('mouseenter', '.transaction-date', function() {
+      if (none_checked) {
+        $(this).find('.date-bucket').hide();
+        $(this).find('.checkbox-bucket').show();
+      }
+    });
+
+    $('#bin').on('mouseleave', '.transaction-date', function() {
+      if (none_checked) {
+        $(".date-bucket").show();
+        $(this).find('.checkbox-bucket').hide();
+      }
+    });
+
+    $('#bin').on('click', '.delete-boxes', function() {
+      none_checked = true;
+      $('.delete-boxes').each(function() {
+        if (this.checked) {
+          none_checked = false;
+        }
+      });
+      if (this.checked) {
+        $(this).closest('.collection-item').addClass('checked-background');
+      } else {
+        $(this).closest('.collection-item').removeClass('checked-background');
+      }
+      if (none_checked) {
+        $('.checkbox-bucket, #multi-delete-submit').hide();
+        $('.date-bucket').show();
+      } else {
+        $('.checkbox-bucket, #multi-delete-submit').show();
+        $('.date-bucket').hide();
+      }
+    });
+
+    var longpress = 800;
+    var start;
+    var timer;
+    $('#bin').on( 'touchstart', '.transaction-row', function( e ) {
+      $this = $(this);
+      start = new Date().getTime();
+      start_y = event.touches[0].clientY;
+      y = start_y;
+      timer = setTimeout(function(){
+        if (Math.abs(start_y - y) < 30) {
+          $this.parent().find('.delete-boxes').click();
+          $(this).bind("contextmenu", function(e) {
+            e.preventDefault();
+          });
+        } else {
+          clearTimeout(timer);
+        }
+      }, longpress)
+    }).on( 'mouseleave', '.transaction-row', function( e ) {
+      start = 0;
+      clearTimeout(timer);
+    }).on( 'touchend', '.transaction-row', function( e ) {
+      if ( new Date().getTime() < ( start + longpress ) && Math.abs(start_y - y) < 30 ) {
+        $this = $(this)
+        clearTimeout(timer);
+        if (!none_checked) {
+          e.preventDefault();
+          $this.siblings().find('.delete-boxes').click()
+        }
+      } else {
+        start = 0;
+        clearTimeout(timer);
+      }
+    }).on( 'touchmove', '.transaction', function() {
+      y = event.touches[0].clientY;
+    }).on( 'click', '.transaction', function() {
+      $this = $(this)
+      t_editor_modal_open($this);
+      $('#editor-modal').modal('open');
+    }); //END OF MULTIDELETE CODE
+
+    // Sends date from datepicker and frequency from select to schedule_toggle()
     $(document).on('change', '.schedule-select', function() {
       update_schedule_msg($(this));
     }).on('change', '.datepicker', function() {

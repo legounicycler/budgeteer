@@ -10,36 +10,37 @@
   </ul>
   
   {% if transactions_data|length %}
-    <ul id="transactions-scroller" class="collection scroller">
+    <div id="transactions-scroller" class="scroller">
       {% for transaction in transactions_data %}
-        <li class="row transaction-row collection-item waves-effect {% if transaction.pending == 1 %}pending{% endif %}">
-          <div class="col s2 valign-wrapper transaction-date">
-            <div class="date-bucket">
-              <span class="long-date non-selectable">{{transaction.date|datetimeformat}}</span><span class="short-date hide non-selectable">{{transaction.date|datetimeformatshort}}</span>
-            </div>
-            <div class="checkbox-bucket">
-              <label>
+        <a class="collection-item"></a>
+          <li class="row transaction-row {% if transaction.date > transaction.date.now() %}pending{% endif %}">
+            <div class="col s2 valign-wrapper transaction-date">
+              <div class="date-bucket">
+                <span class="long-date non-selectable">{{transaction.date|datetimeformat}}</span><span class="short-date hide non-selectable">{{transaction.date|datetimeformatshort}}</span>
+              </div>
+              <div class="checkbox-bucket">
+                <label>
                 <input name="delete" value="{{transaction.id}}" type="checkbox" class="t-delete-checkbox filled-in">
                 <span class="checkbox-span"></span>
-              </label>
+                </label>
+              </div>
             </div>
-          </div>
-          <div class="transaction"
-              data-id="{{transaction.id}}"
-              data-name="{{transaction.name}}"
+            <div class="transaction"
+                data-id="{{transaction.id}}"
+                data-name="{{transaction.name}}"
               data-type="{{transaction.type.id}}"
-              data-date="{{transaction.date|datetimeformat}}"
-              data-amt="{{transaction.amt}}"
-              data-account_id="{{transaction.account_id}}"
+                data-date="{{transaction.date|datetimeformat}}"
+                data-amt="{{transaction.amt}}"
+                data-account_id="{{transaction.account_id}}"
               data-account_name = "{% if transaction.account_id is not none and transaction.type != TType.ENVELOPE_TRANSFER %}{{ accounts_data[transaction.account_id].name }}{% endif %}"
-              data-envelope_id="{{transaction.envelope_id}}"
+                data-envelope_id="{{transaction.envelope_id}}"
               data-envelope_name = "{% if transaction.envelope_id is not none and transaction.type != TType.ACCOUNT_TRANSFER %}{{ envelopes_data[transaction.envelope_id].name }}{% endif %}"
-              data-grouping="{{transaction.grouping}}"
-              data-note="{{transaction.note}}"
-              data-schedule="{{transaction.schedule}}"
-              data-status="{{transaction.status}}"
-              data-pending="{{transaction.pending}}"
-              data-user_id="{{transaction.user_id}}">
+                data-grouping="{{transaction.grouping}}"
+                data-note="{{transaction.note}}"
+                data-schedule="{{transaction.schedule}}"
+                data-status="{{transaction.status}}"
+                data-pending="{{transaction.pending}}"
+                data-user_id="{{transaction.user_id}}">
 
             <div class="col m1 hide-on-small-only valign-wrapper transaction-type"><i class="material-icons" title="{{transaction.type.desc}}">{{transaction.type.icon}}</i></div>
             <div class="col s7 transaction-name left-align" title="{{transaction.note}}">

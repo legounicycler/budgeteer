@@ -18,6 +18,8 @@ from filters import balanceformat
 conn = sqlite3.connect(':memory:', check_same_thread=False)
 c = conn.cursor()
 
+DISPLAY_ORDER = 0 # Default display order for new transactions
+
 # region ---------------CLASS DEFINITIONS---------------
 
 class Database:
@@ -196,7 +198,7 @@ class TType(Enum):
         raise ValueError(f"ERROR: {value} is not a valid TType value!")
 
 class Transaction:
-    def __init__(self, type: 'TType', name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id, pending):
+    def __init__(self, type: 'TType', name, amt, date, envelope_id, account_id, grouping, note, schedule, status, user_id, pending, display_order):
         self.id = None
         self.type = type
         self.name = name
@@ -210,10 +212,11 @@ class Transaction:
         self.status = status
         self.user_id = user_id
         self.pending = pending
+        self.display_order = display_order
     def __repr__(self):
-        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, PENDING:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.pending)
+        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, PENDING:{}, ORDER:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.pending,self.display_order)
     def __str__(self):
-        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, PENDING:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.pending)
+        return "ID:{}, TYPE:{}, NAME:{}, AMT:{}, DATE:{}, E_ID:{}, A_ID:{}, GRP:{}, NOTE:{}, SCHED:{}, STATUS:{}, U_ID:{}, PENDING:{}, ORDER:{}".format(self.id,self.type,self.name,self.amt,self.date,self.envelope_id,self.account_id,self.grouping,self.note,self.schedule,self.status,self.user_id,self.pending,self.display_order)
 
 class Account:
     def __init__(self, id, name, balance, deleted, user_id, display_order):
@@ -395,7 +398,7 @@ def get_transaction(id):
     tdata = c.fetchone()
     if tdata is None:
         raise TransactionNotFoundError(f"Transaction with ID {id} not found!")
-    t = Transaction(TType.from_int(tdata[1]),tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11],tdata[14]) #Last is 14 because e_reconcile and a_reconcile columns exist in table
+    t = Transaction(TType.from_int(tdata[1]),tdata[2],tdata[3],tdata[4],tdata[5],tdata[6],tdata[7],tdata[8],tdata[9],tdata[10],tdata[11],tdata[14],tdata[15]) #Last is 15 because e_reconcile and a_reconcile columns exist in table
     t.date = date_parse(t.date) # Convert string to datetime object
     t.id = tdata[0]
     return t
@@ -684,10 +687,10 @@ def new_split_transaction(t):
 
     # 3. Insert the transaction
     if len(compressed_e_ids) == 1: #If every part of the split transaction went to the same envelope, it's basically a normal transaction
-        insert_transaction(Transaction(TType.BASIC_TRANSACTION, t.name, compressed_amts[0], t.date, compressed_e_ids[0], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.pending))
+        insert_transaction(Transaction(TType.BASIC_TRANSACTION, t.name, compressed_amts[0], t.date, compressed_e_ids[0], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.pending, t.display_order))
     else:
         for i in range(len(compressed_e_ids)):
-            insert_transaction(Transaction(TType.SPLIT_TRANSACTION, t.name, compressed_amts[i], t.date, compressed_e_ids[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.pending))
+            insert_transaction(Transaction(TType.SPLIT_TRANSACTION, t.name, compressed_amts[i], t.date, compressed_e_ids[i], t.account_id, grouping, t.note, t.schedule, t.status, t.user_id, t.pending, t.display_order))
 
 # TODO: When implementing unit testing, test what happens if the timestamp is not in the correct format
 def check_pending_transactions(uuid, timestamp):
@@ -771,7 +774,7 @@ def generate_scheduled_transaction(t, timestamp, should_consider_timestamp):
     """
     if (t.schedule is not None):
         nextdate = schedule_date_calc(t.date, t.schedule, timestamp, should_consider_timestamp)
-        return Transaction(t.type, t.name, t.amt, nextdate, t.envelope_id, t.account_id, None, t.note, t.schedule, t.status, t.user_id, is_pending(nextdate, timestamp))
+        return Transaction(t.type, t.name, t.amt, nextdate, t.envelope_id, t.account_id, None, t.note, t.schedule, t.status, t.user_id, is_pending(nextdate, timestamp), DISPLAY_ORDER)
     else:
         return None
 
@@ -789,7 +792,7 @@ def insert_account(a, timestamp):
     account_id = c.lastrowid
     income_name = 'Initial Account Balance: ' + a.name
     log_write('A INSERT: ' + str(get_account(account_id)))
-    insert_transaction(Transaction(TType.INCOME, income_name, -1 * a.balance, timestamp, u.unallocated_e_id, account_id, gen_grouping_num(), '', None, False, a.user_id, False))
+    insert_transaction(Transaction(TType.INCOME, income_name, -1 * a.balance, timestamp, u.unallocated_e_id, account_id, gen_grouping_num(), '', None, False, a.user_id, False, DISPLAY_ORDER))
 
 def get_account(id):
     """
@@ -848,7 +851,7 @@ def delete_account(account_id):
         u = get_user_by_uuid(a.user_id)
 
         # 1. Empty the deleted account
-        insert_transaction(Transaction(TType.ACCOUNT_DELETE, f"Deleted account: {a.name}", a.balance, datetime.combine(date.today(), datetime.min.time()), u.unallocated_e_id, a.id, gen_grouping_num(), "", None, 0, a.user_id, False))
+        insert_transaction(Transaction(TType.ACCOUNT_DELETE, f"Deleted account: {a.name}", a.balance, datetime.combine(date.today(), datetime.min.time()), u.unallocated_e_id, a.id, gen_grouping_num(), "", None, 0, a.user_id, False, DISPLAY_ORDER))
 
         # 2. Mark the account as deleted
         c.execute("UPDATE accounts SET deleted=1 WHERE id=?", (account_id,))
@@ -950,8 +953,8 @@ def account_transfer(name, amount, date, to_account, from_account, note, schedul
     Creates one transaction draining an account, and one transaction filling another
     """
     grouping = gen_grouping_num()
-    insert_transaction(Transaction(TType.ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id, pending)) #Fill
-    insert_transaction(Transaction(TType.ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id, pending))  #Empty
+    insert_transaction(Transaction(TType.ACCOUNT_TRANSFER, name, -1*amount, date, None, to_account, grouping, note, schedule, False, user_id, pending, DISPLAY_ORDER)) #Fill
+    insert_transaction(Transaction(TType.ACCOUNT_TRANSFER, name, amount, date, None, from_account, grouping, note, schedule, False, user_id, pending, DISPLAY_ORDER))  #Empty
 
 def adjust_account_balance(a_id, balance_diff, name, date):
     """
@@ -969,7 +972,7 @@ def adjust_account_balance(a_id, balance_diff, name, date):
     else:
         note = f"{balanceformat(-1*balance_diff/100)} was added to this account AND the Unallocated envelope."
     # 2. Add a transaction with an amount that will make the account balance equal to the specied balance
-    insert_transaction(Transaction(TType.ACCOUNT_ADJUST, f"{name}: Balance Adjustment", balance_diff, date, u.unallocated_e_id, a_id, gen_grouping_num(), note, None, False, a.user_id, False))
+    insert_transaction(Transaction(TType.ACCOUNT_ADJUST, f"{name}: Balance Adjustment", balance_diff, date, u.unallocated_e_id, a_id, gen_grouping_num(), note, None, False, a.user_id, False, DISPLAY_ORDER))
 
 # endregion ACCOUNT FUNCTIONS
 
@@ -1049,10 +1052,10 @@ def delete_envelope(envelope_id):
             grouping = gen_grouping_num()
 
             # 1. Empty the deleted envelope
-            insert_transaction(Transaction(TType.ENVELOPE_DELETE,f"Deleted envelope: {e.name}", e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, "", None, 0, e.user_id, False))
+            insert_transaction(Transaction(TType.ENVELOPE_DELETE,f"Deleted envelope: {e.name}", e.balance, datetime.combine(date.today(), datetime.min.time()), envelope_id, None, grouping, "", None, 0, e.user_id, False, DISPLAY_ORDER))
 
             # 2. Fill the unallocated envelope
-            insert_transaction(Transaction(TType.ENVELOPE_DELETE,f"Deleted envelope: {e.name}", -1*e.balance, datetime.combine(date.today(), datetime.min.time()), u.unallocated_e_id, None, grouping, "", None, 0, e.user_id, False))
+            insert_transaction(Transaction(TType.ENVELOPE_DELETE,f"Deleted envelope: {e.name}", -1*e.balance, datetime.combine(date.today(), datetime.min.time()), u.unallocated_e_id, None, grouping, "", None, 0, e.user_id, False, DISPLAY_ORDER))
 
             # 3. Mark the envelope as deleted
             c.execute("UPDATE envelopes SET deleted=1 WHERE id=?", (envelope_id,))
@@ -1153,8 +1156,8 @@ def envelope_transfer(name, amt, date, to_envelope, from_envelope, note, schedul
     Creates a transaction to fill one envelope and another to empty the other
     """
     grouping = gen_grouping_num()
-    insert_transaction(Transaction(TType.ENVELOPE_TRANSFER, name, -1*amt, date, to_envelope, None, grouping, note, schedule, False, user_id, pending)) #Fill
-    insert_transaction(Transaction(TType.ENVELOPE_TRANSFER, name, amt, date, from_envelope, None, grouping, note, schedule, False, user_id, pending))  #Empty
+    insert_transaction(Transaction(TType.ENVELOPE_TRANSFER, name, -1*amt, date, to_envelope, None, grouping, note, schedule, False, user_id, pending, DISPLAY_ORDER)) #Fill
+    insert_transaction(Transaction(TType.ENVELOPE_TRANSFER, name, amt, date, from_envelope, None, grouping, note, schedule, False, user_id, pending, DISPLAY_ORDER))  #Empty
 
 def envelope_fill(t):
     """
@@ -1167,9 +1170,9 @@ def envelope_fill(t):
         envelopes = t.envelope_id
         for i in range(len(amts)):
             # Empty the unallocated envelope
-            insert_transaction(Transaction(TType.ENVELOPE_FILL, t.name, amts[i], t.date, u.unallocated_e_id, None, grouping, t.note, t.schedule, False, t.user_id, t.pending))
+            insert_transaction(Transaction(TType.ENVELOPE_FILL, t.name, amts[i], t.date, u.unallocated_e_id, None, grouping, t.note, t.schedule, False, t.user_id, t.pending, DISPLAY_ORDER))
             # Fill the other envelopes
-            insert_transaction(Transaction(TType.ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id, t.pending))
+            insert_transaction(Transaction(TType.ENVELOPE_FILL, t.name, amts[i] * -1, t.date, envelopes[i], None, grouping, t.note, t.schedule, False, t.user_id, t.pending, DISPLAY_ORDER))
     else:
         raise OtherError(f"ERROR: Transaction type mismatch. Expected TType.ENVELOPE_FILL, got {t.type}")
 
@@ -1281,6 +1284,19 @@ def get_total(uuid):
     else:
         return 0
 
+# def gen_display_order(day):
+#     """
+#     Returns a new and unique grouping number
+#     """
+#     c.execute("SELECT MAX(display_order) FROM transactions WHERE date(day) == date('now', 'localtime')")
+#     # datetime.combine(date.today(), datetime.min.time())
+#     prevnum = c.fetchone()[0]
+#     if prevnum is not None:
+#         newnum = prevnum + 1
+#     else:
+#         newnum = 0
+#     return newnum
+
 def gen_grouping_num():
     """
     Returns a new and unique grouping number
@@ -1290,7 +1306,7 @@ def gen_grouping_num():
     if prevnum is not None:
         newnum = prevnum + 1
     else:
-        newnum = 1
+        newnum = 0
     return newnum
 
 def get_grouping_from_id(t_id):
