@@ -1,10 +1,17 @@
+# Ignore ALL these filetypes
 *.pyc
-static/node_modules/
-Things To Do.txt
-Exported_Transactions/
 *.sqlite
+
+# Ignore these specific files
+Things To Do.txt
 secret.py
 
+#Ignore these specific directories
+static/node_modules/
+Exported_Transactions/
+.venv/
+
+#Ignore any files in these directories except the .gitkeep files (which are used to keep the directories in version control)
 uploads/*
 !uploads/.gitkeep
 
@@ -13,5 +20,3 @@ logs/*
 
 test/unit/logs/*
 !test/unit/logs/.gitkeep
-
-.venv
