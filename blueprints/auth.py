@@ -19,7 +19,7 @@ from textLogging import log_write
 auth_bp = Blueprint('auth', __name__)
 
 login_manager = LoginManager()
-login_manager.login_view = "auth.login"
+login_manager.login_view = "auth.login" #type: ignore
 
 @login_manager.user_loader
 def load_user(uuid):
@@ -254,7 +254,8 @@ def reset_password(token):
 
       recaptchaToken = request.form.get('recaptchaToken')
       verify_recaptcha(recaptchaToken)
-
+ 
+      errors = []
       if not reset_password_form.validate():
         errors = {field.name: field.errors for field in reset_password_form if field.errors}
         log_write(f"PWD RESET FAIL: Form Errors - {errors}", "LoginAttemptsLog.txt")
