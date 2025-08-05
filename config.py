@@ -23,7 +23,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     """Configuration for development environment."""
-    DEBUG = True
+    # DEBUG = True  # Leave this commented out if you want to see custom http error pages
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
     DATABASE_URI = WINDOWS_DATABASE_PATH
 

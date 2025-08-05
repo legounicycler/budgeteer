@@ -26,21 +26,6 @@
       }
     });
 
-    function displayFieldErrors(errors) {
-      // Display errors for each field
-      Object.keys(errors).forEach(function (fieldName) {
-        var errorMessages = errors[fieldName];
-        var fieldId = '#' + fieldName;
-        var errorContainer = $(fieldId).siblings('.helper-text');
-
-        // Display the first error for each field
-        if (errorMessages.length > 0) {
-          $(fieldId).removeClass('valid').addClass('invalid');
-          errorContainer.text(errorMessages[0]);
-        }
-      });
-    }
-
     //Initialize Loading spinners
     var $loading = $('#loading-div').hide();
     $(document)

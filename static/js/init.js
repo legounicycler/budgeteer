@@ -39,20 +39,6 @@
     var current_page = "All Transactions";   //Used to determine which transactions to reload on a data reload (also used in transactions.html to properly color transaction amount)
     var none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
 
-    function displayFieldErrors(errors) {
-      // Display errors for each field
-      Object.keys(errors).forEach(function (fieldName) {
-        var errorMessages = errors[fieldName];
-        var fieldId = '#' + fieldName;
-        var errorContainer = $(fieldId).siblings('.helper-text');
-
-        // Display the first error for each field
-        if (errorMessages.length > 0) {
-          $(fieldId).removeClass('valid').addClass('invalid');
-          errorContainer.text(errorMessages[0]);
-        }
-      });
-    }
 
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
@@ -98,7 +84,7 @@
       // Prevent content from flashing content for a second on document load
       $('#envelopes, #accounts, #bin').removeClass('hide');
       
-      $('#envelope-modal, #account-modal, #editor-modal, #envelope-fill-modal, #bug-report-modal').modal();
+      $('#envelope-modal, #account-modal, #editor-modal, #envelope-fill-modal').modal();
 
       $('#delete-modal').modal({
         dismissible: false,
@@ -118,6 +104,17 @@
         },
         onCloseStart: function() {
           $('#transaction-modal .select-dropdown').dropdown('close')
+        }
+      });
+
+      // Initialize the editor modal
+      $('#editor-modal').modal({
+        onCloseStart: function() {
+          $('#editor-modal').find('.select-dropdown').dropdown('close')
+        },
+        onCloseEnd: function() {
+          // Removes user-added rows in editor when the modal is closed
+          $(".new-envelope-row").remove()
         }
       });
 
@@ -266,17 +263,6 @@
           $(this).next().click();
         }
       })
-
-      // Initialize the editor modal
-      $('#editor-modal').modal({
-        onCloseStart: function() {
-          $('#editor-modal').find('.select-dropdown').dropdown('close')
-        },
-        onCloseEnd: function() {
-          // Removes user-added rows in editor when the modal is closed
-          $(".new-envelope-row").remove()
-        }
-      });
 
       // Initialize FAB
       $('.fixed-action-btn').floatingActionButton({
@@ -1603,41 +1589,6 @@
 
         });
       });
-    });
-
-    $('#bug-report-form').submit(function(e) {
-      e.preventDefault();
-      var url = $(this).attr('action');
-      var method = $(this).attr('method');
-      var $form = $(this);
-      var $parentModal = $("#bug-report-modal");
-      var formData = new FormData(this);
-      formData.append('timestamp', gen_timestamp());
-      $.ajax({
-        type: method,
-        url: url,
-        cache: false,
-        contentType: false,
-        processData: false,
-        data: formData
-      }).done(function( o ) {
-        if (o.success) {
-          $parentModal.modal("close");
-          $form[0].reset(); //Clears the data from the form fields
-        } else {
-          if (o.errors) {
-            displayFieldErrors(o.errors);
-          }
-        }
-        if (o['toasts']) {  //Display toasts
-          o['toasts'].forEach((toast) => M.toast({html: toast}));
-        }
-      });
-    });
-
-    // TODO: this probably needs to be in the error_page.js version of this function too?
-    $('#screenshot_filepath').change(function() {
-      $(this).siblings(".helper-text").text("");
     });
 
     // Opens transaction editor modal

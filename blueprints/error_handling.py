@@ -28,6 +28,11 @@ def error_page(error_code):
     error_desc = request.args.get('errorDesc') # Fetch the errorDesc query parameter from the ajax request
     return render_template("error_page.html", message=f"Error {error_code}: {error_desc}"), error_code
 
+# For testing purposes only, this route will trigger a 500 error
+@error_handling_bp.route('/trigger500')
+def trigger_error():
+    raise Exception("Deliberate testing error")
+
 # Error handler for HTTP exceptions
 @error_handling_bp.errorhandler(HTTPException)
 def handle_exception(e):
@@ -71,15 +76,16 @@ def bug_report():
     send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot)  # Send bug report email to the developer
     send_bug_report_email_user(name, email, bug_report_id) # Send confirmation email to the user
 
-    log_write(f'BUG REPORT SUBMITTED: Bug Report ID: {bug_report_id}, User UUID: {uuid}, Name: {name}, Email: {email}, Description: {desc}, Screenshot: {screenshot.filename}, Timestamp: {timestamp}', "EventLog.txt")
-    toasts.append("Your bug report has been submitted successfully. Thank you for helping to improve Budgeteer!")
+    screenshot_logger_info = f", Screenshot: {screenshot.filename}" if screenshot else ""
+    log_write(f'BUG REPORT SUBMITTED: Bug Report ID: {bug_report_id}, User UUID: {uuid}, Name: {name}, Email: {email}, Description: {desc}{screenshot_logger_info}, Timestamp: {timestamp}',"EventLog.txt")
+    toasts.append("Bug report successfully submitted. Thank you for helping to improve Budgeteer!")
     return jsonify({'success': True,'toasts': toasts})
   except CustomException as e:
     return jsonify({'success': False, 'errors': form.errors})
   except Exception as e:
     log_write(f'BUG REPORT ERROR: {str(e)}', "EventLog.txt")
     log_write(f'\n{traceback.format_exc()}', "EventLog.txt")
-    toasts.append("There was an error processing your bug report. Please try again later.")
+    toasts.append("There was an unknown error processing your bug report! Please try again later.")
     return jsonify({'success': False, 'errors': form.errors, 'toasts': toasts})
 
 def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot):
