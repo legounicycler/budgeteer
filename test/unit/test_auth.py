@@ -1,9 +1,10 @@
-import pytest, re
+import pytest
 from time import time
 
 from flask import url_for
 from flask_login import current_user
 
+from test.unit.conftest import get_csrf_token
 from blueprints.auth import *
 from database import User
 from secret import RECAPTCHA_SITE_KEY

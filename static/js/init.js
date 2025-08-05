@@ -39,6 +39,21 @@
     var current_page = "All Transactions";   //Used to determine which transactions to reload on a data reload (also used in transactions.html to properly color transaction amount)
     var none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
 
+    function displayFieldErrors(errors) {
+      // Display errors for each field
+      Object.keys(errors).forEach(function (fieldName) {
+        var errorMessages = errors[fieldName];
+        var fieldId = '#' + fieldName;
+        var errorContainer = $(fieldId).siblings('.helper-text');
+
+        // Display the first error for each field
+        if (errorMessages.length > 0) {
+          $(fieldId).removeClass('valid').addClass('invalid');
+          errorContainer.text(errorMessages[0]);
+        }
+      });
+    }
+
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
 
@@ -92,31 +107,36 @@
 
       $('#transaction-modal').modal({
         onOpenEnd: function () {
-          $('#transaction-modal').find('.tabs').tabs();
-          var tab_index = M.Tabs.init(document.getElementById('type-tabs')).index;
+          tab_index = $('#type-tabs').tabs().index;
           if (tab_index == 0) {
-            $('#new-expense-form').find('input').first().select();
+            $('#new-expense-form input[name="name"]').eq().select();
           } else if (tab_index == 1) {
-            $('#new-transfer-form').find('input').first().select();
+            $('#new-transfer-form input[name="name"]').eq().select();
           } else if (tab_index == 2) {
-            $('#new-income-form').find('input').first().select();
+            $('#new-income-form input[name="name"]').eq().select();
           }
         },
         onCloseStart: function() {
-          $('#transaction-modal').find('.select-dropdown').dropdown('close')
+          $('#transaction-modal .select-dropdown').dropdown('close')
         }
       });
 
       // Makes escape button ONLY close a select located in a modal (but all the select bodies are actually in the fullscreen wrapper)
       $("#fullscreen-wrapper").on("keydown", ".dropdown-content li", function(e) {
-        if (e.keyCode == ESCAPE) e.stopPropagation();
+        if (e.key == "Escape") e.stopPropagation();
       });
 
       $('body').keydown(function(e){
-        if(e.which == ESCAPE && M.Modal._modalsOpen == 0){
+        if(e.key == "Escape" && M.Modal._modalsOpen == 0){
           // Clear all transaction selection checkboxes on ESCAPE KEY (if you're not hitting escape to close a modal)
           $('.t-delete-checkbox:checked').click();
           none_checked = true;
+        } else if (e.key == "t" && M.Modal._modalsOpen == 0) {
+          // TODO: When the searchbar is added, this will probably need to change to be more specific since valid keypresses in the searchbar are not within a modal 
+          $("#transaction-modal").modal("open"); 
+        } else if (e.key == "e" && M.Modal._modalsOpen == 0) {
+          // TODO: When the searchbar is added, this will probably need to change to be more specific since valid keypresses in the searchbar are not within a modal 
+          $("#envelope-fill-modal").modal("open");
         }
       });
 
@@ -152,21 +172,21 @@
 
       // Adds arrowkey functionality to datepicker
       $(".datepicker-modal").keydown(function(e) {
-        if (e.shiftKey && (e.which == LEFT_ARROW)) {
+        if (e.shiftKey && (e.key == "ArrowLeft")) {
           $(this).find(".month-prev").click();
           $(this).find("table button").last("button").focus();
         }
-        else if (e.shiftKey && (e.which == RIGHT_ARROW)) {
+        else if (e.shiftKey && (e.key == "ArrowRight")) {
           $(this).find(".month-next").click();
           $(this).find("table button").first("button").focus();
         }
-        else if (e.which == LEFT_ARROW) {
+        else if (e.key == "ArrowLeft") {
           if (!$(document.activeElement).hasClass("month-prev")) $.tabPrev();
         }
-        else if (e.which == RIGHT_ARROW) {
+        else if (e.key == "ArrowRight") {
           if (!$(document.activeElement).hasClass("datepicker-done")) $.tabNext();
         }
-        else if (e.which == DOWN_ARROW) {
+        else if (e.key == "ArrowDown") {
           var focused = document.activeElement;
           //If the focused element is one of the date buttons
           if ($(focused).hasClass("datepicker-day-button")) {
@@ -199,7 +219,7 @@
             }
           }
         }
-        else if (e.which == UP_ARROW) {
+        else if (e.key == "ArrowUp") {
           var focused = document.activeElement;
           //If the focused element is one of the date buttons
           if ($(focused).hasClass("datepicker-day-button")) {
@@ -231,7 +251,7 @@
             }
           }
         }
-        else if (e.which == ESCAPE) {
+        else if (e.key == "Escape") {
           e.stopPropagation(); // Don't close the parent modal
           $(this).modal("close"); //Only close the datepicker modal
           $(".modal.open").find(".datepicker").focus(); //Refocus the datepicker from the parent modal (this will break if there's ever two datepickers)
@@ -241,7 +261,7 @@
 
       // When schedule checkbox is focused, open it on ENTER
       $('input[name="scheduled"]').keydown(function(e) {
-        if (e.which == ENTER) {
+        if (e.key == "Enter") {
           e.preventDefault();
           $(this).next().click();
         }
@@ -373,16 +393,21 @@
       refresh_reconcile();
 
     $("body").on("input", ".special-input", function() {
-      $span =  $(this).parent().siblings().find("span");
+      $span =  $(this).parent().siblings(".amount-col").find("span");
       try {
         num = math.evaluate($(this).val());
-        if ($(this).hasClass("negate-input")) {
-          num = num * -1;
+        if (!isNaN(num)) {
+          if ($(this).hasClass("negate-input")) {
+            num = num * -1;
+          }
+          $span.text(balance_format(num)).negative_check(num);
+          $(this).removeClass("invalid").addClass("valid");
+        } else {
+          $span.text("$...").removeClass('negative').addClass('neutral');
+          $(this).removeClass("valid");
         }
-        $span.text(balance_format(num)).negative_check(num);
-        $(this).removeClass("invalid").addClass("valid");
       } catch (error) {
-        $span.text("$...").removeClass('negative').addClass('neutral');
+        $span.text("$...").removeClass('negative').addClass('neutral').removeClass("valid");
         $(this).removeClass("valid").addClass("invalid");
       }
     }).on("change",".special-input", function() {
@@ -390,6 +415,9 @@
         num = math.evaluate($(this).val());
         if (!isNaN(num)) {
           $(this).val((Math.round(num * 100) / 100).toFixed(2));
+        } else {
+          $span.text("$...").removeClass('negative').addClass('neutral').removeClass("valid");
+          $(this).removeClass("valid");
         }
       } catch (error) {
         return;
@@ -816,8 +844,7 @@
     });
 
 
-
-    // ----- Code for touch for selecting transactions -----
+    // ----- Code for touch-selecting transactions -----
     var start_time; // System time in ms when a touchevent starts
     var longPressTimer; // Timer for determining if a touchevent is a longpress
     var longpressAmt = 400; // Duration in ms for a touchevent to be considered a longpress
@@ -838,7 +865,6 @@
       clearInterval(intBottomHandler);
     }
 
-    //
     $("#bin").on('touchstart', '.transaction-row', function(e) {
       // Set up variables for touch events
       originalStates = [];
@@ -1016,6 +1042,9 @@
       var show = $("option:selected", this).data('show');
       $(target).children().addClass('hide');
       $(show).removeClass('hide');
+      $selects = $(target).find('select').removeAttr('required'); // Remove the required attribute
+      $selects.siblings(".select-dropdown").removeClass("invalid"); // Remove the invalid class from the dropdown
+      $selects.parent().siblings(".helper-text").text(""); // Clear the error message
       $(target).find('select').removeAttr('required');
       $(show).find('select').attr('required', true);
     });
@@ -1351,9 +1380,11 @@
       });
     });
 
-    // Ctrl+Enter submits and clears some, Ctrl+Shift+Enter submits and clears all
+    // --- Transaction creator form keybinds --- //
+    // Ctrl+Enter submits and clears some
+    // Ctrl+Shift+Enter submits and clears all
     $('#transaction-modal form').keydown(function(e) {
-      if ((e.ctrlKey) && e.keyCode === ENTER) {
+      if ((e.ctrlKey) && e.key === "Enter") {
         if ($(this)[0].checkValidity()) {
           if (!e.shiftKey) {
               e.preventDefault();
@@ -1366,6 +1397,56 @@
           }
         }
       }
+    });
+    
+    // Ctrl+Alt+Arrow toggles between tabs in transaction creator
+    $("#transaction-modal").keydown(function(e) {
+      if (e.ctrlKey && e.altKey && e.key == "ArrowLeft") {
+        // Switch one tab to the left
+        var tabs = M.Tabs.getInstance($('#type-tabs'));
+        var tab_index = tabs.index;
+        if (tab_index > 0) {
+          $tab = $("#type-tabs").children(".tab").eq(tab_index - 1); // Get the next tab (<li> element)
+          id = $tab.children("a").attr("href").substring(1); // The name of the id which the tab switches to
+          $("#type-tabs").tabs("select", id); // Change to the next tab
+          $("#" + id).find('form input[name="name"]').select(); // Select the name field
+        }
+      } else if (e.ctrlKey && e.altKey && e.key == "ArrowRight") {
+        // Switch one tab to the right
+        var tabs = M.Tabs.getInstance($('#type-tabs'));
+        var tab_index = tabs.index;
+        if (tab_index < 2) {
+          $tab = $("#type-tabs").children(".tab").eq(tab_index + 1); // Get the next tab (<li> element)
+          id = $tab.children("a").attr("href").substring(1); // The name of the id which the tab switches to
+          $("#type-tabs").tabs("select", id); // Change to the next tab
+          $("#" + id).find('form input[name="name"]').select(); // Select the name field
+        }
+      }
+    });
+
+    // Clear the "required" error message on the amount inputs in the transaction creator/editor modal when you start typing
+    $("#transaction-modal input, #editor-modal input").on("invalid", function() {
+      if ($(this).hasClass("special-input")) {
+        $(this).siblings("span").removeClass("hidden"); // For special inputs (inline math), remove the hidden class to display the error message
+      }
+      $(this).addClass("invalid").removeClass("valid");
+    }).on("input", function(e) {
+      $(e.target).removeClass("invalid"); // As soon as you fill in the empty name input, remove the invalid class
+      if ($(this).hasClass("special-input")) {
+        $(this).siblings("span").addClass("hidden"); // For special inputs (inline math), add the hidden class to hide the error message
+      }
+    });
+
+    // If you attempt to submit a form in the transaction creator/editor modal without selecting an envelope/account, display an error message
+    $("#transaction-modal select, #editor-modal select").on("invalid", function() {
+      $(this).siblings(".select-dropdown").addClass("invalid").removeClass("valid"); // Add invalid class to the select dropdown
+      $(this).parent().siblings(".helper-text").text("Required"); // Show the error message for the select dropdown
+    });
+
+    // When you make a selection in the select dropdown, remove the invalid class and clear the error message
+    $("#transaction-modal, #editor-modal").on("change", ".select-wrapper", function() {
+      $(this).children(".select-dropdown").removeClass("invalid");
+      $(this).siblings(".helper-text").text("");
     });
 
     // Submits transaction CREATOR form data, closes the modal, clears the form, and reloads the data
@@ -1392,57 +1473,60 @@
         url: url,
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
-        if (o['error']) { M.toast({html: o['error']}); return; }
-        if (remain_open == 1) { // RESET NAME FIELD, STAY OPEN
-          // If the form was submitted with the submit and new button
-          $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
-          data_reload(current_page).then( function () {
+        if (o['success']) {
+          if (remain_open == 1) { // RESET NAME FIELD, STAY OPEN
+            // If the form was submitted with the submit and new button
+            $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
+            data_reload(current_page).then( function () {
 
-            //Clear the transaction name field
-            $form.find('input[name="name"]').val("").select().removeClass('valid');
+              //Clear the transaction name field
+              $form.find('input[name="name"]').val("").select().removeClass('valid');
 
-            //Remove the valid class from the amount
-            $form.find('input[name="amount"]').removeClass('valid');
+              //Remove the valid class from the amount
+              $form.find('input[name="amount"]').removeClass('valid');
 
-            //Fill the date field
-            $form.find('input[name="date"]').val(selected_date);
-            $form.find('.datepicker').datepicker('setDate', new Date(selected_date));
+              //Fill the date field
+              $form.find('input[name="date"]').val(selected_date);
+              $form.find('.datepicker').datepicker('setDate', new Date(selected_date));
 
-            //Select the previously selected envelopes and their respective dropdowns
-            $envelope_selectors.each(function(index) {
-              $(this).find('option[value=' + selected_envelopes[index] + ']').attr('selected', 'selected');
-              $(this).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+              //Select the previously selected envelopes and their respective dropdowns
+              $envelope_selectors.each(function(index) {
+                $(this).find('option[value=' + selected_envelopes[index] + ']').attr('selected', 'selected');
+                $(this).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+              });
+              //Select the previously selected account in its dropdown
+              $account_selectors.each(function(index) {
+                $(this).find('option[value=' + selected_accounts[index] + ']').attr('selected', 'selected');
+                $(this).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+              });
+
             });
-            //Select the previously selected account in its dropdown
-            $account_selectors.each(function(index) {
-              $(this).find('option[value=' + selected_accounts[index] + ']').attr('selected', 'selected');
-              $(this).formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+          }
+          else if (remain_open == 2) { // RESET ALL FIELDS, STAY OPEN
+            $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
+            $form.find(".new-envelope-row").remove(); //Only used on #new-expense-form
+            $form[0].reset(); //Clear the data from the form fields
+            data_reload(current_page).then( function () {
+              $form.find(".schedule-content").hide();
+              update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
+              $form.find('input[name="name"]').select();
             });
-
-          });
+          }
+          else { // RESET ALL FIELDS AND CLOSE
+            // If the form was submitted with the standard submit button or enter
+            $('#transaction-modal').modal("close")
+            $form.find(".new-envelope-row").remove() //Only used on #new-expense-form
+            $form[0].reset(); //Clear the data from the form fields
+            $form.find(".amount-span").text("$0.00").removeClass("negative").addClass("neutral");
+            data_reload(current_page).then( function () {
+              $form.find(".schedule-content").hide();
+              update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
+            });
+          }
+        } else {
+          if (o.errors) {displayFieldErrors(o.errors);}
         }
-        else if (remain_open == 2) { // RESET ALL FIELDS, STAY OPEN
-          $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
-          $form.find(".new-envelope-row").remove(); //Only used on #new-expense-form
-          $form[0].reset(); //Clear the data from the form fields
-          data_reload(current_page).then( function () {
-            $form.find(".schedule-content").hide();
-            update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
-            $form.find('input[name="name"]').select();
-          });
-        }
-        else { // RESET ALL FIELDS AND CLOSE
-          // If the form was submitted with the standard submit button or enter
-          $('#transaction-modal').modal("close")
-          $form.find(".new-envelope-row").remove() //Only used on #new-expense-form
-          $form[0].reset(); //Clear the data from the form fields
-          $form.find(".amount-span").text("$0.00").removeClass("negative").addClass("neutral");
-          data_reload(current_page).then( function () {
-            $form.find(".schedule-content").hide();
-            update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
-          });
-        }
-        o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+        if (o['toasts']) { o['toasts'].forEach((toast) => M.toast({html: toast})); } //Display toasts
       });
     });
 

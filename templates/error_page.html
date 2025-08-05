@@ -27,6 +27,23 @@
 
   <!-- Content -->
   <main>
+    
+    <div id="loading-div-div">
+      <div id="loading-div">
+        <div class="preloader-wrapper big active">
+          <div class="spinner-layer spinner-blue-only">
+            <div class="circle-clipper left">
+              <div class="circle"></div>
+            </div><div class="gap-patch">
+              <div class="circle"></div>
+            </div><div class="circle-clipper right">
+              <div class="circle"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="row">
         <div class="col s12 m6 offset-m3">
             <div class="card-panel">
@@ -35,12 +52,21 @@
                 <h5>You've encountered the following error:</h5>
                 <p class="center-align red-text text-darken-2">{{message}}</p>
                 <h5 class="center-align">Return to <a href="{{url_for('main.home')}}">budgeteerapp.com</a></h5>
+                {% if bug_report_form is defined %}
+                <p>Or click <a class="modal-trigger" href="#bug-report-modal">here</a> to report a bug.</p>
+                {% endif %}
             </div>
         </div>
     </div>
   </main>
 
+  {% if bug_report_form is defined %}
+    {% include 'bug_report_modal.html' %}
+  {% endif %}
+
   <script src="{{url_for('static', filename='node_modules/jquery/dist/jquery.min.js')}}"></script>
-  <script src="{{url_for('static', filename='node_modules/jquery-ui/dist/jquery-ui.min.js')}}"></script>
+  <script src="{{url_for('static', filename='js/materialize.js')}}"></script>
+  <script src="{{url_for('static', filename='js/gen_timestamp.js')}}"></script>
+  <script src="{{url_for('static', filename='js/error_page.js')}}"></script>
 </body>
 </html>

@@ -1,5 +1,12 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, EmailField, SubmitField, validators
+from wtforms import StringField, PasswordField, EmailField, SubmitField, validators, SelectField, TextAreaField
+from flask_wtf.file import FileField, FileAllowed
+
+# TODO: Make sure this works for all image types (See chagGPT example and change line 60)
+# from flask_uploads import UploadSet, IMAGES
+
+# images = UploadSet('images', IMAGES)
+
 
 class LoginForm(FlaskForm):
     email = EmailField("Email", [validators.InputRequired(), validators.Email()], render_kw={"autocomplete": "username"})
@@ -18,3 +25,36 @@ class ForgotPasswordForm(FlaskForm):
 class ResetPasswordForm(FlaskForm):
     new_password = PasswordField("New Password", [validators.InputRequired(), validators.EqualTo('confirm_password', message='Passwords must match'), validators.Length(min=8, max=32, message="Password must be between 8 and 32 characters long")], render_kw={"placeholder": "Between 8 and 32 characters", "autocomplete": "new-password"})
     confirm_password = PasswordField("Confirm Password", [validators.InputRequired(), validators.EqualTo('new_password', message='Passwords must match'), validators.Length(min=8, max=32, message="Password must be between 8 and 32 characters long")], render_kw={"placeholder": "Between 8 and 32 characters", "autocomplete": "new-password"})
+
+# ----- TRANSACTION BUILDER FORMS ----- #
+class NewExpenseForm(FlaskForm):
+    name = StringField("Name", [validators.InputRequired(), validators.Length(min=1, max=300)], render_kw={"autocomplete": "name"})
+    # envelope = SelectField("Envelope", [validators.InputRequired(), validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+    # amount = StringField("Amount", [validators.InputRequired(), validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+    # account = SelectField("Account", [validators.InputRequired(), validators.Length(min=1, max=5)], render_kw={"autocomplete": "off"})
+    # date = StringField("Date", [validators.InputRequired(), validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+    # note = StringField("Note", [validators.Length(min=1, max=300)], render_kw={"autocomplete": "off"})
+    # schedule = StringField("Schedule", [validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+
+class NewTransferForm(FlaskForm):
+    name = StringField("Name", [validators.InputRequired(), validators.Length(min=1, max=300)], render_kw={"autocomplete": "name"})
+    # envelope = SelectField("Envelope", [validators.InputRequired(), validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+    # amount = StringField("Amount", [validators.InputRequired(), validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+    # account = SelectField("Account", [validators.InputRequired(), validators.Length(min=1, max=5)], render_kw={"autocomplete": "off"})
+    # date = StringField("Date", [validators.InputRequired(), validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+    # note = StringField("Note", [validators.Length(min=1, max=300)], render_kw={"autocomplete": "off"})
+    # schedule = StringField("Schedule", [validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+
+class NewIncomeForm(FlaskForm):
+    name = StringField("Name", [validators.InputRequired(), validators.Length(min=1, max=300)], render_kw={"autocomplete": "name"})
+    # account = SelectField("Account", [validators.InputRequired(), validators.Length(min=1, max=5)], render_kw={"autocomplete": "off"})
+    # date = StringField("Date", [validators.InputRequired(), validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+    # amount = StringField("Amount", [validators.InputRequired(), validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+    # note = StringField("Note", [validators.Length(min=1, max=300)], render_kw={"autocomplete": "off"})
+    # schedule = StringField("Schedule", [validators.Length(min=1, max=128)], render_kw={"autocomplete": "off"})
+
+class BugReportForm(FlaskForm):
+    bug_reporter_name = StringField("Name", [validators.InputRequired(), validators.Length(min=1, max=300)], render_kw={"autocomplete": "name"})
+    bug_reporter_email = EmailField("Email", [validators.InputRequired(), validators.Email()], render_kw={"autocomplete": "email"})
+    bug_description = TextAreaField("Description", [validators.InputRequired(), validators.Length(min=1, max=10000)], render_kw={"autocomplete": "description"})
+    screenshot = FileField("Screenshot", validators=[FileAllowed(['jpg', 'png'], 'Images only!')] , render_kw={"autocomplete": "screenshot"})
