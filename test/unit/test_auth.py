@@ -11,17 +11,6 @@ from secret import RECAPTCHA_SITE_KEY
 
 # region HELPERS
 
-def get_csrf_token(client):
-    """Get the CSRF token from the login page"""
-    response = client.get(url_for('auth.login'))
-    html = response.get_data(as_text=True)
-    match = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="([^"]+)">', html)
-    if match:
-        csrf_token = match.group(1)
-        return csrf_token
-    else:
-        raise ValueError("CSRF token not found in the login page")
-
 def remove_key(d, key):
     r = dict(d)
     del r[key]
@@ -804,3 +793,42 @@ def test_logout_post(client):
     assert response.status_code == 405 # Method Not Allowed
 
 # endregion ROUTE TESTS
+
+# region HELPER FUNCTION TESTS
+#TODO: Implement these tests
+# Note: These functions are lightly tested through the route tests above.
+
+# def test_check_confirmed():
+#     # Test check_confirmed function
+#     assert check_confirmed() == None
+
+# def test_generate_uuid():
+#     # Test generate_uuid function
+#     assert generate_uuid() != None
+
+# def test_set_secure_cookie():
+#     # Test set_secure_cookie function
+#     response = {}
+#     set_secure_cookie(response, "key", "value")
+#     assert response.get("Set-Cookie") == "key=value; Secure"
+
+# def test_get_uuid_from_cookie():
+#     # Test get_uuid_from_cookie function
+#     assert get_uuid_from_cookie() == None
+
+# def test_generate_token():
+#     # Test generate_token function
+#     assert generate_token("test@example.com") != None
+
+# def test_confirm_token():
+#     # Test confirm_token function
+#     assert confirm_token("token") == None
+
+# def test_load_user():
+#     # Test load_user function
+#     assert load_user("uuid") == None
+
+# def test_verify_recaptcha():
+#     # Test verify_recaptcha function
+
+# endregion HELPER FUNCTION TESTS

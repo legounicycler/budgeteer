@@ -6,7 +6,7 @@ the app will start with either the development config or the production config.
 """
 
 # Flask imports
-from flask import Flask
+from flask import Flask, render_template
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
 
@@ -54,6 +54,9 @@ def create_app(config_object="config.DevelopmentConfig"):
   app.register_blueprint(auth_bp)
   app.register_blueprint(main_bp)
   app.register_blueprint(error_handling_bp)
+  @app.errorhandler(404)
+  def not_found(e):
+      return render_template("error_page.html", message=f"404 Error: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."), 404
 
   return app
 

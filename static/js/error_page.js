@@ -53,7 +53,7 @@
   
         $("#bug-report-modal").modal();
 
-        // AJAX request for login form
+        // AJAX request for bug submit form
         $('#bug-report-form').submit(function(e) {
             e.preventDefault();
             var url = $(this).attr('action');

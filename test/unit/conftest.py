@@ -55,11 +55,15 @@ def logged_in_user_client(client):
 
 @pytest.fixture
 def mail_instance(app):
-    return app.mail
+    return app.extensions['mail']
 
 @pytest.fixture
-def mock_get_uuid_from_cookie(mocker):
+def mock_get_uuid_from_cookie_main(mocker):
     return mocker.patch('blueprints.main.get_uuid_from_cookie', return_value=current_user.id)
+
+@pytest.fixture
+def mock_get_uuid_from_cookie_error_handling(mocker):
+    return mocker.patch('blueprints.error_handling.get_uuid_from_cookie', return_value=current_user.id)
 
 def get_csrf_token(client):
     """Get the CSRF token from the login page"""

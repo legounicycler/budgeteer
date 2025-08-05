@@ -1,18 +1,18 @@
-def datetimeformat(value, format='%m/%d/%Y'):
+def datetimeformat(d, format='%m/%d/%Y'):
     """
-    TODO: Needs description
+    Accepts a datetime object and returns a formatted string for displaly in HTML
     """
-    return value.strftime(format)
+    return d.strftime(format)
 
-def datetimeformatshort(value, format='%b %d\n%Y'):
+def datetimeformatshort(d, format='%b %d\n%Y'):
     """
-    TODO: Needs description
+    Accepts a datetime object and returns a formatted string for displaly in HTML
     """
-    return value.strftime(format)
+    return d.strftime(format)
 
 def balanceformat(number):
     """
-    Formats amount numbers into a string with a "$" and "-" if necessary for display
+    Accepts a float or int representing transaction amount and converts into a string with a "$" and "-" if necessary for display in HTML
     """
     if number is None:
         string = "NAN"
@@ -24,6 +24,6 @@ def balanceformat(number):
 
 def inputformat(num):
     """
-    TODO: Needs description
+    Accepts a float/int and converts it into a string with two decimal places for display in HTML input field (so no "$" before number)
     """
     return '%.2f' % num

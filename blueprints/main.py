@@ -162,6 +162,8 @@ def new_expense(edited=False):
   try:
     form = NewExpenseForm()
     names = form.name.data
+    if names is None:
+      raise InvalidFormDataError("ERROR: No transaction name was submitted for new expense!")
 
     if not form.validate():
       errors = {field.name: field.errors for field in form if field.errors}
@@ -169,7 +171,7 @@ def new_expense(edited=False):
       return jsonify(success=False, errors=errors)
 
     uuid = get_uuid_from_cookie()
-    names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
+    names = [n.lstrip() for n in names.split(',') if n.lstrip()] #Parse name field separated by commas
     str_amounts = request.form.getlist('amount')
     str_envelope_ids = request.form.getlist('envelope_id')
     account_id = request.form['account_id']
@@ -246,6 +248,8 @@ def new_transfer(edited=False):
   try:
     form = NewTransferForm()
     names = form.name.data
+    if names is None:
+      raise InvalidFormDataError("ERROR: No transaction name was submitted for new transfer!")
 
     if not form.validate():
       errors = {field.name: field.errors for field in form if field.errors}
@@ -323,7 +327,6 @@ def new_transfer(edited=False):
   except Exception as e:
     toasts.append(f"ERROR: {str(e)}")
     return jsonify({'success': False, 'toasts': toasts})
-  
 
 @main_bp.route('/new_income', methods=['POST'])
 @login_required
@@ -332,6 +335,8 @@ def new_income(edited=False):
   try:
     form = NewIncomeForm()
     names = form.name.data
+    if names is None:
+      raise InvalidFormDataError("ERROR: No transaction name was submitted for new income!")
 
     if not form.validate():
       errors = {field.name: field.errors for field in form if field.errors}
@@ -790,62 +795,3 @@ def load_static_html():
     'edit_account_row': render_template('edit_account_row.html'),
     't_editor_new_env_row': render_template('transaction_editor_new_envelope_row.html')
   })
-
-
-@main_bp.route('/bug-report', methods=['POST'])
-@login_required
-@check_confirmed
-def bug_report():
-  try:
-    uuid = get_uuid_from_cookie()
-    bug_report_id = generate_uuid()
-    name = request.form.get('bug_reporter_name')
-    email = request.form.get('bug_reporter_email')
-    desc = request.form.get('bug_description')
-    timestamp = request.form.get('timestamp')
-    screenshot = request.files['screenshot']
-    if screenshot.filename == '':
-        screenshot = None
-    if screenshot and screenshot.filename:
-        allowed_file_extension(screenshot)
-        allowed_file_size(screenshot)
-        screenshot.filename = secure_filename(screenshot.filename)
-        screenshot.save(os.path.join(current_app.config['UPLOAD_FOLDER'], screenshot.filename))
-    
-    send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot)  # Send bug report email to the developer
-    send_bug_report_email_user(name, email, bug_report_id) # Send confirmation email to the user
-    
-    return jsonify({'toasts': ["Thank you! Your bug report has been submitted!"]})
-  except CustomException as e:
-    return jsonify({"error": str(e)})
-
-def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot):
-  msg = Message(f'Budgeteer: Bug Report from {email}', sender=current_app.config["MAIL_USERNAME"], recipients=[current_app.config["MAIL_USERNAME"]])
-  if screenshot:
-    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], screenshot.filename)
-    with current_app.open_resource(file_path) as fp:
-      msg.attach(screenshot.filename, "image/png", fp.read())
-    os.remove(file_path)
-  msg.html = render_template("emails/bug_report_developer.html", uuid=uuid, name=name, email=email, desc=desc, bug_report_id=bug_report_id, timestamp=timestamp)
-  current_app.extensions['mail'].send(msg)
-
-def send_bug_report_email_user(name, email, bug_report_id):
-  msg = Message('Budgeteer: Your Bug Report Has Been Received', sender=current_app.config["MAIL_USERNAME"], recipients=[email])
-  msg.html = render_template("emails/bug_report_user.html", name=name, email=email, bug_report_id=bug_report_id)
-  current_app.extensions['mail'].send(msg)
-
-def allowed_file_extension(file):
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-    file_extension = file.filename.rsplit('.', 1)[1].lower()
-    if '.' in file.filename and file_extension in ALLOWED_EXTENSIONS:
-      return True
-    else:
-      raise InvalidFileTypeError(f"ERROR: Invalid file type .{file_extension} for bug report screenshot!")
-
-def allowed_file_size(file):
-    MAX_FILE_SIZE = 1024*1024*10 # 10Mb
-    file_data = file.read()
-    file_size = len(file_data) # in bytes
-    file.seek(0) # Reset the file pointer to the beginning of the file so it can be saved properly
-    if file_size >= MAX_FILE_SIZE:
-        raise InvalidFileSizeError(f"The file you uploaded is too large! ({round(file_size/(1024*1024), 2)}Mb). Please upload a file smaller than {round(MAX_FILE_SIZE/(1024*1024), 0)}Mb.")

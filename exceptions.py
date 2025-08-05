@@ -36,6 +36,9 @@ class TimestampParseError(CustomException):
 class InvalidFileSizeError(CustomException):
     pass
 
+class InvalidFileTypeError(CustomException):
+    pass
+
 class RecaptchaFailError(CustomException):
     def __init__(self, response):
         if response['success'] is False:

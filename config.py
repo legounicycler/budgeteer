@@ -1,4 +1,4 @@
-from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME, SECURITY_PASSWORD_SALT, WINDOWS_DATABASE_PATH, LINUX_DATABASE_PATH
+from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME, SECURITY_PASSWORD_SALT, WINDOWS_DATABASE_PATH, LINUX_DATABASE_PATH, LOCAL_UPLOAD_FOLDER
 
 class Config:
     """Base configuration class with default settings."""
@@ -33,7 +33,7 @@ class TestingConfig(Config):
     MAIL_SUPPRESS_SEND = True
     MAIL_BACKEND = 'memory'
     # TODO: This needs to be platform agnostic
-    UPLOAD_FOLDER = 'C:\\Users\\norma\\Documents\\Github\\budgeteer\\test\\unit\\uploads'
+    UPLOAD_FOLDER = LOCAL_UPLOAD_FOLDER
 
 class ProductionConfig(Config):
     """Configuration for production environment."""

@@ -57,4 +57,4 @@ class BugReportForm(FlaskForm):
     bug_reporter_name = StringField("Name", [validators.InputRequired(), validators.Length(min=1, max=300)], render_kw={"autocomplete": "name"})
     bug_reporter_email = EmailField("Email", [validators.InputRequired(), validators.Email()], render_kw={"autocomplete": "email"})
     bug_description = TextAreaField("Description", [validators.InputRequired(), validators.Length(min=1, max=10000)], render_kw={"autocomplete": "description"})
-    screenshot = FileField("Screenshot", validators=[FileAllowed(['jpg', 'png'], 'Images only!')] , render_kw={"autocomplete": "screenshot"})
+    screenshot = FileField("Screenshot", validators=[FileAllowed(['jpg', 'png'], 'Filetype must by .jpg or .png')] , render_kw={"autocomplete": "screenshot"})

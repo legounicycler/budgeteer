@@ -1621,10 +1621,18 @@
         processData: false,
         data: formData
       }).done(function( o ) {
-        if (o['error']) { M.toast({html: o['error']}); return; }
-        $parentModal.modal("close");
-        o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
-        $form[0].reset(); //Clears the data from the form fields
+        if (o.success) {
+          $parentModal.modal("close");
+          $form[0].reset(); //Clears the data from the form fields
+        } else {
+          if (o.errors) {
+            displayFieldErrors(o.errors);
+            console.log("ERRORS OH NO OH HECK OH FRICK");
+          }
+        }
+        if (o['toasts']) {  //Display toasts
+          o['toasts'].forEach((toast) => M.toast({html: toast}));
+        }
       });
     });
 

@@ -3,7 +3,7 @@ from test.unit.conftest import get_csrf_token
 from flask_login import current_user
 from blueprints.auth import confirm_user
 
-def test_bug_report_send_success(logged_in_user_client, mock_get_uuid_from_cookie, mail_instance):
+def test_bug_report_send_success(logged_in_user_client, mock_get_uuid_from_cookie_error_handling, mail_instance):
     """
     Test POSTing data to the bug report form with a valid name, email address, description, and screenshot
     The site should return success:true
@@ -24,12 +24,12 @@ def test_bug_report_send_success(logged_in_user_client, mock_get_uuid_from_cooki
 
         # 2. Verify the response
         assert response.status_code == 200
-        assert b'"success":true' in response.data
+        assert b'{"success":true,"toasts":["Thank you! Your bug report has been submitted!"]}\n' in response.data
         assert len(outbox) == 2
         assert outbox[0].subject == 'Budgeteer: Bug Report from email@example.com'
         assert outbox[1].subject == 'Budgeteer: Your Bug Report Has Been Received'
 
-def test_bug_report_success_no_screenshot(logged_in_user_client, mock_get_uuid_from_cookie, mail_instance):
+def test_bug_report_success_no_screenshot(logged_in_user_client, mock_get_uuid_from_cookie_error_handling, mail_instance):
     """
     Test POSTing data to the bug report form with a valid name, email address, description, and no screenshot
     """
@@ -53,7 +53,7 @@ def test_bug_report_success_no_screenshot(logged_in_user_client, mock_get_uuid_f
         assert outbox[0].subject == 'Budgeteer: Bug Report from email@example.com'
         assert outbox[1].subject == 'Budgeteer: Your Bug Report Has Been Received'
 
-def test_bug_report_send_failure_malformed_textual_data(logged_in_user_client, mock_get_uuid_from_cookie):
+def test_bug_report_send_failure_malformed_textual_data(logged_in_user_client, mock_get_uuid_from_cookie_error_handling):
     """
     Test cases for bad/empty name, bad/empty email, bad/empty description
     """
@@ -91,7 +91,7 @@ def test_bug_report_send_failure_malformed_textual_data(logged_in_user_client, m
     assert response.status_code == 200
     assert b'{"error":{"bug_description":["Field must be between 1 and 10000 characters long."]},"success":false}' in response.data
 
-def test_bug_report_send_failure_invalid_filetype(logged_in_user_client, mock_get_uuid_from_cookie):
+def test_bug_report_send_failure_invalid_filetype(logged_in_user_client, mock_get_uuid_from_cookie_error_handling):
     """
     Test case for when a user submits non-image filetypes
     """
@@ -110,9 +110,9 @@ def test_bug_report_send_failure_invalid_filetype(logged_in_user_client, mock_ge
     
     # 2. Verify the response
     assert response.status_code == 200
-    assert b'{"error":{"screenshot":["Images only!"]},"success":false}' in response.data
+    assert b'{"errors":{"screenshot":["Filetype must by .jpg or .png"]},"success":false,"toasts":["There was an error with your bug report. Please check the form and try again."]}\n' in response.data
 
-def test_bug_report_send_failure_invalid_filesize(logged_in_user_client, mock_get_uuid_from_cookie):
+def test_bug_report_send_failure_invalid_filesize(logged_in_user_client, mock_get_uuid_from_cookie_error_handling):
     """
     Test case for when a user submits files that are too large
     """
@@ -131,4 +131,4 @@ def test_bug_report_send_failure_invalid_filesize(logged_in_user_client, mock_ge
     
     # 2. Verify the response
     assert response.status_code == 200
-    assert b'{"error":"The file you uploaded is too large! (10.0Mb). Please upload a file smaller than 10.0Mb.","success":false}' in response.data
+    assert b'{"success":false,"toasts":"The file you uploaded is too large! (10.0Mb). Please upload a file smaller than 10.0Mb."}\n' in response.data

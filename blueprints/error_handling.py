@@ -20,17 +20,13 @@ from forms import BugReportForm
 from exceptions import InvalidFileSizeError
 from textLogging import log_write
 
-error_handling_bp = Blueprint('bug_report', __name__)
+error_handling_bp = Blueprint('error_handling', __name__)
 
 # Error handler for HTTP exceptions (for ajax requests)
 @error_handling_bp.route('/error/<int:error_code>')
 def error_page(error_code):
     error_desc = request.args.get('errorDesc') # Fetch the errorDesc query parameter from the ajax request
     return render_template("error_page.html", message=f"Error {error_code}: {error_desc}"), error_code
-
-@error_handling_bp.errorhandler(404)
-def not_found(e):
-    return render_template("error_page.html", message=f"404 Error: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."), 404
 
 # Error handler for HTTP exceptions
 @error_handling_bp.errorhandler(HTTPException)
@@ -62,7 +58,7 @@ def bug_report():
     timestamp = request.form.get('timestamp')
 
     if not form.validate():
-      return jsonify({'success': False, 'error': form.errors})
+      return jsonify({'success': False, 'errors': form.errors, 'toasts': ["There was an error with your bug report. Please check the form and try again."]})
 
     if screenshot:
       allowed_file_size(screenshot)
@@ -74,9 +70,9 @@ def bug_report():
     
     return jsonify({'success': True,'toasts': ["Thank you! Your bug report has been submitted!"]})
   except Exception as e:
-    log_write(f'BUG REPORT ERROR: {e}', "EventLog.txt")
-    log_write(f'\n{traceback.format_exc()}', "EventLog.txt")
-    return jsonify({'success': False, "error": str(e)})
+    # log_write(f'BUG REPORT ERROR: {e}', "EventLog.txt")
+    # log_write(f'\n{traceback.format_exc()}', "EventLog.txt")
+    return jsonify({'success': False, "toasts": str(e)})
 
 def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot):
   msg = Message(f'Budgeteer: Bug Report from {email}', sender=current_app.config["MAIL_USERNAME"], recipients=[current_app.config["MAIL_USERNAME"]])
@@ -86,12 +82,12 @@ def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, time
       msg.attach(screenshot.filename, "image/png", fp.read())
     os.remove(file_path)
   msg.html = render_template("emails/bug_report_developer.html", uuid=uuid, name=name, email=email, desc=desc, bug_report_id=bug_report_id, timestamp=timestamp)
-  current_app.mail.send(msg)
+  current_app.extensions['mail'].send(msg)
 
 def send_bug_report_email_user(name, email, bug_report_id):
   msg = Message('Budgeteer: Your Bug Report Has Been Received', sender=current_app.config["MAIL_USERNAME"], recipients=[email])
   msg.html = render_template("emails/bug_report_user.html", name=name, email=email, bug_report_id=bug_report_id)
-  current_app.mail.send(msg)
+  current_app.extensions['mail'].send(msg)
 
 def allowed_file_size(file):
   MAX_FILE_SIZE = 1024*1024*10 # 10Mb
