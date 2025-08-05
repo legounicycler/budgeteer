@@ -41,13 +41,12 @@
                 <div class="col s8 file-field input-field">
                    <div class="btn">
                       <span>Browse</span>
-                      <!-- <input type="file" name="screenshot" accept="image/*"/> -->
                       {{bug_report_form.screenshot(class="validate")}}
-                      <span class="helper-text" data-error="Invalid file type"></span>
                    </div>
                    
                    <div class="file-path-wrapper">
-                      <input class="file-path validate" type="text" placeholder="Upload file"/>
+                      {{ bug_report_form.screenshot_filepath(class="file-path validate", placeholder="Upload file") }}
+                      <span class="helper-text red-text left-align"></span>
                    </div>
                 </div>
              </div>

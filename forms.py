@@ -1,11 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, EmailField, SubmitField, validators, SelectField, TextAreaField
+from wtforms.validators import Optional
 from flask_wtf.file import FileField, FileAllowed
-
-# TODO: Make sure this works for all image types (See chagGPT example and change line 60)
-# from flask_uploads import UploadSet, IMAGES
-
-# images = UploadSet('images', IMAGES)
 
 
 class LoginForm(FlaskForm):
@@ -57,4 +53,5 @@ class BugReportForm(FlaskForm):
     bug_reporter_name = StringField("Name", [validators.InputRequired(), validators.Length(min=1, max=300)], render_kw={"autocomplete": "name"})
     bug_reporter_email = EmailField("Email", [validators.InputRequired(), validators.Email()], render_kw={"autocomplete": "email"})
     bug_description = TextAreaField("Description", [validators.InputRequired(), validators.Length(min=1, max=10000)], render_kw={"autocomplete": "description"})
-    screenshot = FileField("Screenshot", validators=[FileAllowed(['jpg', 'png'], 'Filetype must by .jpg or .png')] , render_kw={"autocomplete": "screenshot"})
+    screenshot = FileField("Screenshot", validators=[FileAllowed(['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp'], 'Must be image file')], render_kw={"accept": ".jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp"})
+    screenshot_filepath = StringField("File Path", validators=[Optional()]) #Technically this field is optional because it doesn't contain the actual file, but rather it's just a placeholder text

@@ -1627,13 +1627,17 @@
         } else {
           if (o.errors) {
             displayFieldErrors(o.errors);
-            console.log("ERRORS OH NO OH HECK OH FRICK");
           }
         }
         if (o['toasts']) {  //Display toasts
           o['toasts'].forEach((toast) => M.toast({html: toast}));
         }
       });
+    });
+
+    // TODO: this probably needs to be in the error_page.js version of this function too?
+    $('#screenshot_filepath').change(function() {
+      $(this).siblings(".helper-text").text("");
     });
 
     // Opens transaction editor modal

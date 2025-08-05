@@ -17,8 +17,8 @@ from werkzeug.utils import secure_filename
 #Custom imports
 from blueprints.auth import generate_uuid, get_uuid_from_cookie, check_confirmed
 from forms import BugReportForm
-from exceptions import InvalidFileSizeError
 from textLogging import log_write
+from exceptions import *
 
 error_handling_bp = Blueprint('error_handling', __name__)
 
@@ -56,23 +56,31 @@ def bug_report():
     uuid = get_uuid_from_cookie() #TODO: Test this with a non-logged in client
     bug_report_id = generate_uuid()
     timestamp = request.form.get('timestamp')
+    toasts = []
 
     if not form.validate():
-      return jsonify({'success': False, 'errors': form.errors, 'toasts': ["There was an error with your bug report. Please check the form and try again."]})
+      if form.screenshot.errors:
+        form.screenshot_filepath.errors = form.screenshot.errors #Display the file errors in the text field below the file input rather than under the true "screenshot" input field button
+      return jsonify({'success': False, 'errors': form.errors})
 
     if screenshot:
-      allowed_file_size(screenshot)
+      allowed_file_size(screenshot, form)  # Check if the file size is within the allowed limit
       screenshot.filename = secure_filename(screenshot.filename)
       screenshot.save(os.path.join(current_app.config['UPLOAD_FOLDER'], screenshot.filename))
     
     send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot)  # Send bug report email to the developer
     send_bug_report_email_user(name, email, bug_report_id) # Send confirmation email to the user
-    
-    return jsonify({'success': True,'toasts': ["Thank you! Your bug report has been submitted!"]})
+
+    log_write(f'BUG REPORT SUBMITTED: Bug Report ID: {bug_report_id}, User UUID: {uuid}, Name: {name}, Email: {email}, Description: {desc}, Screenshot: {screenshot.filename}, Timestamp: {timestamp}', "EventLog.txt")
+    toasts.append("Your bug report has been submitted successfully. Thank you for helping to improve Budgeteer!")
+    return jsonify({'success': True,'toasts': toasts})
+  except CustomException as e:
+    return jsonify({'success': False, 'errors': form.errors})
   except Exception as e:
-    # log_write(f'BUG REPORT ERROR: {e}', "EventLog.txt")
-    # log_write(f'\n{traceback.format_exc()}', "EventLog.txt")
-    return jsonify({'success': False, "toasts": str(e)})
+    log_write(f'BUG REPORT ERROR: {str(e)}', "EventLog.txt")
+    log_write(f'\n{traceback.format_exc()}', "EventLog.txt")
+    toasts.append("There was an error processing your bug report. Please try again later.")
+    return jsonify({'success': False, 'errors': form.errors, 'toasts': toasts})
 
 def send_bug_report_email_developer(uuid, name, email, desc, bug_report_id, timestamp, screenshot):
   msg = Message(f'Budgeteer: Bug Report from {email}', sender=current_app.config["MAIL_USERNAME"], recipients=[current_app.config["MAIL_USERNAME"]])
@@ -89,10 +97,12 @@ def send_bug_report_email_user(name, email, bug_report_id):
   msg.html = render_template("emails/bug_report_user.html", name=name, email=email, bug_report_id=bug_report_id)
   current_app.extensions['mail'].send(msg)
 
-def allowed_file_size(file):
+def allowed_file_size(file, form):
   MAX_FILE_SIZE = 1024*1024*10 # 10Mb
   file_data = file.read()
   file_size = len(file_data) # in bytes
   file.seek(0) # Reset the file pointer to the beginning of the file so it can be saved properly
   if file_size >= MAX_FILE_SIZE:
-      raise InvalidFileSizeError(f"The file you uploaded is too large! ({round(file_size/(1024*1024), 2)}Mb). Please upload a file smaller than {round(MAX_FILE_SIZE/(1024*1024), 0)}Mb.")
+    error_msg = f"File size too large! ({round(file_size/(1024*1024), 2)}Mb). Max size {round(MAX_FILE_SIZE/(1024*1024), 0)}Mb."
+    form.screenshot_filepath.errors.append(error_msg)
+    raise InvalidFileSizeError(error_msg)

@@ -19,6 +19,7 @@ class Config:
     UPLOAD_FOLDER = 'uploads'
     SECURITY_PASSWORD_SALT = SECURITY_PASSWORD_SALT
     DATABASE_URI = None
+    # MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10MB max file size  # TODO: Implment this later?. Ask AI what the implications are of using this instead of manually checking file sizes
 
 class DevelopmentConfig(Config):
     """Configuration for development environment."""
