@@ -2,7 +2,6 @@ import os, sys, pytest
 project_directory = os.path.abspath('../..')
 sys.path.append(project_directory)
 from database import *
-import sqlite3
 
 
 # region ---------------TRANSACTION FUNCTIONS TESTS---------------

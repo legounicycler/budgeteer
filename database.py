@@ -18,6 +18,10 @@ from filters import balanceformat
 conn = sqlite3.connect(':memory:', check_same_thread=False)
 c = conn.cursor()
 
+# Register custom adapter for datetime objects to store them as ISO format strings in the database
+# Note: This behavior was previously explicit, but after python 3.12 the default datetime adapter is deprecated.
+sqlite3.register_adapter(datetime, lambda dt: dt.isoformat())
+
 # region ---------------CLASS DEFINITIONS---------------
 
 class Database:

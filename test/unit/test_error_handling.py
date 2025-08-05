@@ -1,4 +1,4 @@
-import pytest, io
+import io
 from test.unit.conftest import get_csrf_token
 from flask_login import current_user
 from blueprints.auth import confirm_user
@@ -28,6 +28,29 @@ def test_bug_report_send_success(logged_in_user_client, mock_get_uuid_from_cooki
         assert len(outbox) == 2
         assert outbox[0].subject == 'Budgeteer: Bug Report from email@example.com'
         assert outbox[1].subject == 'Budgeteer: Your Bug Report Has Been Received'
+
+def test_bug_report_send_non_logged_in_user(client, mail_instance):
+    """
+    Test POSTing data to the bug report form with a valid name, email address, description, and screenshot
+    The site should return success:true
+    """
+    with mail_instance.record_messages() as outbox:
+        # 0. Get the CSRF token
+        csrf_token = get_csrf_token(client)
+        # confirm_user(current_user)
+
+        # 1. POST with valid data
+        response = client.post('/bug-report', data={
+            'bug_reporter_name': 'Firstname Lastname',
+            'bug_reporter_email': 'email@example.com',
+            'bug_description': 'This is the bug description!!',
+            'screenshot': (io.BytesIO(b'my file contents'), 'test_file.png'),
+            'csrf_token': csrf_token
+        }, content_type='multipart/form-data')
+
+        # 2. Verify the response
+        assert response.status_code == 302 # Redirect to login page
+        assert len(outbox) == 0 # No emails should be sent
 
 def test_bug_report_success_no_screenshot(logged_in_user_client, mock_get_uuid_from_cookie_error_handling, mail_instance):
     """
