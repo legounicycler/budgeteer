@@ -1233,11 +1233,11 @@
 
 
     // Retrieves updated data from database and updates the necessary html
-    function data_reload(current_page, reload_transactions=true) {
+    function data_reload(current_page, should_reload_transactions_bin=true) {
       return $.ajax({
         type: "POST",
         url: "/api/data-reload",
-        data: JSON.stringify({"current_page": current_page, "timestamp": gen_timestamp(), "reload_transactions": reload_transactions}),
+        data: JSON.stringify({"current_page": current_page, "timestamp": gen_timestamp(), "should_reload_transactions_bin": should_reload_transactions_bin}),
         contentType: 'application/json'
       }).done(function( o ) {
         if (o['error']) { M.toast({html: o['error']}); return; }
@@ -1248,7 +1248,7 @@
         $('#envelope-modal').replaceWith(o['envelope_editor_html']);
         $('#account-modal').replaceWith(o['account_editor_html']);
         $('#envelope-modal, #account-modal').modal();
-        if (reload_transactions) {
+        if (should_reload_transactions_bin) {
           $('#load-more').remove();
           $('#transactions-bin').replaceWith(o['transactions_html']);
           refresh_reconcile();
@@ -1502,6 +1502,7 @@
       var method = $(this).attr('method');
       var $parentModal = $(this).closest('.modal');
       var dtid = $("#dtid").val();
+      var ttype = $("#ttype").val();
 
       $.ajax({
         type: method,
@@ -1511,7 +1512,11 @@
         if (o['error']) { M.toast({html: o['error']}); return; }
         $parentModal.modal("close");
         $parentModal.find(".new-envelope-row").remove(); //Removes the new-envelope-row(s) from split transactions
-        data_reload(current_page, false).then(function() {
+        should_reload_transactions_bin = false; //Typically when deleting a transaction, you don't need to refresh every transaction in the displayl bin, because the reconcile balances will be updated after the data_reload, and that's all that typically needs changing
+        if (ttype == ENVELOPE_DELETE || ttype == ACCOUNT_DELETE) {
+          should_reload_transactions_bin = true; // If you delete an envelope or account, reload the transactions bin to refresh the strikethrough displays of the transaction envelope/account
+        }
+          data_reload(current_page, should_reload_transactions_bin).then(function() {
           $(`.transaction[data-id='${dtid}']`).parent().animate({height: "0px"}, 250).promise().done(function() {
             $(`.transaction[data-id='${dtid}']`).parent().remove();
             $(".date-bucket").show();
@@ -1772,6 +1777,7 @@
       $("#edit-name").val(name);
       $("#edit-note").val(note);
       $('#dtid').attr('value', id);
+      $('#ttype').attr('value', type);
       $('#edit-id').attr('value', id);
       $('#type').attr('value', type); //Possibly change this to a less confusing ID
 

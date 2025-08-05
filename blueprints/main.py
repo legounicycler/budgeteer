@@ -682,7 +682,7 @@ def data_reload():
     js_data = request.get_json()
     current_page = js_data['current_page']
     timestamp = js_data['timestamp']
-    reload_transactions = js_data['reload_transactions']
+    should_reload_transactions_bin = js_data['should_reload_transactions_bin']
     check_pending_transactions(uuid, timestamp) #Apply any pending transactions that need to before rendering the template
     if 'account/' in current_page:
       regex = re.compile(r'account/(\d+)')
@@ -711,7 +711,7 @@ def data_reload():
     data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
     data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
     data['page_total'] = page_total
-    if reload_transactions:
+    if should_reload_transactions_bin:
       data['transactions_html'] = render_template(
         'transactions.html',
         current_page=current_page,
