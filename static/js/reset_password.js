@@ -1,3 +1,5 @@
+// This js file is used in the reset_password.html template
+
 (function($){
   $(function(){
 
