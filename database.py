@@ -20,7 +20,7 @@ c = conn.cursor()
 
 # Register custom adapter for datetime objects to store them as ISO format strings in the database
 # Note: This behavior was previously explicit, but after python 3.12 the default datetime adapter is deprecated.
-sqlite3.register_adapter(datetime, lambda dt: dt.isoformat())
+sqlite3.register_adapter(datetime, lambda dt: dt.strftime("%Y-%m-%d %H:%M:%S"))
 
 # region ---------------CLASS DEFINITIONS---------------
 
