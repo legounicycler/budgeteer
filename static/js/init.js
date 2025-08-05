@@ -352,6 +352,7 @@
       try {
         num = math.evaluate($(this).val());
         if (!isNaN(num)) {
+          num = Math.round(num * 100) / 100; //Round to 2 decimal places
           if ($(this).hasClass("negate-input")) {
             num = num * -1;
           }
@@ -369,6 +370,7 @@
       try {
         num = math.evaluate($(this).val());
         if (!isNaN(num)) {
+          num = Math.round(num * 100) / 100; //Round to 2 decimal places
           $(this).val((Math.round(num * 100) / 100).toFixed(2));
         } else {
           $span.text("$...").removeClass('negative').addClass('neutral').removeClass("valid");
