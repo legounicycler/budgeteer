@@ -6,6 +6,17 @@ body {
     background-color: #fbfbff;
 }
 
+.content {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* This darker box shadow specifically makes the login page look nicer because of the diagonal orange div */
+nav {
+    box-shadow: 0px 0px 3px 2px #333 !important;
+}
+
 #orange-div:after {
     content: '';
     position: absolute;
@@ -24,10 +35,6 @@ body {
     box-shadow: 0px 0px 8px 4px #888888;
 }
 
-.navbar-fixed {
-    box-shadow: 0px 0px 3px 2px #333;
-}
-
 #budgeteer-main-logo {
     width: 75%;
     margin-left: auto;
@@ -35,11 +42,15 @@ body {
 }
 
 .main-content-row, .main-content-col{
-    height: 100%;
+    height: calc(100vh - 64px);
 }
 
 #no-account {
     cursor: pointer
+}
+
+.card-reveal h4 {
+    margin: 0;
 }
 
 /* Adds margin for the forgot-your-password modal header */
@@ -55,10 +66,6 @@ body {
 
     main {
         height: auto;
-    }
-
-    .content {
-        position: fixed;
     }
 
   }
