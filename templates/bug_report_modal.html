@@ -1,8 +1,8 @@
 <div id="bug-report-modal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content" style="padding-top: 10px;">
   
         <div class="row">
-            <h1>Report a bug!</h1>
+            <h3>Report a bug!</h3>
         </div>
         <div class="divider"></div>
         <div class="row">
@@ -35,10 +35,8 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col s4 left-align">
-                    <p>If helpful, please include a screenshot of the bug you have encountered.</p>
-                </div>
-                <div class="col s8 file-field input-field">
+                <p style="margin: 0; text-align: left; padding: 0 0.75rem;">If helpful, please include a screenshot of the bug you have encountered.</p>
+                <div class="col s12 file-field input-field" style="margin-top: 5px;">
                    <div class="btn">
                       <span>Browse</span>
                       {{bug_report_form.screenshot(class="validate")}}

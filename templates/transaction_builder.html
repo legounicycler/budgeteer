@@ -15,7 +15,7 @@
           <form class="col s12" id="new-expense-form" action="{{ url_for('main.new_expense') }}" data-remain-open ="0" method="post">
             {{ new_expense_form.hidden_tag() }}
             <div class="row">
-              <div class="input-field col s12">
+              <div class="input-field col s12" style="margin-top: 0px;">
                 {{new_expense_form.name.label}}
                 {{new_expense_form.name}}
                 <span class="helper-text" data-error="Transaction name required"></span>
@@ -132,7 +132,7 @@
           <form class="col s12" id="new-transfer-form" action="{{ url_for('main.new_transfer') }}" data-remain-open ="0" method="post">
             {{ new_transfer_form.hidden_tag()}}
             <div class="row">
-              <div class="input-field col s12">
+              <div class="input-field col s12"  style="margin-top: 0px;">
                 {{new_transfer_form.name.label}}
                 {{new_transfer_form.name}}
                 <span class="helper-text" data-error="Transaction name required"></span>
@@ -281,7 +281,7 @@
           <form class="col s12" id="new-income-form" action="{{ url_for('main.new_income') }}" data-remain-open ="0" method="post">
             {{ new_income_form.hidden_tag() }}
             <div class="row">
-              <div class="input-field col s12">
+              <div class="input-field col s12" style="margin-top: 0px;">
                 {{new_income_form.name.label}}
                 {{new_income_form.name}}
                 <span class="helper-text" data-error="Transaction name required"></span>
