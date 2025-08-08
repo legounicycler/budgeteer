@@ -11,6 +11,7 @@
   <link href="{{url_for('static', filename='css/style.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link href="{{url_for('static', filename='css/common.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link href="{{url_for('static', filename='css/main.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/transaction_search.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link rel="stylesheet" href="https://unpkg.com/simplebar@latest/dist/simplebar.css"/>
   <link rel="icon" href="/static/img/icon.png">
 </head>
@@ -127,8 +128,17 @@
         <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
           <div id="transaction-header" class="orange lighten-1 white-text">
             <div class="row" id="title-row">
-              <div id = "page-title-col" class="col s11 left-align">
-                <h4 id="page-title" class="truncate"><span id="current-view">All Transactions</span> | <i id="page-total">{{total_funds|balanceformat}}</i></h4>
+              <div id="page-title-col" class="col s8 left-align">
+                <h4 id="page-title" class="truncate">
+                  <span id="current-view">All Transactions</span> | 
+                  <i id="page-total">{{total_funds|balanceformat}}</i>
+                </h4>
+              </div>
+              <div class="col s3">
+                <div class="input-field">
+                  <input id="transaction-search" type="text" class="white-text">
+                  <label for="transaction-search"><i class="material-icons left">search</i>Search transactions</label>
+                </div>
               </div>
               <div id="multi-select-col" class="col s1">
                 <div class="row">
@@ -182,6 +192,7 @@
   <script src="{{url_for('static', filename='js/loading_spinner.js')}}"></script>
   <script src="{{url_for('static', filename='js/flash_toasts.js')}}"></script>
   <script src="{{url_for('static', filename='js/bug_report.js')}}"></script>
+  <script src="{{url_for('static', filename='js/transaction_search.js')}}"></script>
   <script src="{{url_for('static', filename='js/init.js')}}"></script>
 </body>
 </html>
