@@ -38,7 +38,8 @@
     var account_adjust;
 
     // Some other variables
-    var current_page = "All Transactions";   //Used to determine which transactions to reload on a data reload (also used in transactions.html to properly color transaction amount)
+    window.Budgeteer = window.Budgeteer || {};
+    Budgeteer.current_page = "All Transactions"; //Used to determine which transactions to reload on a data reload (also used in transactions.html to properly color transaction amount)
     var none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
 
 
@@ -273,7 +274,8 @@
       // AJAX request to load all transactions
       $(document).on('click', '#total', function() {
         var url = $(this).data('url');
-        current_page = "All Transactions";
+        Budgeteer.current_page = "All Transactions";
+        Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
         $.ajax({
           type: "post",
           url: url,
@@ -283,8 +285,9 @@
           if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
           if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
-          $('#page-total').text(o['page_total']);
-          $('#current-view').text(o['page_title']);
+          $('#current-view').text(o['current_view']);
+          $("#separator").show();
+          $('#page-total').text(o['page_total']).show();
           refresh_reconcile()
         });
       });
@@ -293,7 +296,8 @@
       $(document).on('click', '.envelope-link', function() {
         var url = $(this).data('url');
         var envelope_id = $(this).data("envelope-id");
-        current_page = "envelope/".concat(envelope_id);
+        Budgeteer.current_page = "envelope/".concat(envelope_id);
+        Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
         $.ajax({
           type: "post",
           url: url,
@@ -303,8 +307,9 @@
           if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
           if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
-          $('#page-total').text(o['page_total']);
-          $('#current-view').text(o['envelope_name']);
+          $('#current-view').text(o['current_view']);
+          $("#separator").show();
+          $('#page-total').text(o['page_total']).show();
           refresh_reconcile()
         });
       });
@@ -313,7 +318,8 @@
       $(document).on('click', '.account-link', function() {
         var url = $(this).data('url');
         var account_id = $(this).data("account-id");
-        current_page = "account/".concat(account_id);
+        Budgeteer.current_page = "account/".concat(account_id);
+        Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
         $.ajax({
           type: "post",
           url: url,
@@ -323,8 +329,9 @@
           if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
           if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the account has transactions
-          $('#page-total').text(o['page_total']);
-          $('#current-view').text(o['account_name']);
+          $('#current-view').text(o['current_view']);
+          $("#separator").show();
+          $('#page-total').text(o['page_total']).show();
           refresh_reconcile()
         });
       });
@@ -389,57 +396,6 @@
 
 
     //------------- FUNCTIONAL JS -------------//
-    function refresh_reconcile() {
-      var page_total = text_to_num($("#page-total").text());
-      var reconcile_balance = page_total;
-      var pending_transactions = [];
-      $("#transactions-bin .transaction-row").each(function() {
-        if ($(this).hasClass("pending")) {
-          //Add any pending transactions to an array to deal with after this loop
-          pending_transactions.push($(this));
-        } else {
-          $balance = $(this).find(".balance");
-          $reconcile_span = $(this).find(".reconcile-span");
-          var amt = text_to_num($balance.text());
-          if ($balance.hasClass("neutral")) {
-            $reconcile_span.text(balance_format(reconcile_balance))
-          } else {
-            $reconcile_span.text(balance_format(reconcile_balance))
-            reconcile_balance = reconcile_balance - amt
-          }
-        }
-      });
-
-      // If there are pending transactions, update their reconcile balances in reverse order
-      var pending_reconcile_balance = page_total;
-      pending_transactions.reverse().forEach(function($transaction_row) {
-        $balance = $transaction_row.find(".balance");
-        $reconcile_span = $transaction_row.find(".reconcile-span");
-        var amt = text_to_num($balance.text());
-        if ($balance.hasClass("neutral")) {
-          $reconcile_span.text(balance_format(pending_reconcile_balance))
-        } else {
-          pending_reconcile_balance = pending_reconcile_balance + amt
-          $reconcile_span.text(balance_format(pending_reconcile_balance))
-        }
-      });
-      
-    }
-
-    // Formats a number into a string with a "$" and "-" if necessary
-    function balance_format(number) {
-      if (number < 0) {
-        text = '-$' + Math.abs(number).toFixed(2)
-      } else {
-        text = '$' + number.toFixed(2)
-      }
-      return text;
-    }
-
-    function text_to_num(txt) {
-      num = parseFloat(txt.replace("$","")) //Remove the "$" character
-      return num
-    }
 
     // Adds/removes negative class based on number
     $.fn.negative_check = function(number) {
@@ -648,7 +604,7 @@
           data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
         }).done(function( o ) {
           if (o['error']) { M.toast({html: o['error']}); return; }
-          data_reload(current_page);
+          data_reload(Budgeteer.current_page);
           o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
         });
       });
@@ -1139,7 +1095,7 @@
       $.ajax({
         type: 'POST',
         url: '/api/load-more',
-        data: JSON.stringify({"offset": parseInt($(this).attr('data-offset')), "current_page": current_page}),
+        data: JSON.stringify({"offset": parseInt($(this).attr('data-offset')), "current_page": Budgeteer.current_page}),
         contentType: 'application/json'
       }).done(function( o ) {
         if (o['error']) { M.toast({html: o['error']}); return; }
@@ -1234,15 +1190,19 @@
 
     // Retrieves updated data from database and updates the necessary html
     function data_reload(current_page, should_reload_transactions_bin=true) {
+      data = {"current_page": current_page, "timestamp": gen_timestamp(), "should_reload_transactions_bin": should_reload_transactions_bin}
+      if (current_page.includes('Search')) {
+        data['search_term'] = $('#transaction-search').val().trim();
+      }
       return $.ajax({
         type: "POST",
         url: "/api/data-reload",
-        data: JSON.stringify({"current_page": current_page, "timestamp": gen_timestamp(), "should_reload_transactions_bin": should_reload_transactions_bin}),
+        data: JSON.stringify(data),
         contentType: 'application/json'
       }).done(function( o ) {
         if (o['error']) { M.toast({html: o['error']}); return; }
         // 1. Reload the HTML
-        $('#page-total').text(o['page_total']);
+        if (o.pageTotal) $('#page-total').text(o['page_total']);
         $('#accounts-bin').replaceWith(o['accounts_html']);
         $('#envelopes-bin').replaceWith(o['envelopes_html']);
         $('#envelope-editor-modal').replaceWith(o['envelope_editor_html']);
@@ -1348,7 +1308,7 @@
         //the editor modal, they're not still there, while keeping the new-envelope-rows in the transaction creator modal
         $form.find('.new-envelope-row').remove(); //Only used on #new-expense-form
         $form[0].reset(); //Clears the data from the form fields
-        data_reload(current_page);
+        data_reload(Budgeteer.current_page);
         o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
       });
     });
@@ -1450,7 +1410,7 @@
           if (remain_open == 1) { // RESET NAME FIELD, STAY OPEN
             // If the form was submitted with the submit and new button
             $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
-            data_reload(current_page).then( function () {
+            data_reload(Budgeteer.current_page).then( function () {
 
               //Clear the transaction name field
               $form.find('input[name="name"]').val("").select().removeClass('valid');
@@ -1479,7 +1439,7 @@
             $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
             $form.find(".new-envelope-row").remove(); //Only used on #new-expense-form
             $form[0].reset(); //Clear the data from the form fields
-            data_reload(current_page).then( function () {
+            data_reload(Budgeteer.current_page).then( function () {
               $form.find(".schedule-content").hide();
               update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
               $form.find('input[name="name"]').select();
@@ -1491,7 +1451,7 @@
             $form.find(".new-envelope-row").remove() //Only used on #new-expense-form
             $form[0].reset(); //Clear the data from the form fields
             $form.find(".amount-span").text("$0.00").removeClass("negative").addClass("neutral");
-            data_reload(current_page).then( function () {
+            data_reload(Budgeteer.current_page).then( function () {
               $form.find(".schedule-content").hide();
               update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
             });
@@ -1538,7 +1498,7 @@
         if (ttype == ENVELOPE_DELETE || ttype == ACCOUNT_DELETE) {
           should_reload_transactions_bin = true; // If you delete an envelope or account, reload the transactions bin to refresh the strikethrough displays of the transaction envelope/account
         }
-          data_reload(current_page, should_reload_transactions_bin).then(function() {
+          data_reload(Budgeteer.current_page, should_reload_transactions_bin).then(function() {
           $(`.transaction[data-id='${dtid}']`).parent().animate({height: "0px"}, 250).promise().done(function() {
             $(`.transaction[data-id='${dtid}']`).parent().remove();
             $(".date-bucket").show();
@@ -1563,7 +1523,7 @@
         if (o['error']) { M.toast({html: o['error']}); return; }
         $("#multi-select-col").hide();
         none_checked = true;
-        data_reload(current_page, false).then(function() {
+        data_reload(Budgeteer.current_page, false).then(function() {
 
           // 1. Update the data offset
           num_deleted = $(".t-delete-checkbox:checked").length

@@ -1,80 +1,66 @@
+window.Budgeteer = window.Budgeteer || {};
+Budgeteer.previous_page = null; // Used to store the previous page before a search
+Budgeteer.only_clear_searchfield = true; // If true, only clear the search field, if false, return to previous page after search
+
 $(document).ready(function() {
-    // Add X button next to search bar
-    $('#transaction-search').parent().append('<i id="clear-search" class="material-icons" style="cursor: pointer; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: none;">clear</i>');
-    
-    // Store original page title and HTML
-    var originalTitle = $('#page-title').text();
-    var originalHtml = null;
+
 
     $('#transaction-search').on('input', function() {
-        // Show/hide X button based on if there's text
-        $('#clear-search').toggle(!!$(this).val());
+        // Show/hide the #close-search icon based on if there's text
+        $('#close-search').toggle(!!$(this).val());
     });
 
-    // Clear search and restore original page
-    $('#clear-search').click(function() {
-        $('#transaction-search').val('');
+    // Clear search and restore original page using the existing #close-search
+    $('#close-search').click(function() {
         $(this).hide();
-        if (originalHtml) {
-            $('#transactions-bin').replaceWith(originalHtml);
-            if ($("#transactions-scroller").length !== 0) { 
-                new SimpleBar($("#transactions-scroller")[0]);
-            }
-            $('#page-title').text(originalTitle);
+        if (Budgeteer.only_clear_searchfield) {
+            $('#transaction-search').val('');
+            return;
+        } else {
+            $('#transaction-search').val('');
+            console.log("Previous page: " + Budgeteer.previous_page)
+            $.ajax({
+                type: 'POST',
+                url: '/api/reset-search',
+                data: JSON.stringify({"previous_page": Budgeteer.previous_page, "timestamp": gen_timestamp()}),
+                contentType: 'application/json'
+            }).done(function(o) {
+                if (o['error']) { M.toast({html: o['error']}); return; }
+                $('#transactions-bin').replaceWith(o['transactions_html']);
+                if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
+                $('#current-view').text(o['current_view']);
+                $("#separator").show();
+                $('#page-total').text(o['page_total']).show();
+                refresh_reconcile();
+            });
         }
     });
 
     $('#transaction-search').keypress(function(e) {
-        if (e.which == 13) { // Enter key
+        if (e.key === "Enter") {
             e.preventDefault();
+            Budgeteer.only_clear_searchfield = false;
             var searchTerm = $(this).val().trim();
             if (!searchTerm) return;
-            
-            // Store original HTML before first search
-            if (!originalHtml) {
-                originalHtml = $('#transactions-bin').clone();
-            }
-            
+            console.log("BEGINNING SEARCH FUNCTION");
+            console.log(searchTerm);
+            console.log(Budgeteer.current_page);
+            Budgeteer.previous_page = Budgeteer.current_page;
+            Budgeteer.current_page = "Search Results";
             $.ajax({
-                url: '/api/search-transactions',
                 type: 'POST',
-                data: {
-                    'search_term': searchTerm,
-                    'page': 1,
-                    'csrf_token': $('#csrf-token').val()
-                },
-                beforeSend: function() {
-                    Budgeteer.loadingSpinner.show();
-                },
-                success: function(response) {
-                    if (response.error) {
-                        M.toast({html: response.error});
-                        return;
-                    }
-                    $('#transactions-bin').replaceWith(response.html);
-                    if ($("#transactions-scroller").length !== 0) { 
-                        new SimpleBar($("#transactions-scroller")[0]);
-                    }
-                    updateLoadMoreButton(response.has_more);
-                    // Update page title
-                    if (response.page_title) {
-                        $('#page-title').text(response.page_title);
-                    }
-                },
-                complete: function() {
-                    Budgeteer.loadingSpinner.hide();
-                }
+                url: '/api/search-transactions',
+                data: JSON.stringify({'search_term': searchTerm, "timestamp": gen_timestamp()}),
+                contentType: 'application/json'
+            }).done(function(o) {
+                if (o.error) {M.toast({html: o.error}); return;}
+                $('#transactions-bin').replaceWith(o.transactions_html);
+                if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]); }
+                $('#current-view').text(o.current_page);
+                $("#page-total").hide();
+                $("#separator").hide();
             });
         }
     });
-});
 
-function updateLoadMoreButton(hasMore) {
-    if (hasMore) {
-        if ($('#load-more').length === 0) {
-            $('#bin').append('<div class="center-align"><a id="load-more" class="btn waves-effect waves-light">Load More</a></div>');
-        }
-    } else {
-        $('#load-more').remove();
-    }
-}
+});
