@@ -793,3 +793,58 @@ def load_static_html():
     'edit_account_row': render_template('edit_account_row.html'),
     't_editor_new_env_row': render_template('transaction_editor_new_envelope_row.html')
   })
+
+@main_bp.route('/api/search-transactions', methods=['POST'])
+@login_required
+@check_confirmed
+def search_transactions():
+    try:
+        search_term = request.form.get('search_term', '').strip()
+        page = int(request.form.get('page', 1))
+        uuid = get_uuid_from_cookie()
+        
+        print(search_term)
+        print(page)
+
+        print(search_term.replace('.', ''))
+        print(search_term.replace('.', '').isdigit())
+
+        if search_term.replace('.', '').isdigit():
+            print("IS DIGIT")
+            # Search for exact amount
+            amount = float(search_term)
+            transactions = get_transactions_by_amount(uuid, amount, page)
+        else:
+            print("IS NOT DIGIT")
+            # Search for partial matches in name/note
+            transactions = get_transactions_by_text(uuid, search_term, page)
+            
+        if not transactions:
+            return jsonify({
+                'html': render_template('transactions.html', 
+                                     current_page='Search results',
+                                     transactions_data=[],
+                                     message="No transactions found matching your search."),
+                'has_more': False,
+                'page_total': None,  # Hide the page total
+                'page_title': 'Search results'
+            })
+            
+        # Get the required data dictionaries for the template
+        (active_accounts, accounts_data) = get_user_account_dict(uuid)
+        (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+            
+        return jsonify({
+            'html': render_template('transactions.html', 
+                                  current_page='Search results',
+                                  transactions_data=transactions,
+                                  accounts_data=accounts_data,
+                                  envelopes_data=envelopes_data,
+                                  TType=TType),  # Pass TType enum for template
+            'has_more': len(transactions) == 50,
+            'page_total': None,  # Hide the page total
+            'page_title': 'Search results'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)})
