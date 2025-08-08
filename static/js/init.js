@@ -40,7 +40,7 @@
     // Some other variables
     window.Budgeteer = window.Budgeteer || {};
     Budgeteer.current_page = "All Transactions"; //Used to determine which transactions to reload on a data reload (also used in transactions.html to properly color transaction amount)
-    var none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
+    Budgeteer.none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
 
 
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
@@ -97,7 +97,7 @@
         if(e.key == "Escape" && M.Modal._modalsOpen == 0){
           // Clear all transaction selection checkboxes on ESCAPE KEY (if you're not hitting escape to close a modal)
           $('.t-delete-checkbox:checked').click();
-          none_checked = true;
+          Budgeteer.none_checked = true;
         } //else if (e.key == "t" && M.Modal._modalsOpen == 0) {
           // // TODO: When the searchbar is added, this will probably need to change to be more specific since valid keypresses in the searchbar are not within a modal 
         //   $("#transaction-modal").modal("open"); 
@@ -110,7 +110,7 @@
       $("#multi-select-clear").click(function() {
         // Clear all transaction selection checkboxes
         $('.t-delete-checkbox:checked').click();
-        none_checked = true;
+        Budgeteer.none_checked = true;
       });
 
       // Initialize sidenav
@@ -285,7 +285,7 @@
           if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
           if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
-          $('#current-view').text(o['current_view']);
+          $('#current-page').text(o['current_page']);
           $("#separator").show();
           $('#page-total').text(o['page_total']).show();
           refresh_reconcile()
@@ -307,7 +307,7 @@
           if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
           if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
-          $('#current-view').text(o['current_view']);
+          $('#current-page').text(o['current_page']);
           $("#separator").show();
           $('#page-total').text(o['page_total']).show();
           refresh_reconcile()
@@ -329,7 +329,7 @@
           if (o['error']) { M.toast({html: o['error']}); return; }
           $('#transactions-bin').replaceWith(o['transactions_html']);
           if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the account has transactions
-          $('#current-view').text(o['current_view']);
+          $('#current-page').text(o['current_page']);
           $("#separator").show();
           $('#page-total').text(o['page_total']).show();
           refresh_reconcile()
@@ -678,11 +678,11 @@
 
     // Hide/show the transaction checkbox or date AND hide/show the multidelete buttons
     function multideleteToggleCheck() {
-      none_checked = true;
+      Budgeteer.none_checked = true;
       $('.t-delete-checkbox').each(function() {
-        if (this.checked) none_checked = false;
+        if (this.checked) Budgeteer.none_checked = false;
       });
-      if (none_checked) {
+      if (Budgeteer.none_checked) {
         $('.checkbox-bucket, .multi-select-col').hide();
         $('#multi-select-icons').addClass("hide");
         $('.date-bucket').show();
@@ -718,12 +718,12 @@
     $('#bin').on('click', '.transaction', function(e) {
       t_editor_modal_open($(this));
     }).on('mouseenter', '.transaction-date', function() {
-      if (none_checked) {
+      if (Budgeteer.none_checked) {
         $(this).find('.date-bucket').hide();
         $(this).find('.checkbox-bucket').show();
       }
     }).on('mouseleave', '.transaction-date', function() {
-      if (none_checked) {
+      if (Budgeteer.none_checked) {
         $(".date-bucket").show();
         $(this).find('.checkbox-bucket').hide();
       }
@@ -930,7 +930,7 @@
       // 2. Handle "touching" the transaction
       if ( new Date().getTime() < ( start_time + longpressAmt ) && Math.abs(start_y - y) < 30 ) { // If your touch was NOT a longpress
         // If you are in a multiselection (i.e. checkboxes are showing), toggle the checkbox, otherwise open the editor modal
-        if (!none_checked) {
+        if (!Budgeteer.none_checked) {
           $(this).find('.t-delete-checkbox').click();
         } else {
           $(this).children('.transaction').click();
@@ -1527,7 +1527,6 @@
         if (o['error']) { M.toast({html: o['error']}); return; }
         $(".multi-select-col").hide();
         $("#multi-select-icons").addClass("hide");
-        none_checked = true;
         data_reload(Budgeteer.current_page, false).then(function() {
 
           // 1. Update the data offset
