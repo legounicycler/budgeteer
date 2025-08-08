@@ -1,13 +1,25 @@
+#search-field {
+  width: calc(100% - 4rem);
+}
+
 #transaction-search {
-    height: 2rem;
+    height: 3rem;
     margin: 0;
     font-size: 1rem;
+    border-bottom: none;
 }
 
-#transaction-search + label {
-    transform: translateY(-14px);
+#transaction-search {
+  border-radius: 1.5rem;
+  padding-left: 3rem;
 }
 
-#transaction-search + label.active {
-    transform: translateY(-25px);
+#search-icon {
+  top: calc(50% - .9rem);
+  left: .75rem;
+}
+
+#close-icon {
+  top: calc(50% - 1rem);
+  right: -2rem;
 }
