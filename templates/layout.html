@@ -130,7 +130,8 @@
             <div class="row" id="title-row">
               <div id="page-title-col" class="col s6 m8 left-align valign-wrapper">
                 <h4 id="page-title" class="truncate">
-                  <span id="current-view">All Transactions</span> | 
+                  <span id="current-view">All Transactions</span>
+                  <span id="separator"> | </span>
                   <i id="page-total">{{total_funds|balanceformat}}</i>
                 </h4>
               </div>
@@ -138,7 +139,7 @@
                 <div id="search-field" class="input-field">
                   <input id="transaction-search" class="blue-grey-text white" type="search" placeholder="Search">
                   <label id="search-icon" class="label-icon" for="transaction-search"><i class="material-icons left">search</i></label>
-                  <i id="close-icon" class="material-icons">close</i>
+                  <i id="close-search" class="material-icons">close</i>
                 </div>
               </div>
               <div id="multi-select-col" class="col s1">
@@ -193,6 +194,7 @@
   <script src="{{url_for('static', filename='js/loading_spinner.js')}}"></script>
   <script src="{{url_for('static', filename='js/flash_toasts.js')}}"></script>
   <script src="{{url_for('static', filename='js/bug_report.js')}}"></script>
+  <script src="{{url_for('static', filename='js/refresh_reconcile.js')}}"></script>
   <script src="{{url_for('static', filename='js/transaction_search.js')}}"></script>
   <script src="{{url_for('static', filename='js/init.js')}}"></script>
 </body>
