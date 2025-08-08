@@ -1,10 +1,10 @@
-#title-row  {
+#dashboard-title-and-search-row  {
   height: 100%;
   display: flex;
   justify-content: center;
 }
 
-#page-title {
+#dashboard-page-title {
   font-size: 2em;
   margin: 0 0 0 10px;
   padding-bottom: .1em;
@@ -35,7 +35,7 @@
   right: -2rem;
 }
 
-#title-row {
+#dashboard-title-and-search-row {
   height: 100%;
 }
 
@@ -62,7 +62,7 @@
 }
 
 @media only screen and (max-width: 600px) {
-  #search-col, #page-title-col {
+  #search-col, #dashboard-page-title-col {
     height: 50%
   }
 
@@ -71,11 +71,11 @@
     font-size: .75rem;
   }
 
-  #title-row  {
-    display: inherit;
+  #dashboard-title-and-search-row {
+    display: inherit; /* Change from flex to inherit so that the searchbar columns can wrap and display under the page title columns */
   }
 
-  #page-title {
+  #dashboard-page-title {
     padding-top: .3em;
   }
 

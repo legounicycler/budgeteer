@@ -11,7 +11,7 @@
   <link href="{{url_for('static', filename='css/style.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link href="{{url_for('static', filename='css/common.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link href="{{url_for('static', filename='css/main.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
-  <link href="{{url_for('static', filename='css/transaction_search.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/dashboard_header.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link rel="stylesheet" href="https://unpkg.com/simplebar@latest/dist/simplebar.css"/>
   <link rel="icon" href="/static/img/icon.png">
 </head>
@@ -124,36 +124,36 @@
 
 
       <!-- RIGHT CONTENT -->
-      <div class="col s12 m12 l8" id="transactions-column">
-        <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
-          <div id="transaction-header" class="orange lighten-1 white-text">
-            <div id="title-row" class="row">
-              <div id="page-title-col" class="col s12 m7 l8 left-align valign-wrapper">
-                <h4 id="page-title" class="truncate">
-                  <span id="current-view">All Transactions</span>
-                  <span id="separator"> | </span>
-                  <i id="page-total">{{total_funds|balanceformat}}</i>
-                </h4>
+      <div class="col s12 m12 l8" id="dashboard-column">
+        <div id="dashboard-header" class="orange lighten-1 white-text">
+          <div id="dashboard-title-and-search-row" class="row">
+            <div id="dashboard-page-title-col" class="col s12 m7 l8 left-align valign-wrapper">
+              <h4 id="dashboard-page-title" class="truncate">
+                <span id="current-page">All Transactions</span>
+                <span id="separator"> | </span>
+                <i id="page-total">{{total_funds|balanceformat}}</i>
+              </h4>
+            </div>
+            <div id="search-col" class="col s12 m5 l4 valign-wrapper">
+              <div id="search-field" class="input-field">
+                <input id="transaction-search" class="blue-grey-text white" type="search" placeholder="Search">
+                <label id="search-icon" class="label-icon" for="transaction-search"><i class="material-icons left">search</i></label>
+                <i id="close-search" class="material-icons">close</i>
               </div>
-              <div id="search-col" class="col s12 m5 l4 valign-wrapper">
-                <div id="search-field" class="input-field">
-                  <input id="transaction-search" class="blue-grey-text white" type="search" placeholder="Search">
-                  <label id="search-icon" class="label-icon" for="transaction-search"><i class="material-icons left">search</i></label>
-                  <i id="close-search" class="material-icons">close</i>
-                </div>
-                <i id="advanced-search-button" class="material-icons">arrow_drop_down</i>
-                <div id="multi-select-icons" class="hide">
-                  <a id="multi-select-clear"><i class="material-icons white-text">clear</i></a>
-                  <a id="multi-select-delete"><i class="material-icons white-text">delete</i></a>
-                </div>
+              <i id="advanced-search-button" class="material-icons">arrow_drop_down</i>
+              <div id="multi-select-icons" class="hide">
+                <a id="multi-select-clear"><i class="material-icons white-text">clear</i></a>
+                <a id="multi-select-delete"><i class="material-icons white-text">delete</i></a>
               </div>
             </div>
           </div>
-          <div id="bin" class="hide">
-            {% include 'transactions.html' %}
-          </div>
         </div>
-      </form>
+        <div id="bin" class="hide">
+          <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
+            {% include 'transactions.html' %}
+          </form> <!-- This may have to move within transactions.html when graph views are added later -->
+        </div>
+      </div>
     </div>
 
     {% with messages = get_flashed_messages() %}
