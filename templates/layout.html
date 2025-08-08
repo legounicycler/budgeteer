@@ -128,16 +128,17 @@
         <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
           <div id="transaction-header" class="orange lighten-1 white-text">
             <div class="row" id="title-row">
-              <div id="page-title-col" class="col s8 left-align">
+              <div id="page-title-col" class="col s6 m8 left-align valign-wrapper">
                 <h4 id="page-title" class="truncate">
                   <span id="current-view">All Transactions</span> | 
                   <i id="page-total">{{total_funds|balanceformat}}</i>
                 </h4>
               </div>
-              <div class="col s3">
-                <div class="input-field">
-                  <input id="transaction-search" type="text" class="white-text">
-                  <label for="transaction-search"><i class="material-icons left">search</i>Search transactions</label>
+              <div id="search-col" class="col s6 m4 valign-wrapper">
+                <div id="search-field" class="input-field">
+                  <input id="transaction-search" class="blue-grey-text white" type="search" placeholder="Search">
+                  <label id="search-icon" class="label-icon" for="transaction-search"><i class="material-icons left">search</i></label>
+                  <i id="close-icon" class="material-icons">close</i>
                 </div>
               </div>
               <div id="multi-select-col" class="col s1">
