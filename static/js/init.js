@@ -97,13 +97,13 @@
           // Clear all transaction selection checkboxes on ESCAPE KEY (if you're not hitting escape to close a modal)
           $('.t-delete-checkbox:checked').click();
           none_checked = true;
-        } else if (e.key == "t" && M.Modal._modalsOpen == 0) {
-          // TODO: When the searchbar is added, this will probably need to change to be more specific since valid keypresses in the searchbar are not within a modal 
-          $("#transaction-modal").modal("open"); 
-        } else if (e.key == "e" && M.Modal._modalsOpen == 0) {
-          // TODO: When the searchbar is added, this will probably need to change to be more specific since valid keypresses in the searchbar are not within a modal 
-          $("#envelope-fill-modal").modal("open");
-        }
+        } //else if (e.key == "t" && M.Modal._modalsOpen == 0) {
+          // // TODO: When the searchbar is added, this will probably need to change to be more specific since valid keypresses in the searchbar are not within a modal 
+        //   $("#transaction-modal").modal("open"); 
+        // } else if (e.key == "e" && M.Modal._modalsOpen == 0) {
+        //   // TODO: When the searchbar is added, this will probably need to change to be more specific since valid keypresses in the searchbar are not within a modal 
+        //   $("#envelope-fill-modal").modal("open");
+        // }
       });
 
       $("#multi-select-clear").click(function() {

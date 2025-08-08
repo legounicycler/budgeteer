@@ -1,0 +1,13 @@
+#transaction-search {
+    height: 2rem;
+    margin: 0;
+    font-size: 1rem;
+}
+
+#transaction-search + label {
+    transform: translateY(-14px);
+}
+
+#transaction-search + label.active {
+    transform: translateY(-25px);
+}
