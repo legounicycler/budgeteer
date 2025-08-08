@@ -683,10 +683,12 @@
         if (this.checked) none_checked = false;
       });
       if (none_checked) {
-        $('.checkbox-bucket, #multi-select-col').hide();
+        $('.checkbox-bucket, .multi-select-col').hide();
+        $('#multi-select-icons').addClass("hide");
         $('.date-bucket').show();
       } else {
-        $('.checkbox-bucket, #multi-select-col').show();
+        $('.checkbox-bucket, .multi-select-col').show();
+        $('#multi-select-icons').removeClass("hide");
         $('.date-bucket').hide();
       }
     }
@@ -703,7 +705,7 @@
     }
 
     // Initialize the multidelete button to open the confirmation modal, then submit the form
-    $('#multi-delete-submit').click(function() {
+    $('#multi-select-delete').click(function() {
       var msg = "Once these transactions are deleted, they're gone forever!"
       deleteModal(msg, function() {
         $('#multi-delete-form').submit();
@@ -1499,12 +1501,14 @@
           should_reload_transactions_bin = true; // If you delete an envelope or account, reload the transactions bin to refresh the strikethrough displays of the transaction envelope/account
         }
           data_reload(Budgeteer.current_page, should_reload_transactions_bin).then(function() {
-          $(`.transaction[data-id='${dtid}']`).parent().animate({height: "0px"}, 250).promise().done(function() {
-            $(`.transaction[data-id='${dtid}']`).parent().remove();
+          $(`.transaction[data-id='${dtid}']`).parent().css({"display": "block", "border": "none"}).animate({height: "0px"}, 500).promise().done(function() {
+            setTimeout(() => {
+              $(`.transaction[data-id='${dtid}']`).parent().remove();
             $(".date-bucket").show();
             $('.checkbox-bucket').hide();
             refresh_reconcile();
             o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+            }, 500);
           })
         });
       });
@@ -1521,7 +1525,8 @@
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
         if (o['error']) { M.toast({html: o['error']}); return; }
-        $("#multi-select-col").hide();
+        $(".multi-select-col").hide();
+        $("#multi-select-icons").addClass("hide");
         none_checked = true;
         data_reload(Budgeteer.current_page, false).then(function() {
 
@@ -1531,12 +1536,14 @@
           $("#load-more").attr('data-offset', parseInt(original_offset) - num_deleted);
 
           // 2. Remove the deleted transactions rows
-          $(".t-delete-checkbox:checked").closest(".transaction-row").animate({height: "0px"}, 250).promise().done(function() {
-            $(".t-delete-checkbox:checked").closest(".transaction-row").remove();
-            $(".date-bucket").show();
-            $('.checkbox-bucket').hide();
-            refresh_reconcile();
-            o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+          $(".t-delete-checkbox:checked").closest(".transaction-row").css({"display": "block", "border": "none"}).animate({height: "0px"}, 500).promise().done(function() {
+            setTimeout(() => {
+              $(".t-delete-checkbox:checked").closest(".transaction-row").remove();
+              $(".date-bucket").show();
+              $('.checkbox-bucket').hide();
+              refresh_reconcile();
+              o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+            }, 500);
           });
 
         });

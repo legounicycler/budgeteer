@@ -42,9 +42,7 @@ $(document).ready(function() {
             Budgeteer.only_clear_searchfield = false;
             var searchTerm = $(this).val().trim();
             if (!searchTerm) return;
-            console.log("BEGINNING SEARCH FUNCTION");
-            console.log(searchTerm);
-            console.log(Budgeteer.current_page);
+            $("#multi-select-icons").addClass("hide");
             Budgeteer.previous_page = Budgeteer.current_page;
             Budgeteer.current_page = "Search Results";
             $.ajax({
