@@ -70,27 +70,10 @@ def home():
 def get_all_transactions_page():
   try:
     uuid = get_uuid_from_cookie()
-    timestamp = request.get_json()['timestamp']
-    current_page = 'All Transactions'
-    check_pending_transactions(uuid, timestamp)
-    (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
-    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_user_account_dict(uuid)
-    page_total = balanceformat(get_total(uuid))
-    data = {}
-    data['page_total'] = page_total
-    data['page_title'] = current_page
-    data['transactions_html'] = render_template(
-      'transactions.html',
-      current_page=current_page,
-      transactions_data=transactions_data,
-      envelopes_data=envelopes_data,
-      accounts_data=accounts_data,
-      offset=offset, limit=limit,
-      TType = TType
-    )
-    return jsonify(data)
-  except CustomException as e:
+    js_data = request.get_json()
+    timestamp = js_data.get('timestamp')
+    return jsonify(_build_home_page(uuid, timestamp))
+  except CustomException:
     return jsonify({"error": "ERROR: Something went wrong and your envelope data could not be loaded!"})
 
 @main_bp.route("/get_envelope_page", methods=["POST"])
@@ -102,28 +85,10 @@ def get_envelope_page():
     js_data = request.get_json()
     envelope_id = js_data['envelope_id']
     timestamp = js_data['timestamp']
-    current_page = f'envelope/{envelope_id}'
-    check_pending_transactions(uuid, timestamp)
-    (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,0,50)
-    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_user_account_dict(uuid)
-    page_total = balanceformat(get_envelope(envelope_id).balance/100)
-    data = {}
-    data['page_total'] = page_total
-    data['envelope_name'] = get_envelope(envelope_id).name
-    data['transactions_html'] = render_template(
-      'transactions.html',
-      current_page=current_page,
-      transactions_data=transactions_data,
-      envelopes_data=envelopes_data,
-      accounts_data=accounts_data,
-      offset=offset, limit=limit,
-      TType = TType
-    )
-    return jsonify(data)
-  except CustomException as e:
+    return jsonify(_build_envelope_page(uuid, envelope_id, timestamp))
+  except CustomException:
     return jsonify({"error": "ERROR: Something went wrong and your envelope data could not be loaded!"})
-
+  
 @main_bp.route("/get_account_page", methods=["POST"])
 @login_required
 @check_confirmed
@@ -133,27 +98,116 @@ def get_account_page():
     js_data = request.get_json()
     account_id = js_data['account_id']
     timestamp = js_data['timestamp']
-    current_page = f'account/{account_id}'
-    check_pending_transactions(uuid, timestamp)
-    (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,0,50)
-    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_user_account_dict(uuid)
-    page_total = balanceformat(get_account(account_id).balance/100)
-    data = {}
-    data['page_total'] = page_total
-    data['account_name'] = get_account(account_id).name
-    data['transactions_html'] = render_template(
+    return jsonify(_build_account_page(uuid, account_id, timestamp))
+  except CustomException:
+    return jsonify({"error": "ERROR: Something went wrong and your account data could not be loaded!"})
+
+@main_bp.route('/api/reset-search', methods=['POST'])
+@login_required
+@check_confirmed
+def reset_search():
+  """Return the transaction list for the previously viewed page before a search.
+
+  Expects JSON: { "previous-page": <string>, "timestamp": <timestamp str> }
+  previous_page represents the page the user was on before the search
+  previous_page formats supported:
+    - None or 'All Transactions' -> home transactions page
+    - 'envelope/<id>' -> specific envelope page
+    - 'account/<id>' -> specific account page
+  """
+  try:
+    uuid = get_uuid_from_cookie()
+    js_data = request.get_json() or {}
+    prev = (js_data.get('previous_page') or 'All Transactions').strip()
+    timestamp = js_data.get('timestamp')
+    if prev.lower() in ['all transactions']:
+      return jsonify(_build_home_page(uuid, timestamp))
+    
+    if prev.startswith('envelope/'):
+      try:
+        envelope_id = int(prev.split('/',1)[1])
+      except ValueError:
+        return jsonify({'error': 'Invalid envelope id'})
+      return jsonify(_build_envelope_page(uuid, envelope_id, timestamp))
+    
+    if prev.startswith('account/'):
+      try:
+        account_id = int(prev.split('/',1)[1])
+      except ValueError:
+        return jsonify({'error': 'Invalid account id'})
+      return jsonify(_build_account_page(uuid, account_id, timestamp))
+    return jsonify({'error': 'Invalid previous_page value supplied to reset-search.'})
+  
+  except CustomException as ce:
+    return jsonify({'error': str(ce)})
+  except Exception as e:
+    return jsonify({'error': f'Unexpected error resetting search: {e}'})
+
+# ---------------- Helper builders (not routes) ----------------
+def _build_home_page(uuid, timestamp):
+  check_pending_transactions(uuid, timestamp)
+  (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
+  (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+  (active_accounts, accounts_data) = get_user_account_dict(uuid)
+  page_total = balanceformat(get_total(uuid))
+  return {
+    'page_total': page_total,
+    'current_view': 'All Transactions',
+    'transactions_html': render_template(
       'transactions.html',
-      current_page=current_page,
+      current_page='All Transactions',
       transactions_data=transactions_data,
       envelopes_data=envelopes_data,
       accounts_data=accounts_data,
       offset=offset,
       limit=limit,
-      TType = TType)
-    return jsonify(data)
-  except CustomException as e:
-    return jsonify({"error": "ERROR: Something went wrong and your account data could not be loaded!"})
+      TType=TType
+    )
+  }
+
+def _build_envelope_page(uuid, envelope_id, timestamp):
+  check_pending_transactions(uuid, timestamp)
+  (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,0,50)
+  (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+  (active_accounts, accounts_data) = get_user_account_dict(uuid)
+  page_total = balanceformat(get_envelope(envelope_id).balance/100)
+  name = get_envelope(envelope_id).name
+  return {
+    'page_total': page_total,
+    'current_view': name,
+    'transactions_html': render_template(
+      'transactions.html',
+      current_page=f'envelope/{envelope_id}',
+      transactions_data=transactions_data,
+      envelopes_data=envelopes_data,
+      accounts_data=accounts_data,
+      offset=offset,
+      limit=limit,
+      TType=TType
+    )
+  }
+
+def _build_account_page(uuid, account_id, timestamp):
+  check_pending_transactions(uuid, timestamp)
+  (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,0,50)
+  (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+  (active_accounts, accounts_data) = get_user_account_dict(uuid)
+  page_total = balanceformat(get_account(account_id).balance/100)
+  name = get_account(account_id).name
+  return {
+    'page_total': page_total,
+    'current_view': name,
+    'transactions_html': render_template(
+      'transactions.html',
+      current_page=f'account/{account_id}',
+      transactions_data=transactions_data,
+      envelopes_data=envelopes_data,
+      accounts_data=accounts_data,
+      offset=offset,
+      limit=limit,
+      TType=TType
+    )
+  }
 
 @main_bp.route('/new_expense', methods=['POST'])
 @login_required
@@ -692,6 +746,9 @@ def data_reload():
       envelope_id = int(regex.findall(current_page)[0])
       (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,0,50)
       page_total = balanceformat(get_envelope(envelope_id).balance/100)
+    elif 'Search' in current_page:
+      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], 0, 50)
+      page_total = None
     else:
       current_page = 'All Transactions'
       (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
@@ -798,53 +855,23 @@ def load_static_html():
 @login_required
 @check_confirmed
 def search_transactions():
-    try:
-        search_term = request.form.get('search_term', '').strip()
-        page = int(request.form.get('page', 1))
-        uuid = get_uuid_from_cookie()
-        
-        print(search_term)
-        print(page)
-
-        print(search_term.replace('.', ''))
-        print(search_term.replace('.', '').isdigit())
-
-        if search_term.replace('.', '').isdigit():
-            print("IS DIGIT")
-            # Search for exact amount
-            amount = float(search_term)
-            transactions = get_transactions_by_amount(uuid, amount, page)
-        else:
-            print("IS NOT DIGIT")
-            # Search for partial matches in name/note
-            transactions = get_transactions_by_text(uuid, search_term, page)
-            
-        if not transactions:
-            return jsonify({
-                'html': render_template('transactions.html', 
-                                     current_page='Search results',
-                                     transactions_data=[],
-                                     message="No transactions found matching your search."),
-                'has_more': False,
-                'page_total': None,  # Hide the page total
-                'page_title': 'Search results'
-            })
-            
-        # Get the required data dictionaries for the template
-        (active_accounts, accounts_data) = get_user_account_dict(uuid)
-        (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-            
-        return jsonify({
-            'html': render_template('transactions.html', 
-                                  current_page='Search results',
-                                  transactions_data=transactions,
-                                  accounts_data=accounts_data,
-                                  envelopes_data=envelopes_data,
-                                  TType=TType),  # Pass TType enum for template
-            'has_more': len(transactions) == 50,
-            'page_total': None,  # Hide the page total
-            'page_title': 'Search results'
-        })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)})
+  try:
+    json_data = request.get_json()
+    search_term = json_data['search_term'].strip()
+    timestamp = json_data['timestamp']
+    uuid = get_uuid_from_cookie()
+    check_pending_transactions(uuid, timestamp)
+    print(f"SEARCH TERM: {search_term}")
+    # Retrieve the transactions from the search query
+    (transactions_data, offset, limit) = get_search_transactions(uuid,search_term,0,50)
+    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+    (active_accounts, accounts_data) = get_user_account_dict(uuid)
+    data = {}
+    data['current_page'] = "Search results"
+    if not transactions_data:
+      data['transactions_html'] = render_template('transactions.html', current_page = 'Search results', transactions_data = [], empty_message = f'No results found for "{search_term}"')
+    else:
+      data['transactions_html'] = render_template('transactions.html',current_page = 'Search results', transactions_data = transactions_data, envelopes_data = envelopes_data, accounts_data = accounts_data, offset = offset, limit=limit,TType = TType)
+    return jsonify(data)
+  except Exception as e:
+    return jsonify({'error': str(e)})

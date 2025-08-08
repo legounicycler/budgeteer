@@ -105,17 +105,24 @@
                 </i>
               </div>
             </div>
-            <div class="col s3 m2 transaction-amount">
-              <div class='row balance-row'>
-                <span class="{{'neutral ' if (transaction.amt == 0) or ((transaction.type == TType.ENVELOPE_TRANSFER or transaction.type == TType.ACCOUNT_TRANSFER or transaction.type == TType.ENVELOPE_FILL or transaction.type == TType.ENVELOPE_DELETE) and current_page == 'All Transactions')}}{{'negative ' if transaction.amt < 0}}balance non-selectable">{{transaction.amt|balanceformat}}</span>
+            
+            {% if current_page == 'Search results' %}
+              <div class="col s3 m2 transaction-amount valign-wrapper">
+                <div class='row balance-row'>
+                  <span class="{{'neutral' if (transaction.amt == 0) or ((transaction.type == TType.ENVELOPE_TRANSFER or transaction.type == TType.ACCOUNT_TRANSFER or transaction.type == TType.ENVELOPE_FILL or transaction.type == TType.ENVELOPE_DELETE))}} {{'negative' if transaction.amt < 0}} balance non-selectable">{{transaction.amt|balanceformat}}</span>
+                </div>
               </div>
-              {% if current_page != 'Search results' %}
-              <div class='row reconcile-row'>
-                <span class="tiny reconcile-span">$0.00</span>
+            {% else %}
+              <div class="col s3 m2 transaction-amount">
+                <div class='row balance-row'>
+                  <span class="{{'neutral ' if (transaction.amt == 0) or ((transaction.type == TType.ENVELOPE_TRANSFER or transaction.type == TType.ACCOUNT_TRANSFER or transaction.type == TType.ENVELOPE_FILL or transaction.type == TType.ENVELOPE_DELETE) and current_page == 'All Transactions')}}{{'negative ' if transaction.amt < 0}}balance non-selectable">{{transaction.amt|balanceformat}}</span>
+                </div>
+                <div class='row reconcile-row'>
+                  <span class="tiny reconcile-span">$0.00</span>
+                </div>
               </div>
-              {% endif %}
-            <!-- <div class="col s1 valign-wrapper transaction-status"><i class="small material-icons">{{transaction.status}}</i></div> -->
-            </div>
+            {% endif %}
+
           </div>
         </li>
       {% endfor %}
@@ -125,7 +132,9 @@
     {% else %}
       <ul class="collection">
         <li class="row collection-item">
-          <h5 style="margin: .5em 0">There aren't any transactions here yet!</h5>
+          <h5 style="margin: .5em 0">
+            {% if empty_message %}{{ empty_message }}{% else %}There aren't any transactions here yet!{% endif %}
+          </h5>
         </li>
       </ul>
     </ul>

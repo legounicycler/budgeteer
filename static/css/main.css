@@ -218,11 +218,6 @@
   cursor: pointer;
 }
 
-/* #page-title-col {
-  display: flex;
-  align-items: center;
-} */
-
 #page-title {
   font-size: 2em;
   margin: 0 0 0 10px;

@@ -419,9 +419,9 @@ def get_home_transactions(uuid, start, amount):
     u = get_user_by_uuid(uuid)
     
     c.execute("SELECT id from TRANSACTIONS WHERE user_id=? GROUP BY grouping ORDER BY day DESC, id DESC LIMIT ? OFFSET ?", (uuid, amount, start))
-    groupings = c.fetchall()
+    grouped_ids = c.fetchall()
     tlist = []
-    for id in groupings:
+    for id in grouped_ids:
         t = get_transaction(id[0])
 
         # Set the amount for display
@@ -571,6 +571,69 @@ def get_account_transactions(uuid, account_id, start, amount):
             t.envelope_id = from_account_id # When displaying transactions, envelope ID is always displayed first.
             t.account_id = to_account_id    # When displaying transactions, account ID is always displayed second
         t.amt = thing[1] * -1 / 100
+        tlist.append(t)
+    
+    # offset specifies where to start from on the next call
+    offset = start + len(tlist)
+    # if limit is True you're at the end of the list
+    if len(tlist) < amount:
+        limit = True
+    else:
+        limit = False
+    return tlist, offset, limit
+
+def get_search_transactions(uuid, search_term, start, amount):
+    """Search for transactions with matching text in name or note."""
+    print("GETTING SEARCH TRANSACTIONS")
+    print(f"Search term: {search_term}, Start: {start}, Amount: {amount}")
+    search_pattern = f"%{search_term}%"
+    u = get_user_by_uuid(uuid)
+    c.execute("""
+        SELECT id FROM transactions 
+        WHERE user_id = ? 
+        AND (name LIKE ? OR note LIKE ?)
+        GROUP BY grouping 
+        ORDER by day DESC, id DESC
+        LIMIT ? OFFSET ?
+    """, (uuid, search_pattern, search_pattern, amount, start))
+    
+    grouped_ids = c.fetchall()
+    tlist = []
+    for id in grouped_ids:
+        t = get_transaction(id[0])
+        # Set the amount for display - similar to get_home_transactions
+        if t.type == TType.BASIC_TRANSACTION or t.type == TType.INCOME or t.type == TType.ACCOUNT_ADJUST or t.type == TType.ACCOUNT_DELETE:
+            t.amt = -1 * t.amt
+        elif t.type == TType.ENVELOPE_TRANSFER:
+            t_ids = get_ids_from_grouping(t.grouping)
+            if (t.amt > 0):
+                from_envelope_id = get_transaction(t_ids[0]).envelope_id
+                to_envelope_id = get_transaction(t_ids[1]).envelope_id
+            else:
+                from_envelope_id = get_transaction(t_ids[1]).envelope_id
+                to_envelope_id = get_transaction(t_ids[0]).envelope_id
+            t.envelope_id = from_envelope_id
+            t.account_id = to_envelope_id
+            t.amt = abs(t.amt)
+        elif t.type == TType.ACCOUNT_TRANSFER:
+            t_ids = get_ids_from_grouping(t.grouping)
+            if (t.amt > 0):
+                from_account_id = get_transaction(t_ids[0]).account_id
+                to_account_id = get_transaction(t_ids[1]).account_id
+            else:
+                from_account_id = get_transaction(t_ids[1]).account_id
+                to_account_id = get_transaction(t_ids[0]).account_id
+            t.envelope_id = from_account_id
+            t.account_id = to_account_id
+            t.amt = abs(t.amt)
+        elif t.type == TType.SPLIT_TRANSACTION:
+            c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?", (t.grouping,))
+            t.amt = -1 * c.fetchone()[0]  # Total the amount for all the constituent transactions
+        elif t.type == TType.ENVELOPE_FILL:
+            c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=?", (t.grouping,u.unallocated_e_id))
+            t.amt = c.fetchone()[0]  # Total the amount for the envelope fill
+
+        t.amt = t.amt/100
         tlist.append(t)
     
     # offset specifies where to start from on the next call
@@ -1529,113 +1592,6 @@ def health_check(toasts, interactive=False):
             hidden_print("STATUS -> HEALTHY\n")
             hidden_print("(No further action required.)\n\n")
             return healthy
-
-# region SEARCH FUNCTIONS
-
-def get_transactions_by_amount(uuid, amount, page=1):
-    """Search for transactions with an exact amount match."""
-    offset = (page - 1) * 50
-    u = get_user_by_uuid(uuid)
-    with conn:  # Use the global connection with context manager
-        c.execute("""
-            SELECT id FROM transactions 
-            WHERE user_id = ? AND amount = ?
-            ORDER BY day DESC, id DESC
-            LIMIT 50 OFFSET ?
-        """, (uuid, int(amount * 100), offset))  # multiply by 100 since we store amounts in cents
-        transactions = []
-        for tdata in c.fetchall():
-            t = get_transaction(tdata[0])
-            # Set the amount for display - similar to get_home_transactions
-            if t.type == TType.BASIC_TRANSACTION or t.type == TType.INCOME or t.type == TType.ACCOUNT_ADJUST or t.type == TType.ACCOUNT_DELETE:
-                t.amt = -1 * t.amt
-            elif t.type == TType.ENVELOPE_TRANSFER:
-                t_ids = get_ids_from_grouping(t.grouping)
-                if (t.amt > 0):
-                    from_envelope_id = get_transaction(t_ids[0]).envelope_id
-                    to_envelope_id = get_transaction(t_ids[1]).envelope_id
-                else:
-                    from_envelope_id = get_transaction(t_ids[1]).envelope_id
-                    to_envelope_id = get_transaction(t_ids[0]).envelope_id
-                t.envelope_id = from_envelope_id
-                t.account_id = to_envelope_id
-                t.amt = abs(t.amt)
-            elif t.type == TType.ACCOUNT_TRANSFER:
-                t_ids = get_ids_from_grouping(t.grouping)
-                if (t.amt > 0):
-                    from_account_id = get_transaction(t_ids[0]).account_id
-                    to_account_id = get_transaction(t_ids[1]).account_id
-                else:
-                    from_account_id = get_transaction(t_ids[1]).account_id
-                    to_account_id = get_transaction(t_ids[0]).account_id
-                t.envelope_id = from_account_id
-                t.account_id = to_account_id
-                t.amt = abs(t.amt)
-            elif t.type == TType.SPLIT_TRANSACTION:
-                c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?", (t.grouping,))
-                t.amt = -1 * c.fetchone()[0]  # Total the amount for all the constituent transactions
-            elif t.type == TType.ENVELOPE_FILL:
-                c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=?", (t.grouping,u.unallocated_e_id))
-                t.amt = c.fetchone()[0]  # Total the amount for the envelope fill
-
-            t.amt = t.amt/100
-            transactions.append(t)
-        return transactions
-
-def get_transactions_by_text(uuid, search_term, page=1):
-    """Search for transactions with matching text in name or note."""
-    offset = (page - 1) * 50
-    search_pattern = f"%{search_term}%"
-    u = get_user_by_uuid(uuid)
-    with conn:  # Use the global connection with context manager
-        c.execute("""
-            SELECT id FROM transactions 
-            WHERE user_id = ? 
-            AND (name LIKE ? OR note LIKE ?)
-            GROUP BY grouping 
-            ORDER by day DESC, id DESC
-            LIMIT 50 OFFSET ?
-        """, (uuid, search_pattern, search_pattern, offset))
-        transactions = []
-        for tdata in c.fetchall():
-            t = get_transaction(tdata[0])
-            # Set the amount for display - similar to get_home_transactions
-            if t.type == TType.BASIC_TRANSACTION or t.type == TType.INCOME or t.type == TType.ACCOUNT_ADJUST or t.type == TType.ACCOUNT_DELETE:
-                t.amt = -1 * t.amt
-            elif t.type == TType.ENVELOPE_TRANSFER:
-                t_ids = get_ids_from_grouping(t.grouping)
-                if (t.amt > 0):
-                    from_envelope_id = get_transaction(t_ids[0]).envelope_id
-                    to_envelope_id = get_transaction(t_ids[1]).envelope_id
-                else:
-                    from_envelope_id = get_transaction(t_ids[1]).envelope_id
-                    to_envelope_id = get_transaction(t_ids[0]).envelope_id
-                t.envelope_id = from_envelope_id
-                t.account_id = to_envelope_id
-                t.amt = abs(t.amt)
-            elif t.type == TType.ACCOUNT_TRANSFER:
-                t_ids = get_ids_from_grouping(t.grouping)
-                if (t.amt > 0):
-                    from_account_id = get_transaction(t_ids[0]).account_id
-                    to_account_id = get_transaction(t_ids[1]).account_id
-                else:
-                    from_account_id = get_transaction(t_ids[1]).account_id
-                    to_account_id = get_transaction(t_ids[0]).account_id
-                t.envelope_id = from_account_id
-                t.account_id = to_account_id
-                t.amt = abs(t.amt)
-            elif t.type == TType.SPLIT_TRANSACTION:
-                c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?", (t.grouping,))
-                t.amt = -1 * c.fetchone()[0]  # Total the amount for all the constituent transactions
-            elif t.type == TType.ENVELOPE_FILL:
-                c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=?", (t.grouping,u.unallocated_e_id))
-                t.amt = c.fetchone()[0]  # Total the amount for the envelope fill
-
-            t.amt = t.amt/100
-            transactions.append(t)
-        return transactions
-
-# endregion SEARCH FUNCTIONS
 
 # endregion OTHER FUNCTIONS
 

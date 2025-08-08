@@ -45,6 +45,10 @@ nav {
     height: calc(100vh - 64px);
 }
 
+.main-content-row .container {
+    max-height: 100%;
+}
+
 #no-account {
     cursor: pointer
 }
