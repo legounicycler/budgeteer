@@ -11,7 +11,7 @@ $(document).ready(function() {
     });
 
     // Clear search and restore original page using the existing #close-search
-    $('#close-search').click(function() {
+    $(document).on('click', '#close-search', function() {
         $(this).hide();
         if (Budgeteer.only_clear_searchfield) {
             $('#transaction-search').val('');
@@ -28,10 +28,12 @@ $(document).ready(function() {
                 if (o['error']) { M.toast({html: o['error']}); return; }
                 $('#transactions-bin').replaceWith(o['transactions_html']);
                 if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
-                $('#current-view').text(o['current_view']);
+                $('#current-page').text(o['current_page']);
                 $("#separator").show();
                 $('#page-total').text(o['page_total']).show();
                 refresh_reconcile();
+                Budgeteer.none_checked = true;
+                $("#multi-select-icons").addClass("hide");
             });
         }
     });
@@ -43,8 +45,10 @@ $(document).ready(function() {
             var searchTerm = $(this).val().trim();
             if (!searchTerm) return;
             $("#multi-select-icons").addClass("hide");
-            Budgeteer.previous_page = Budgeteer.current_page;
-            Budgeteer.current_page = "Search Results";
+            if (Budgeteer.current_page != "Search Results") {
+                Budgeteer.previous_page = Budgeteer.current_page;
+                Budgeteer.current_page = "Search Results";
+            }
             $.ajax({
                 type: 'POST',
                 url: '/api/search-transactions',
@@ -54,11 +58,18 @@ $(document).ready(function() {
                 if (o.error) {M.toast({html: o.error}); return;}
                 $('#transactions-bin').replaceWith(o.transactions_html);
                 if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]); }
-                $('#current-view').text(o.current_page);
+                $('#current-page').text(o.current_page);
                 $("#page-total").hide();
                 $("#separator").hide();
+                Budgeteer.none_checked = true;
             });
         }
     });
+
+    // $('#transaction-search').on('blur', function() {
+    //     $('#close-search').css("pointer-events", "none");
+    // }).on('focus', function() {
+    //     $('#close-search').css("pointer-events", "auto");
+    // });
 
 });

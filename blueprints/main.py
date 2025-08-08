@@ -152,7 +152,7 @@ def _build_home_page(uuid, timestamp):
   page_total = balanceformat(get_total(uuid))
   return {
     'page_total': page_total,
-    'current_view': 'All Transactions',
+    'current_page': 'All Transactions',
     'transactions_html': render_template(
       'transactions.html',
       current_page='All Transactions',
@@ -174,7 +174,7 @@ def _build_envelope_page(uuid, envelope_id, timestamp):
   name = get_envelope(envelope_id).name
   return {
     'page_total': page_total,
-    'current_view': name,
+    'current_page': name,
     'transactions_html': render_template(
       'transactions.html',
       current_page=f'envelope/{envelope_id}',
@@ -196,7 +196,7 @@ def _build_account_page(uuid, account_id, timestamp):
   name = get_account(account_id).name
   return {
     'page_total': page_total,
-    'current_view': name,
+    'current_page': name,
     'transactions_html': render_template(
       'transactions.html',
       current_page=f'account/{account_id}',
