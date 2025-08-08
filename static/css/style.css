@@ -50,10 +50,10 @@ input.valid[type=text]:not(.browser-default) {
 }
 
 /* Gets rid of weird 1px outline on the left edge of inputs from the box shadow */
-input {
+/* input {
   -webkit-box-shadow: none !important;
   box-shadow: none !important;
-}
+} */
 
 /*makes the rows thinner for transactions and so they don't overflow their columns*/
 .row {
