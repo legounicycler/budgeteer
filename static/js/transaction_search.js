@@ -79,15 +79,17 @@ $(document).ready(function() {
         if ($("#dashboard-header").hasClass("collapsed")) {
             console.log("HAS CLASS collapsed");
             $("#dashboard-header").animate({height: '180px'}, 200);
-            $("#dashboard-header, #dashboard-title-and-search-row").removeClass("collapsed");
-            $("#dashboard-header, #dashboard-title-and-search-row").addClass("expanded");
-            $("#advanced-search-row").removeClass("hide");
+            $("#advanced-search-button").animate()
+            // $("#dashboard-title-and-search-row").animate({height: '50%'}, 170);
+            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").removeClass("collapsed");
+            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").addClass("expanded");
         } else {
             console.log("DOES NOT HAVE CLASS collapsed");
             $("#dashboard-header").animate({height: '90px'}, 200);
-            $("#dashboard-header, #dashboard-title-and-search-row").addClass("collapsed");
-            $("#dashboard-header, #dashboard-title-and-search-row").removeClass("expanded");
-            $("#advanced-search-row").addClass("hide");
+            // $("#dashboard-title-and-search-row").animate({height: '100%'}, 200);
+            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").addClass("collapsed");
+            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").removeClass("expanded");
+            // $("#advanced-search-row").addClass("hide");
         }
         
     });
