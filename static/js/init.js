@@ -274,8 +274,6 @@
       // AJAX request to load all transactions
       $(document).on('click', '#total', function() {
         var url = $(this).data('url');
-        Budgeteer.current_page = "All Transactions";
-        Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
         $.ajax({
           type: "post",
           url: url,
@@ -288,7 +286,10 @@
           $('#current-page').text(o['current_page']);
           $("#separator").show();
           $('#page-total').text(o['page_total']).show();
-          refresh_reconcile()
+          refresh_reconcile();
+          Budgeteer.current_page = "All Transactions";
+          Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
+          Budgeteer.current_search = null;
         });
       });
 
@@ -296,8 +297,6 @@
       $(document).on('click', '.envelope-link', function() {
         var url = $(this).data('url');
         var envelope_id = $(this).data("envelope-id");
-        Budgeteer.current_page = "envelope/".concat(envelope_id);
-        Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
         $.ajax({
           type: "post",
           url: url,
@@ -310,7 +309,10 @@
           $('#current-page').text(o['current_page']);
           $("#separator").show();
           $('#page-total').text(o['page_total']).show();
-          refresh_reconcile()
+          refresh_reconcile();
+          Budgeteer.current_page = "envelope/".concat(envelope_id);
+          Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
+          Budgeteer.current_search = null;
         });
       });
 
@@ -318,8 +320,6 @@
       $(document).on('click', '.account-link', function() {
         var url = $(this).data('url');
         var account_id = $(this).data("account-id");
-        Budgeteer.current_page = "account/".concat(account_id);
-        Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
         $.ajax({
           type: "post",
           url: url,
@@ -332,7 +332,10 @@
           $('#current-page').text(o['current_page']);
           $("#separator").show();
           $('#page-total').text(o['page_total']).show();
-          refresh_reconcile()
+          refresh_reconcile();
+          Budgeteer.current_page = "account/".concat(account_id);
+          Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
+          Budgeteer.current_search = null;
         });
       });
 
@@ -1094,10 +1097,16 @@
 
     // Load more transactions button
     $('#bin').on('click', '#load-more', function() {
+      data = {}
+      if (Budgeteer.current_page === "Search Results") {
+        data['search_term'] = Budgeteer.current_search;
+      }
+      data['offset'] = parseInt($(this).attr('data-offset'));
+      data['current_page'] = Budgeteer.current_page;
       $.ajax({
         type: 'POST',
         url: '/api/load-more',
-        data: JSON.stringify({"offset": parseInt($(this).attr('data-offset')), "current_page": Budgeteer.current_page}),
+        data: JSON.stringify(data),
         contentType: 'application/json'
       }).done(function( o ) {
         if (o['error']) { M.toast({html: o['error']}); return; }
