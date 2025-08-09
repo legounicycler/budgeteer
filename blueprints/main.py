@@ -787,8 +787,9 @@ def data_reload():
 def load_more():
   try:
     uuid = get_uuid_from_cookie()
-    current_offset = request.get_json()['offset']
-    current_page = request.get_json()['current_page']
+    js_data = request.get_json()
+    current_offset = js_data['offset']
+    current_page = js_data['current_page']
     # TODO: When implementing unit test framework, test what happens if the user somehow manually changes the current_page variable so that it doesn't include a valid account or envelope id
     # TODO: When implementing unit test framework, if the user manually changes the offset variable to something other than a valid integer, the app will crash. Test for this.
     if 'account/' in current_page:
@@ -799,6 +800,8 @@ def load_more():
       regex = re.compile(r'envelope/(\d+)')
       envelope_id = int(regex.findall(current_page)[0])
       (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,current_offset,50)
+    elif 'Search' in current_page:
+      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], current_offset, 50)
     else:
       (transactions_data, offset, limit) = get_home_transactions(uuid,current_offset,50)
 
