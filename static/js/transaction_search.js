@@ -75,4 +75,21 @@ $(document).ready(function() {
         $('#close-search').css("pointer-events", "auto");
     });
 
+    $("#advanced-search-button").on('click', function() {
+        if ($("#dashboard-header").hasClass("collapsed")) {
+            console.log("HAS CLASS collapsed");
+            $("#dashboard-header").animate({height: '180px'}, 200);
+            $("#dashboard-header, #dashboard-title-and-search-row").removeClass("collapsed");
+            $("#dashboard-header, #dashboard-title-and-search-row").addClass("expanded");
+            $("#advanced-search-row").removeClass("hide");
+        } else {
+            console.log("DOES NOT HAVE CLASS collapsed");
+            $("#dashboard-header").animate({height: '90px'}, 200);
+            $("#dashboard-header, #dashboard-title-and-search-row").addClass("collapsed");
+            $("#dashboard-header, #dashboard-title-and-search-row").removeClass("expanded");
+            $("#advanced-search-row").addClass("hide");
+        }
+        
+    });
+
 });
