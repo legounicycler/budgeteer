@@ -1,6 +1,7 @@
 window.Budgeteer = window.Budgeteer || {};
 Budgeteer.previous_page = null; // Used to store the previous page before a search
 Budgeteer.only_clear_searchfield = true; // If true, only clear the search field, if false, return to previous page after search
+Budgeteer.current_search = null; // Used to store the current search term
 
 $(document).ready(function() {
 
@@ -13,6 +14,7 @@ $(document).ready(function() {
     // Clear search and restore original page using the existing #close-search
     $(document).on('mousedown', "#close-search", function() {
         $(this).fadeOut(200);
+        Budgeteer.current_search = null; // Reset the current search term
         if (Budgeteer.only_clear_searchfield) {
             $('#transaction-search').val('');
             return;
@@ -43,6 +45,7 @@ $(document).ready(function() {
             e.preventDefault();
             Budgeteer.only_clear_searchfield = false;
             var searchTerm = $(this).val().trim();
+            Budgeteer.current_search = searchTerm; // Store the current search term
             if (!searchTerm) return;
             $("#multi-select-icons").addClass("hide");
             if (Budgeteer.current_page != "Search Results") {
