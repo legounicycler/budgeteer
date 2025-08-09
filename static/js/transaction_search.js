@@ -11,14 +11,13 @@ $(document).ready(function() {
     });
 
     // Clear search and restore original page using the existing #close-search
-    $(document).on('click', '#close-search', function() {
-        $(this).hide();
+    $(document).on('mousedown', "#close-search", function() {
+        $(this).fadeOut(200);
         if (Budgeteer.only_clear_searchfield) {
             $('#transaction-search').val('');
             return;
         } else {
             $('#transaction-search').val('');
-            console.log("Previous page: " + Budgeteer.previous_page)
             $.ajax({
                 type: 'POST',
                 url: '/api/reset-search',
@@ -33,6 +32,7 @@ $(document).ready(function() {
                 $('#page-total').text(o['page_total']).show();
                 refresh_reconcile();
                 Budgeteer.none_checked = true;
+                Budgeteer.only_clear_searchfield = true;
                 $("#multi-select-icons").addClass("hide");
             });
         }
@@ -66,10 +66,10 @@ $(document).ready(function() {
         }
     });
 
-    // $('#transaction-search').on('blur', function() {
-    //     $('#close-search').css("pointer-events", "none");
-    // }).on('focus', function() {
-    //     $('#close-search').css("pointer-events", "auto");
-    // });
+    $('#transaction-search').on('blur', function() {
+        $('#close-search').css("pointer-events", "none");
+    }).on('focus', function() {
+        $('#close-search').css("pointer-events", "auto");
+    });
 
 });
