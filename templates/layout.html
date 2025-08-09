@@ -126,41 +126,58 @@
       <!-- RIGHT CONTENT -->
       <div class="col s12 m12 l8" id="dashboard-column">
         <div id="dashboard-header" class="orange lighten-1 white-text collapsed">
-          <div id="dashboard-title-and-search-row" class="row collapsed">
-            <div id="dashboard-page-title-col" class="col s12 m7 l8 left-align valign-wrapper">
-              <h4 id="dashboard-page-title" class="truncate">
-                <span id="current-page">All Transactions</span>
-                <span id="separator"> | </span>
-                <i id="page-total">{{total_funds|balanceformat}}</i>
-              </h4>
+          <form id="transaction-search-form">
+            <div id="dashboard-title-and-search-row" class="row collapsed">
+              <div id="dashboard-page-title-col" class="col s12 m7 l8 left-align valign-wrapper">
+                <h4 id="dashboard-page-title" class="truncate">
+                  <span id="current-page">All Transactions</span>
+                  <span id="separator"> | </span>
+                  <i id="page-total">{{total_funds|balanceformat}}</i>
+                </h4>
+              </div>
+              <div id="search-col" class="col s12 m5 l4 valign-wrapper">
+                <div id="search-field" class="input-field">
+                  <input id="transaction-search" class="blue-grey-text white" type="search" placeholder="Search">
+                  <label id="search-icon" class="label-icon" for="transaction-search"><i class="material-icons left">search</i></label>
+                  <i id="close-search" class="material-icons">close</i>
+                </div>
+                <i id="advanced-search-button" class="material-icons">arrow_drop_down</i>
+                <div id="multi-select-icons" class="hide">
+                  <a id="multi-select-clear"><i class="material-icons white-text">clear</i></a>
+                  <a id="multi-select-delete"><i class="material-icons white-text">delete</i></a>
+                </div>
+              </div>
             </div>
-            <div id="search-col" class="col s12 m5 l4 valign-wrapper">
-              <div id="search-field" class="input-field">
-                <input id="transaction-search" class="blue-grey-text white" type="search" placeholder="Search">
-                <label id="search-icon" class="label-icon" for="transaction-search"><i class="material-icons left">search</i></label>
-                <i id="close-search" class="material-icons">close</i>
+            <div id="advanced-search-row">
+              <div class="input-field col s1">
+                <label for="search-amt-min">Min Amt</label>
+                <input id="search-amt-min" class="special-input blue-grey-text white t-search-input" type="text" placeholder="$0.00">
               </div>
-              <i id="advanced-search-button" class="material-icons">arrow_drop_down</i>
-              <div id="multi-select-icons" class="hide">
-                <a id="multi-select-clear"><i class="material-icons white-text">clear</i></a>
-                <a id="multi-select-delete"><i class="material-icons white-text">delete</i></a>
+              <div class="input-field col s1">
+                <label for="search-amt-max">Max Amt</label>
+                <input id="search-amt-max" class="special-input blue-grey-text white t-search-input" type="text" placeholder="$0.00">
+              </div>
+              <div class="input-field col s2">
+                <label for="search-date-min">Min Date</label>
+                <input id="search-date-min" class="datepicker blue-grey-text white t-search-input" type="text" placeholder="YYYY-MM-DD">
+              </div>
+              <div class="input-field col s2">
+                <label for="search-date-max">Max Date</label>
+                <input id="search-date-max" class="datepicker blue-grey-text white t-search-input" type="text" placeholder="YYYY-MM-DD">
+              </div>
+              <div class="input-field col s2">
+                <label for="search-envelope">Envelope</label>
+                <input id="search-envelope" class="blue-grey-text white t-search-input" type="text" placeholder="Envelope Name">
+              </div>
+              <div class="input-field col s2">
+                <label for="search-account">Account</label>
+                <input id="search-account" class="blue-grey-text white t-search-input" type="text" placeholder="Account Name">
+              </div>
+              <div class="input-field col s2">
+                <button id="search-submit" type="submit" class="btn orange darken-2">Search</button>
               </div>
             </div>
-          </div>
-          <div id="advanced-search-row" class="hide">
-            <form id="advanced-search-form">
-              <div class="input-field">
-                <input id="advanced-search-name" type="text" placeholder="Name">
-              </div>
-              <div class="input-field">
-                <input id="advanced-search-date" type="text" class="datepicker" placeholder="Date">
-              </div>
-              <div class="input-field">
-                <input id="advanced-search-amount" type="number" placeholder="Amount">
-              </div>
-              <button type="submit" class="btn">Search</button>
-            </form>
-          </div>
+          </form>
         </div>
         <div id="bin" class="hide">
           <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
