@@ -78,7 +78,7 @@ $(document).ready(function() {
     $("#advanced-search-button").on('click', function() {
         if ($("#dashboard-header").hasClass("collapsed")) {
             console.log("HAS CLASS collapsed");
-            $("#dashboard-header").animate({height: '180px'}, 200);
+            $("#dashboard-header").animate({height: '140px'}, 200);
             $("#advanced-search-button").animate()
             // $("#dashboard-title-and-search-row").animate({height: '50%'}, 170);
             $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").removeClass("collapsed");
