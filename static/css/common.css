@@ -39,3 +39,7 @@ main {
   font-size: .75em;
   color: gray;
 }
+
+body {
+  overscroll-behavior: none;
+}
