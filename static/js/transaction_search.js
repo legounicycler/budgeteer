@@ -5,21 +5,45 @@ Budgeteer.current_search = null; // Used to store the current search term
 
 $(document).ready(function() {
 
-
-    $('#transaction-search').on('input', function() {
-        // Show/hide the #close-search icon based on if there's text
-        $('#close-search').toggle(!!$(this).val());
+    $("#transaction-search-form").on("submit", function(e) {
+        console.log("Transaction search form submitted");
+        e.preventDefault();
+        var url = $(this).attr('action');
+        var method = $(this).attr('method');
+        Budgeteer.only_clear_searchfield = false;
+        var searchTerm = $("#transaction-search").val().trim();
+        Budgeteer.current_search = searchTerm; // Store the current search term
+        if (!searchTerm) return; //TODO: This line should change because in an advanced search you don't necessarily have to enter a search term, you can just search by date ranges, etc.
+        $("#multi-select-icons").addClass("hide");
+        if (Budgeteer.current_page != "Search Results") { //If you're entering a new search from a search page, update the previous and current page
+            Budgeteer.previous_page = Budgeteer.current_page;
+            Budgeteer.current_page = "Search Results";
+        }
+        $.ajax({
+            url: url,
+            method: method,
+            data: $(this).serialize() + "&timestamp=" + gen_timestamp(),
+        }).done(function(o) {
+            if (o.error) {M.toast({html: o.error}); return;}
+            $('#transactions-bin').replaceWith(o.transactions_html);
+            if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]); }
+            $('#current-page').text(o.current_page);
+            $("#page-total").hide();
+            $("#separator").hide();
+            Budgeteer.none_checked = true;
+        });
     });
 
-    // Clear search and restore original page using the existing #close-search
+    // Clear search field, and if you're on a search page then return to the previous page you started from
+    // TODO: Test if this works with #close-search.mousedown insteading of binding the event listener to the document
     $(document).on('mousedown', "#close-search", function() {
-        $(this).fadeOut(200);
-        Budgeteer.current_search = null; // Reset the current search term
+        $(this).fadeOut(200); // Fade out the close button
+        Budgeteer.current_search = null; // Reset the global variable used to store the current search term
+        $('#transaction-search').val(''); // Clear the search field
         if (Budgeteer.only_clear_searchfield) {
-            $('#transaction-search').val('');
             return;
         } else {
-            $('#transaction-search').val('');
+            // Return to the page you were on before you started the search
             $.ajax({
                 type: 'POST',
                 url: '/api/reset-search',
@@ -40,41 +64,16 @@ $(document).ready(function() {
         }
     });
 
-    $('#transaction-search').keypress(function(e) {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            Budgeteer.only_clear_searchfield = false;
-            var searchTerm = $(this).val().trim();
-            Budgeteer.current_search = searchTerm; // Store the current search term
-            if (!searchTerm) return;
-            $("#multi-select-icons").addClass("hide");
-            if (Budgeteer.current_page != "Search Results") {
-                Budgeteer.previous_page = Budgeteer.current_page;
-                Budgeteer.current_page = "Search Results";
-            }
-            $.ajax({
-                type: 'POST',
-                url: '/api/search-transactions',
-                data: JSON.stringify({'search_term': searchTerm, "timestamp": gen_timestamp()}),
-                contentType: 'application/json'
-            }).done(function(o) {
-                if (o.error) {M.toast({html: o.error}); return;}
-                $('#transactions-bin').replaceWith(o.transactions_html);
-                if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]); }
-                $('#current-page').text(o.current_page);
-                $("#page-total").hide();
-                $("#separator").hide();
-                Budgeteer.none_checked = true;
-            });
-        }
-    });
-
-    $('#transaction-search').on('blur', function() {
+    // Event handlers for the #transaction-search input
+    $('#transaction-search').on('input', function() {
+        $('#close-search').toggle(!!$(this).val()); // Show/hide the #close-search icon based on if there's text
+    }).on('blur', function() {
         $('#close-search').css("pointer-events", "none");
     }).on('focus', function() {
         $('#close-search').css("pointer-events", "auto");
     });
 
+    // TODO: Investigate if the collapsed and expanded classes are needed anymore
     $("#advanced-search-button").on('click', function() {
         if ($("#dashboard-header").hasClass("collapsed")) {
             var currentHeight = $('#dashboard-header').height();
@@ -82,12 +81,12 @@ $(document).ready(function() {
             var autoHeight = $('#dashboard-header').height();
             $('#dashboard-header').height(currentHeight);
             $("#dashboard-header").animate({height: autoHeight}, 200);
-            $("#bin").css("height", "calc(100% - " + autoHeight + "px)"); // Possibly do a smooth animation on this as well
-            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").removeClass("collapsed").addClass("expanded");;
+            $("#bin").css("height", "calc(100% - " + autoHeight + "px)"); // TODO: Possibly do a smooth animation on this as well
+            $("#dashboard-header, #advanced-search-button").removeClass("collapsed").addClass("expanded");;
         } else {
             $("#dashboard-header").animate({height: '90px'}, 200);
-            $("#bin").css("height", "calc(100% - 90px)"); // Possibly do a smooth animation on this as well
-            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").removeClass("expanded").addClass("collapsed");
+            $("#bin").css("height", "calc(100% - 90px)"); // TODO: Possibly do a smooth animation on this as well
+            $("#dashboard-header, #advanced-search-button").removeClass("expanded").addClass("collapsed");
         }
         
     });
