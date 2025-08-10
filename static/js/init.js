@@ -403,6 +403,44 @@
       M.toast({html: "Coming soon!"})
     });
 
+    // Wait briefly to ensure ScrollSpy/SimpleBar has initialized
+    setTimeout(() => {
+      const binWrapper = document.querySelector('#bin .simplebar-content-wrapper');
+      if (!binWrapper) {
+        console.warn('Scroll container not found.');
+        return;
+      }
+
+      window.addEventListener('wheel', function (e) {
+        const scrollTop = window.scrollY;
+        const windowHeight = window.innerHeight;
+        const documentHeight = document.body.scrollHeight;
+
+        const binScrollTop = binWrapper.scrollTop;
+        const binScrollHeight = binWrapper.scrollHeight;
+        const binClientHeight = binWrapper.clientHeight;
+
+        const atBottomOfPage = scrollTop + windowHeight >= documentHeight - 1;
+        const atTopOfPage = scrollTop === 0;
+        const atTopOfBin = binScrollTop === 0;
+        const atBottomOfBin = binScrollTop + binClientHeight >= binScrollHeight - 1;
+        const scrollingUp = e.deltaY < 0;
+        const scrollingDown = e.deltaY > 0;
+
+        if (atBottomOfPage && scrollingDown && !atBottomOfBin) {
+          binWrapper.scrollTop += e.deltaY;
+          e.preventDefault();
+        } else if (atBottomOfPage && scrollingUp && !atTopOfBin) {
+          binWrapper.scrollTop += e.deltaY;
+          e.preventDefault();
+        } else if (!atTopOfPage && !atBottomOfPage) {
+          // Just scroll page, not bin
+          window.scrollBy(0, e.deltaY);
+          e.preventDefault();
+        }
+      }, { passive: false });
+    }, 300); // Adjust delay if needed
+
     }); // end of document ready
 
 
