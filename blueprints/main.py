@@ -859,12 +859,12 @@ def load_static_html():
 @check_confirmed
 def search_transactions():
   try:
-    json_data = request.get_json()
-    search_term = json_data['search_term'].strip()
-    timestamp = json_data['timestamp']
     uuid = get_uuid_from_cookie()
+    search_term = request.form['search_term'].strip()
+    # TODO: Add all the other searchfields here, then implement them in the database.py get_search_transactions function
+    timestamp = request.form['timestamp']
+
     check_pending_transactions(uuid, timestamp)
-    print(f"SEARCH TERM: {search_term}")
     # Retrieve the transactions from the search query
     (transactions_data, offset, limit) = get_search_transactions(uuid,search_term,0,50)
     (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
