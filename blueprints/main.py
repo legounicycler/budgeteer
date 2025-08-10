@@ -760,8 +760,8 @@ def data_reload():
     data['unallocated'] = get_envelope_balance(u.unallocated_e_id)/100
     data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
     data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
-    data['account_selector_html'] = render_template('account_selector.html', accounts_data=accounts_data)
-    data['envelope_selector_html'] = render_template('envelope_selector.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
+    data['account_select_options_html'] = render_template('account_select_options.html', accounts_data=accounts_data)
+    data['envelope_select_options_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
     data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total,  unallocated_e_id=u.unallocated_e_id)
     data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
     data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)

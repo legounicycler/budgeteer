@@ -120,8 +120,18 @@
       // Initialize all materialize tabs
       $('.tabs').tabs();
 
-      // Initialize all materializeselects
-      $('select').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+      // Initialize all materialize selects
+      $('select:not(#search-envelope, #search-account)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+
+      $('#search-envelope, #search-account').formSelect({dropdownOptions: {container: '.content'}});
+
+      // Add the class which specially styles the selects in the advanced search bar
+      $('#search-envelope, #search-account').each(function() {
+        // Get the data-target attribute from the select's generated input
+        var dataTarget = $(this).siblings('input.select-dropdown').attr('data-target');
+        $('#' + dataTarget).addClass('custom-dropdown-class');
+      });
+
 
       // Initialize all materialize datapickers
       $('.datepicker').datepicker({
@@ -1231,14 +1241,14 @@
 
         // 4.1 Update selects in expense editor
         expense_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
-        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
+        $('.select-wrapper:has(.account-selector) select').html(o['account_select_options_html']);
+        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_select_options_html']);
         expense_editor.detach();
 
         // 4.2 Update selects in transfer editor
         transfer_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
-        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
+        $('.select-wrapper:has(.account-selector) select').html(o['account_select_options_html']);
+        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_select_options_html']);
         $('#envelope-transfer-edit select').first().attr('name', 'from_envelope');
         $('#envelope-transfer-edit select').last().attr('name', 'to_envelope');
         $('#account-transfer-edit select').first().attr('name', 'from_account');
@@ -1247,12 +1257,19 @@
 
         // 4.3 Update selects in the income editor
         income_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
-        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
+        $('.select-wrapper:has(.account-selector) select').html(o['account_select_options_html']);
+        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_select_options_html']);
         income_editor.detach()
 
         // 4.4 Re-initialize all selects
-        $('select').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+        $('select:not(#search-envelope, #search-account)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+        $('#search-envelope, #search-account').formSelect({dropdownOptions: {container: '.content'}});
+        // Add the class which specially styles the selects in the advanced search bar
+        $('#search-envelope, #search-account').each(function() {
+          // Get the data-target attribute from the select's generated input
+          var dataTarget = $(this).siblings('input.select-dropdown').attr('data-target');
+          $('#' + dataTarget).addClass('custom-dropdown-class');
+        });
 
         // 5. Update the envelope fill editor
         envelope_fill_editor.appendTo('#editor-row');

@@ -1,6 +1,0 @@
-<option value="" disabled selected>Choose an Envelope</option>
-{% for id, envelope in envelopes_data.items() %}
-    {% if envelope.deleted == false and envelope.id != unallocated_e_id %}
-      <option value="{{envelope.id}}">{{envelope.name}}  {{envelope.balance|balanceformat}}</option>
-    {% endif %}
-{% endfor %}
