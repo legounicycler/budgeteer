@@ -150,28 +150,36 @@
             </div>
             <div id="advanced-search-row">
               <div class="input-field col s1">
-                <label for="search-amt-min">Min Amt</label>
+                <label for="search-amt-min">Min. Amt</label>
                 <input id="search-amt-min" class="special-input blue-grey-text white t-search-input" type="text" placeholder="$0.00">
               </div>
               <div class="input-field col s1">
-                <label for="search-amt-max">Max Amt</label>
+                <label for="search-amt-max">Max. Amt</label>
                 <input id="search-amt-max" class="special-input blue-grey-text white t-search-input" type="text" placeholder="$0.00">
               </div>
               <div class="input-field col s2">
-                <label for="search-date-min">Min Date</label>
+                <label for="search-date-min">Min. Date</label>
                 <input id="search-date-min" class="datepicker blue-grey-text white t-search-input" type="text" placeholder="YYYY-MM-DD">
               </div>
               <div class="input-field col s2">
-                <label for="search-date-max">Max Date</label>
+                <label for="search-date-max">Max. Date</label>
                 <input id="search-date-max" class="datepicker blue-grey-text white t-search-input" type="text" placeholder="YYYY-MM-DD">
               </div>
               <div class="input-field col s2">
-                <label for="search-envelope">Envelope</label>
-                <input id="search-envelope" class="blue-grey-text white t-search-input" type="text" placeholder="Envelope Name">
+                <select id="search-envelope" class="envelope-selector" name="search_envelope_ids" multiple>
+                  {% with special=true %}
+                    {% include 'envelope_select_options.html' %}
+                  {% endwith %}
+                </select>
+                <label for="search-envelope" class="special-select-label white-text">Envelope(s)</label>
               </div>
               <div class="input-field col s2">
-                <label for="search-account">Account</label>
-                <input id="search-account" class="blue-grey-text white t-search-input" type="text" placeholder="Account Name">
+                <select id="search-account" class="account-selector" name="search_account_ids" multiple>
+                  {% with  special=true %}
+                    {% include 'account_select_options.html' %}
+                  {% endwith %}
+                </select>
+                <label for="search-account" class="special-select-label white-text">Account(s)</label>
               </div>
               <div class="input-field col s2">
                 <button id="search-submit" type="submit" class="btn orange darken-2">Search</button>
