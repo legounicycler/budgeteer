@@ -126,7 +126,7 @@
       <!-- RIGHT CONTENT -->
       <div class="col s12 m12 l8" id="dashboard-column">
         <div id="dashboard-header" class="orange lighten-1 white-text collapsed">
-          <form id="transaction-search-form">
+          <form id="transaction-search-form" action="{{ url_for('main.search_transactions') }}" method="post">
             <div id="dashboard-title-and-search-row" class="row collapsed">
               <div id="dashboard-page-title-col" class="col s12 m7 l8 left-align valign-wrapper">
                 <h4 id="dashboard-page-title" class="truncate">
@@ -137,7 +137,7 @@
               </div>
               <div id="search-col" class="col s12 m5 l4 valign-wrapper">
                 <div id="search-field" class="input-field">
-                  <input id="transaction-search" class="blue-grey-text white" type="search" placeholder="Search">
+                  <input id="transaction-search" name="search_term" class="blue-grey-text white" type="search" placeholder="Search">
                   <label id="search-icon" class="label-icon" for="transaction-search"><i class="material-icons left">search</i></label>
                   <i id="close-search" class="material-icons">close</i>
                 </div>
