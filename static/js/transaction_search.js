@@ -77,19 +77,17 @@ $(document).ready(function() {
 
     $("#advanced-search-button").on('click', function() {
         if ($("#dashboard-header").hasClass("collapsed")) {
-            console.log("HAS CLASS collapsed");
-            $("#dashboard-header").animate({height: '140px'}, 200);
-            $("#advanced-search-button").animate()
-            // $("#dashboard-title-and-search-row").animate({height: '50%'}, 170);
-            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").removeClass("collapsed");
-            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").addClass("expanded");
+            var currentHeight = $('#dashboard-header').height();
+            $('#dashboard-header').css('height', 'auto');
+            var autoHeight = $('#dashboard-header').height();
+            $('#dashboard-header').height(currentHeight);
+            $("#dashboard-header").animate({height: autoHeight}, 200);
+            $("#bin").css("height", "calc(100% - " + autoHeight + "px)"); // Possibly do a smooth animation on this as well
+            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").removeClass("collapsed").addClass("expanded");;
         } else {
-            console.log("DOES NOT HAVE CLASS collapsed");
             $("#dashboard-header").animate({height: '90px'}, 200);
-            // $("#dashboard-title-and-search-row").animate({height: '100%'}, 200);
-            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").addClass("collapsed");
-            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").removeClass("expanded");
-            // $("#advanced-search-row").addClass("hide");
+            $("#bin").css("height", "calc(100% - 90px)"); // Possibly do a smooth animation on this as well
+            $("#dashboard-header, #dashboard-title-and-search-row, #advanced-search-button").removeClass("expanded").addClass("collapsed");
         }
         
     });
