@@ -10,13 +10,6 @@
     var new_edit_account_row_html;
     var t_editor_new_env_row_html;
 
-    const LEFT_ARROW = 37;
-    const UP_ARROW = 38;
-    const RIGHT_ARROW = 39;
-    const DOWN_ARROW = 40;
-    const ENTER = 13;
-    const ESCAPE = 27;
-
     //Transaction types
     const BASIC_TRANSACTION = 0;
     const ENVELOPE_TRANSFER = 1;
@@ -159,12 +152,10 @@
       $('.tabs').tabs();
 
       // Initialize all materialize selects
-      $('select:not(#search-envelope, #search-account)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
-
-      $('#search-envelope, #search-account').formSelect({dropdownOptions: {container: '.content'}});
+      $('select:not(#search-envelopes, #search-accounts)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
 
       // Add the class which specially styles the selects in the advanced search bar
-      $('#search-envelope, #search-account').each(function() {
+      $('#search-envelopes, #search-accounts').each(function() {
         // Get the data-target attribute from the select's generated input
         var dataTarget = $(this).siblings('input.select-dropdown').attr('data-target');
         $('#' + dataTarget).addClass('custom-dropdown-class');
@@ -182,6 +173,7 @@
           this.el.focus();
         }
       });
+      $("#search-date-min, #search-date-max").val(""); // Clear the date fields only for the advanced search fields
 
       // Adds arrowkey functionality to datepicker
       $(".datepicker-modal").keydown(function(e) {
@@ -1300,10 +1292,10 @@
         income_editor.detach()
 
         // 4.4 Re-initialize all selects
-        $('select:not(#search-envelope, #search-account)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
-        $('#search-envelope, #search-account').formSelect({dropdownOptions: {container: '.content'}});
+        $('select:not(#search-envelopes, #search-accounts)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+        $('#search-envelopes, #search-accounts').formSelect({dropdownOptions: {container: '.content'}});
         // Add the class which specially styles the selects in the advanced search bar
-        $('#search-envelope, #search-account').each(function() {
+        $('#search-envelopes, #search-accounts').each(function() {
           // Get the data-target attribute from the select's generated input
           var dataTarget = $(this).siblings('input.select-dropdown').attr('data-target');
           $('#' + dataTarget).addClass('custom-dropdown-class');
