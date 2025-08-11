@@ -6,12 +6,14 @@ from budgeteer import *
 # region ---------------HELPER FUNCTION TESTS---------------
 
 # TODO: Add descriptions for these test functions and their associated functinos in filters.py
+# TODO: Add more test cases here
 def test_datetimeformat():
     """
     Tests datetimeformat filter function
     """
     assert datetimeformat(datetime.strptime("2022-01-01", "%Y-%m-%d")) == "01/01/2022"
 
+# TODO: Add more test cases here
 def test_datetimeformatshort():
     """
     Tests datetimeformatshort filter function

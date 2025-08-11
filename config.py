@@ -33,8 +33,7 @@ class TestingConfig(Config):
     DATABASE_URI = ':memory:'
     MAIL_SUPPRESS_SEND = True
     MAIL_BACKEND = 'memory'
-    # TODO: This needs to be platform agnostic
-    UPLOAD_FOLDER = LOCAL_UPLOAD_FOLDER
+    UPLOAD_FOLDER = LOCAL_UPLOAD_FOLDER # TODO: This needs to be platform agnostic
 
 class ProductionConfig(Config):
     """Configuration for production environment."""
