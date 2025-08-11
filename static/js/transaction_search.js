@@ -76,16 +76,24 @@ $(document).ready(function() {
     // TODO: Investigate if the collapsed and expanded classes are needed anymore
     $("#advanced-search-button").on('click', function() {
         if ($("#dashboard-header").hasClass("collapsed")) {
-            var currentHeight = $('#dashboard-header').height();
+            var currentDashHeight = $('#dashboard-header').height();
+            var currentBinHeight = $("#bin").height();
             $('#dashboard-header').css('height', 'auto');
-            var autoHeight = $('#dashboard-header').height();
-            $('#dashboard-header').height(currentHeight);
-            $("#dashboard-header").animate({height: autoHeight}, 200);
-            $("#bin").css("height", "calc(100% - " + autoHeight + "px)"); // TODO: Possibly do a smooth animation on this as well
-            $("#dashboard-header, #advanced-search-button").removeClass("collapsed").addClass("expanded");;
+            var newDashHeight = $('#dashboard-header').height();
+            $("#bin").css("height", "calc(100% - " + newDashHeight + "px)");
+            var newBinHeight = $("#bin").height();
+            $('#dashboard-header').height(currentDashHeight);
+            $('#bin').height(currentBinHeight);
+            $("#dashboard-header").animate({height: newDashHeight}, 200);
+            $("#bin").animate({height: newBinHeight}, 200); // TODO: Possibly do a smooth animation on this as well
+            $("#dashboard-header, #advanced-search-button").removeClass("collapsed").addClass("expanded");
         } else {
+            var currentBinHeight = $("#bin").height();
+            $("#bin").css("height", "calc(100% - 90px)");
+            var newBinHeight = $("#bin").height();
+            $('#bin').height(currentBinHeight);
             $("#dashboard-header").animate({height: '90px'}, 200);
-            $("#bin").css("height", "calc(100% - 90px)"); // TODO: Possibly do a smooth animation on this as well
+            $("#bin").animate({height: newBinHeight}, 200); // TODO: Possibly do a smooth animation on this as well
             $("#dashboard-header, #advanced-search-button").removeClass("expanded").addClass("collapsed");
         }
         

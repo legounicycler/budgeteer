@@ -41,7 +41,7 @@
     window.Budgeteer = window.Budgeteer || {};
     Budgeteer.current_page = "All Transactions"; //Used to determine which transactions to reload on a data reload (also used in transactions.html to properly color transaction amount)
     Budgeteer.none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
-
+    Budgeteer.transactionsScrollerElement = null; // Store the div for the transactions scroller which is used in the custom scroll behavior function. Updated on data_reload()
 
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
@@ -50,6 +50,44 @@
       $('.scroller').each(function(index,el) {
         new SimpleBar(el);
       });
+      Budgeteer.transactionsScrollerElement = $('#transactions-scroller .simplebar-content-wrapper')[0];
+
+      // Set the custom scroll behavior that applies in the transactions bin on small screens
+      window.addEventListener("wheel",function (e) {
+        if (!Budgeteer.transactionsScrollerElement) {
+          console.warn("No transactions scroller element found.");
+          return;
+        }
+        
+        const scrollTop = window.scrollY;
+        const windowHeight = window.innerHeight;
+        const documentHeight = document.body.scrollHeight;
+
+        const binScrollTop = Budgeteer.transactionsScrollerElement.scrollTop;
+        const binScrollHeight = Budgeteer.transactionsScrollerElement.scrollHeight;
+        const binClientHeight = Budgeteer.transactionsScrollerElement.clientHeight;
+
+        const atBottomOfPage = scrollTop + windowHeight >= documentHeight - 1;
+        const atTopOfPage = scrollTop === 0;
+        const atTopOfBin = binScrollTop === 0;
+        const atBottomOfBin = binScrollTop + binClientHeight >= binScrollHeight - 1;
+        const scrollingUp = e.deltaY < 0;
+        const scrollingDown = e.deltaY > 0;
+
+        if (atBottomOfPage && scrollingDown && !atBottomOfBin) {
+          Budgeteer.transactionsScrollerElement.scrollTop += e.deltaY;
+          e.preventDefault();
+        } else if (atBottomOfPage && scrollingUp && !atTopOfBin) {
+          Budgeteer.transactionsScrollerElement.scrollTop += e.deltaY;
+          e.preventDefault();
+        } else if (!atTopOfPage && !atBottomOfPage) {
+          // Just scroll page, not bin
+          window.scrollBy(0, e.deltaY);
+          e.preventDefault();
+        }
+      },
+      { passive: false }
+      );
 
       // Prevent content from flashing content for a second on document load
       $('#envelopes, #accounts, #bin').removeClass('hide');
@@ -402,44 +440,6 @@
     $("#settings, #about").click(function() {
       M.toast({html: "Coming soon!"})
     });
-
-    // Wait briefly to ensure ScrollSpy/SimpleBar has initialized
-    setTimeout(() => {
-      const binWrapper = document.querySelector('#bin .simplebar-content-wrapper');
-      if (!binWrapper) {
-        console.warn('Scroll container not found.');
-        return;
-      }
-
-      window.addEventListener('wheel', function (e) {
-        const scrollTop = window.scrollY;
-        const windowHeight = window.innerHeight;
-        const documentHeight = document.body.scrollHeight;
-
-        const binScrollTop = binWrapper.scrollTop;
-        const binScrollHeight = binWrapper.scrollHeight;
-        const binClientHeight = binWrapper.clientHeight;
-
-        const atBottomOfPage = scrollTop + windowHeight >= documentHeight - 1;
-        const atTopOfPage = scrollTop === 0;
-        const atTopOfBin = binScrollTop === 0;
-        const atBottomOfBin = binScrollTop + binClientHeight >= binScrollHeight - 1;
-        const scrollingUp = e.deltaY < 0;
-        const scrollingDown = e.deltaY > 0;
-
-        if (atBottomOfPage && scrollingDown && !atBottomOfBin) {
-          binWrapper.scrollTop += e.deltaY;
-          e.preventDefault();
-        } else if (atBottomOfPage && scrollingUp && !atTopOfBin) {
-          binWrapper.scrollTop += e.deltaY;
-          e.preventDefault();
-        } else if (!atTopOfPage && !atBottomOfPage) {
-          // Just scroll page, not bin
-          window.scrollBy(0, e.deltaY);
-          e.preventDefault();
-        }
-      }, { passive: false });
-    }, 300); // Adjust delay if needed
 
     }); // end of document ready
 
@@ -1319,6 +1319,7 @@
         $('.scroller').each(function(index,el) {
           new SimpleBar(el);
         });
+        Budgeteer.transactionsScrollerElement = $('#transactions-scroller .simplebar-content-wrapper')[0];
 
         // 7. Update the datepickers 
         $('.datepicker').datepicker('setDate', new Date());
