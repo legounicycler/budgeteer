@@ -119,11 +119,12 @@
         }
       });
 
-      // Makes escape button ONLY close a select located in a modal (but all the select bodies are actually in the fullscreen wrapper)
+      // Makes escape button ONLY close a select located in a modal (where all the select dropdowns except for the advanced search selects are in the fullscreen wrapper)
       $("#fullscreen-wrapper").on("keydown", ".dropdown-content li", function(e) {
         if (e.key == "Escape") e.stopPropagation();
       });
 
+      // Define hotkey behavior on the main page
       $('body').keydown(function(e){
         if(e.key == "Escape" && M.Modal._modalsOpen == 0){
           // Clear all transaction selection checkboxes on ESCAPE KEY (if you're not hitting escape to close a modal)
@@ -153,6 +154,7 @@
 
       // Initialize all materialize selects
       $('select:not(#search-envelopes, #search-accounts)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+      Budgeteer.initializeSpecialSelects();
 
       // Add the class which specially styles the selects in the advanced search bar
       $('#search-envelopes, #search-accounts').each(function() {
@@ -160,7 +162,6 @@
         var dataTarget = $(this).siblings('input.select-dropdown').attr('data-target');
         $('#' + dataTarget).addClass('custom-dropdown-class');
       });
-
 
       // Initialize all materialize datapickers
       $('.datepicker').datepicker({
@@ -173,6 +174,23 @@
           this.el.focus();
         }
       });
+
+      // Make it so the onClose function for the datepickers actually gets called
+      $('.datepicker').each(function() {
+        var dp = M.Datepicker.getInstance(this);
+          if (!dp || dp._modalPatched) return;
+          var modal = dp.modal;
+          var originalClose = modal.close;
+          modal.close = function() {
+            var wasOpen = dp.isOpen;
+            originalClose.apply(this, arguments);
+            if (wasOpen && typeof dp.options.onClose === 'function') {
+              dp.options.onClose.call(dp);
+            }
+          };
+          dp._modalPatched = true;
+      });
+
       $("#search-date-min, #search-date-max").val(""); // Clear the date fields only for the advanced search fields
 
       // Adds arrowkey functionality to datepicker
@@ -259,8 +277,6 @@
         else if (e.key == "Escape") {
           e.stopPropagation(); // Don't close the parent modal
           $(this).modal("close"); //Only close the datepicker modal
-          $(".modal.open").find(".datepicker").focus(); //Refocus the datepicker from the parent modal (this will break if there's ever two datepickers)
-          // Also not quite sure why you need to refocus if the datepickers have an onClose() function that should focus it. Might have to do with the stopPropagation
         }
       });
 
@@ -1161,7 +1177,7 @@
     // Sends date from datepicker and frequency from select to update_schedule_msg()
     $(document).on('change', '.schedule-select', function() {
       update_schedule_msg($(this));
-    }).on('change', '.datepicker', function() {
+    }).on('change', '.datepicker-with-schedule', function() {
       update_schedule_msg($(this).closest('form').find('.schedule-select'));
     });
 
@@ -1297,12 +1313,7 @@
 
         // 4.4 Re-initialize all selects
         $('select:not(#search-envelopes, #search-accounts)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
-        $('#search-envelopes, #search-accounts').formSelect({dropdownOptions: {container: '.content'}});
-        $('#search-envelopes, #search-accounts').each(function() {
-          // Add the class which specially styles the selects in the advanced search bar
-          var dataTarget = $(this).siblings('input.select-dropdown').attr('data-target');
-          $('#' + dataTarget).addClass('custom-dropdown-class');
-        });
+        Budgeteer.initializeSpecialSelects();
 
         // 5. Update the envelope fill editor
         envelope_fill_editor.appendTo('#editor-row');
