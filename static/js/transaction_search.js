@@ -35,11 +35,12 @@ $(document).ready(function() {
     });
 
     // Clear search field, and if you're on a search page then return to the previous page you started from
-    // TODO: Test if this works with #close-search.mousedown insteading of binding the event listener to the document
-    $(document).on('mousedown', "#close-search", function() {
+    // TODO: Make this clear every field in the advanced search bar too
+    $("#close-search").on('mousedown', function() {
         $(this).fadeOut(200); // Fade out the close button
         Budgeteer.current_search = null; // Reset the global variable used to store the current search term
-        $('#transaction-search').val(''); // Clear the search field
+        $("#transaction-search-form").trigger("reset"); // Clear the search fields
+        M.updateTextFields();
         if (Budgeteer.only_clear_searchfield) {
             return;
         } else {
@@ -98,5 +99,134 @@ $(document).ready(function() {
         }
         
     });
+
+
+
+    // Initialize the special multi-selects (advanced search)
+    $('#search-envelopes, #search-accounts').formSelect({
+      dropdownOptions: {
+        container: '.content',
+        onOpenEnd: function(ulEl) {
+          const $ul = $(ulEl);
+          const $items = $ul.find('li:not(.disabled)');
+          // Make items focusable and sync both classes Materialize may use
+          $items.attr('tabindex', 0);
+          $items.removeClass('active hovered');
+          const $first = $items.first();
+          // Defer to run after Materialize finishes its own open handlers
+          setTimeout(() => {
+            $first.addClass('active hovered').focus();
+          }, 0);
+        }
+      }
+    });
+
+    // Open on Enter only and focus the first option
+    $('#search-envelopes, #search-accounts')
+      .siblings('input.select-dropdown')
+      .off('.advOpen')
+      .on('keydown.advOpen', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          const $trigger = $(this);
+          const ulId = $trigger.attr('data-target');
+          const $ul = $('#' + ulId);
+          const selectEl = $trigger.siblings('select')[0];
+          const fs = M.FormSelect.getInstance(selectEl);
+          if (fs && fs.dropdown && !fs.dropdown.isOpen) fs.dropdown.open();
+
+          // Focus first option after open
+          setTimeout(() => {
+            const $items = $ul.find('li:not(.disabled)');
+            if ($items.length) {
+              $items.attr('tabindex', 0).removeClass('active hovered');
+              $items.first().addClass('active hovered').focus();
+            }
+          }, 0);
+        }
+      });
+
+    // Helper: move focus to prev/next tabbable in advanced-search row
+    function focusSiblingInputFromDropdown($ul, direction /* 'next' | 'prev' */) {
+      const ulId = $ul.attr('id');
+      const $trigger = $('input.select-dropdown[data-target="' + ulId + '"]');
+      const selectEl = $trigger.siblings('select')[0];
+      const fs = M.FormSelect.getInstance(selectEl);
+      if (fs?.dropdown?.isOpen) fs.dropdown.close();
+
+      const $scope = $('#advanced-search-row');
+      const $tabbables = $scope
+        .find('input, select, button, textarea, a, [tabindex]:not([tabindex="-1"])')
+        .filter(':visible:not([disabled])');
+
+      const idx = $tabbables.index($trigger);
+      const targetIdx = direction === 'prev' ? Math.max(0, idx - 1) : Math.min($tabbables.length - 1, idx + 1);
+      $tabbables.eq(targetIdx).focus();
+    }
+
+    // Key handling while dropdown UL is open (only these two selects)
+    $('#search-envelopes, #search-accounts').each(function() {
+      const $input = $(this).siblings('input.select-dropdown');
+      const $ul = $('#' + $input.attr('data-target'));
+
+      $ul.off('.advKeys').on('keydown.advKeys', function(e) {
+        const $list = $(this);
+        const $items = $list.find('li:not(.disabled)');
+        // Derive current index from classes or focus
+        let idx = $items.index($items.filter('.active.hovered').first());
+        if (idx < 0) idx = $items.index($items.filter('.active').first());
+        if (idx < 0) idx = $items.index($items.filter(':focus').first());
+        if (idx < 0) idx = 0;
+
+        // Tab / Shift+Tab or Left/Right: close and move focus
+        if (e.key === 'Tab') {
+          e.preventDefault(); e.stopImmediatePropagation();
+          focusSiblingInputFromDropdown($list, e.shiftKey ? 'prev' : 'next');
+          return;
+        }
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault(); e.stopImmediatePropagation();
+          focusSiblingInputFromDropdown($list, 'prev');
+          return;
+        }
+        if (e.key === 'ArrowRight') {
+          e.preventDefault(); e.stopImmediatePropagation();
+          focusSiblingInputFromDropdown($list, 'next');
+          return;
+        }
+
+        // Navigate options (override Materialize handlers)
+        if (e.key === 'ArrowDown') {
+          e.preventDefault(); e.stopImmediatePropagation();
+          if ($items.length) {
+            $items.removeClass('active hovered');
+            idx = Math.min($items.length - 1, idx + 1);
+            $items.eq(idx).addClass('active hovered').focus();
+          }
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault(); e.stopImmediatePropagation();
+          if ($items.length) {
+            $items.removeClass('active hovered');
+            idx = Math.max(0, idx - 1);
+            $items.eq(idx).addClass('active hovered').focus();
+          }
+          return;
+        }
+
+        // Select/toggle current option explicitly to avoid “one behind”
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault(); e.stopImmediatePropagation();
+          const $targetLi = $items.eq(idx);
+          // Trigger Materialize selection
+          // (click is what FormSelect listens to on li/span)
+          $targetLi.trigger('mousedown').trigger('click');
+          return;
+        }
+      });
+    });
+
 
 });
