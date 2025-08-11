@@ -1271,14 +1271,14 @@
 
         // 4.1 Update selects in expense editor
         expense_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector) select').html(o['account_select_options_html']);
-        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_select_options_html']);
+        $('.select-wrapper:has(.account-selector):not(#search-envelopes, #search-accounts) select').html(o['account_select_options_html']);
+        $('.select-wrapper:has(.envelope-selector):not(#search-envelopes, #search-accounts) select').html(o['envelope_select_options_html']);
         expense_editor.detach();
 
         // 4.2 Update selects in transfer editor
         transfer_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector) select').html(o['account_select_options_html']);
-        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_select_options_html']);
+        $('.select-wrapper:has(.account-selector):not(#search-envelopes, #search-accounts) select').html(o['account_select_options_html']);
+        $('.select-wrapper:has(.envelope-selector):not(#search-envelopes, #search-accounts) select').html(o['envelope_select_options_html']);
         $('#envelope-transfer-edit select').first().attr('name', 'from_envelope');
         $('#envelope-transfer-edit select').last().attr('name', 'to_envelope');
         $('#account-transfer-edit select').first().attr('name', 'from_account');
@@ -1287,16 +1287,19 @@
 
         // 4.3 Update selects in the income editor
         income_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector) select').html(o['account_select_options_html']);
-        $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_select_options_html']);
-        income_editor.detach()
+        $('.select-wrapper:has(.account-selector):not(#search-envelopes, #search-accounts) select').html(o['account_select_options_html']);
+        $('.select-wrapper:has(.envelope-selector):not(#search-envelopes, #search-accounts) select').html(o['envelope_select_options_html']);
+        income_editor.detach();
+
+        //4.4 Update selects in advanced search bar (these don't have a default option value)
+        $('#search-envelopes').html(o['envelope_select_options_special_html']);
+        $('#search-accounts').html(o['account_select_options_special_html']);
 
         // 4.4 Re-initialize all selects
         $('select:not(#search-envelopes, #search-accounts)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         $('#search-envelopes, #search-accounts').formSelect({dropdownOptions: {container: '.content'}});
-        // Add the class which specially styles the selects in the advanced search bar
         $('#search-envelopes, #search-accounts').each(function() {
-          // Get the data-target attribute from the select's generated input
+          // Add the class which specially styles the selects in the advanced search bar
           var dataTarget = $(this).siblings('input.select-dropdown').attr('data-target');
           $('#' + dataTarget).addClass('custom-dropdown-class');
         });
@@ -1349,7 +1352,7 @@
 
     // Submits transaction EDITOR form data, closes the modal, clears the form, and reloads the data
     $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #edit-envelope-fill-form, #edit-envelope-delete-form, #edit-account-delete-form, #edit-account-adjust-form').submit(function(e) {
-      e.preventDefault()
+      e.preventDefault();
       var url = $(this).attr('action');
       var method = $(this).attr('method');
       var $form = $(this);
