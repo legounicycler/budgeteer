@@ -141,7 +141,7 @@
                   <label id="search-icon" class="label-icon" for="transaction-search"><i class="material-icons left">search</i></label>
                   <i id="close-search" class="material-icons">close</i>
                 </div>
-                <i id="advanced-search-button" class="material-icons">arrow_drop_down</i>
+                <i id="advanced-search-button" tabindex="0" class="material-icons">arrow_drop_down</i>
                 <div id="multi-select-icons" class="hide">
                   <a id="multi-select-clear"><i class="material-icons white-text">clear</i></a>
                   <a id="multi-select-delete"><i class="material-icons white-text">delete</i></a>
@@ -151,19 +151,19 @@
             <div id="advanced-search-row">
               <div class="input-field col s3 m1">
                 <label for="search-amt-min">Min. Amt</label>
-                <input id="search-amt-min" class="special-input blue-grey-text white t-search-input" type="text" placeholder="$0.00">
+                <input id="search-amt-min" tabindex="-1" class="special-input blue-grey-text white t-search-input" type="text" placeholder="$0.00">
               </div>
               <div class="input-field col s3 m1">
                 <label for="search-amt-max">Max. Amt</label>
-                <input id="search-amt-max" class="special-input blue-grey-text white t-search-input" type="text" placeholder="$0.00">
+                <input id="search-amt-max" tabindex="-1" class="special-input blue-grey-text white t-search-input" type="text" placeholder="$0.00">
               </div>
               <div class="input-field col s3 m2">
                 <label for="search-date-min">Min. Date</label>
-                <input id="search-date-min" class="datepicker blue-grey-text white t-search-input" type="text" placeholder="YYYY-MM-DD">
+                <input id="search-date-min" tabindex="-1" class="datepicker blue-grey-text white t-search-input" type="text" placeholder="YYYY-MM-DD">
               </div>
               <div class="input-field col s3 m2">
                 <label for="search-date-max">Max. Date</label>
-                <input id="search-date-max" class="datepicker blue-grey-text white t-search-input" type="text" placeholder="YYYY-MM-DD">
+                <input id="search-date-max" tabindex="-1" class="datepicker blue-grey-text white t-search-input" type="text" placeholder="YYYY-MM-DD">
               </div>
               <div class="input-field col s4 m2">
                 <select id="search-envelopes" class="envelope-selector" name="search_envelope_ids" multiple>
@@ -182,7 +182,7 @@
                 <label for="search-accounts" class="special-select-label white-text">Account(s)</label>
               </div>
               <div class="input-field col s2 m2">
-                <button id="search-submit" type="submit" class="btn orange darken-2">Search</button>
+                <button id="search-submit" tabindex="-1" type="submit" class="btn orange darken-2">Search</button>
               </div>
             </div>
           </form>
