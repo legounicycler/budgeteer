@@ -114,19 +114,64 @@ def get_account_page():
 def search_transactions():
   try:
     uuid = get_uuid_from_cookie()
-    search_term = request.form['search_term'].strip()
-    # TODO: Add all the other searchfields here, then implement them in the database.py get_search_transactions function
+    # All fields optional
+    search_term = request.form.get('search_term', '').strip()
+    amt_min_raw = request.form.get('search_amt_min', '').strip()
+    amt_max_raw = request.form.get('search_amt_max', '').strip()
+    date_min_raw = request.form['search_date_min']
+    date_max_raw = request.form['search_date_max']
+    e_ids_raw = request.form.getlist('search_envelope_ids') if 'search_envelope_ids' in request.form else []
+    a_ids_raw = request.form.getlist('search_account_ids') if 'search_account_ids' in request.form else []
     timestamp = request.form['timestamp']
 
+    amt_min = None
+    amt_max = None
+    try: 
+      if amt_min_raw:
+        amt_min = (int(round(float(amt_min_raw) * 100)))
+      if amt_max_raw:
+        amt_max = (int(round(float(amt_max_raw) * 100)))
+    except:
+      raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for search!")
+
+    date_min = None
+    date_max = None
+    if date_min_raw:
+      try:
+        date_min = datetime.strptime(date_min_raw, '%m/%d/%Y')
+      except ValueError:
+        raise InvalidFormDataError("ERROR: Invalid date format for 'Min date'. Expected format: MM/DD/YYYY")
+
+    if date_max_raw:
+      try:
+        date_max = datetime.strptime(date_max_raw, '%m/%d/%Y')
+      except ValueError:
+        raise InvalidFormDataError("ERROR: Invalid date format for 'Max date'. Expected format: MM/DD/YYYY")
+
+    # Convert envelope/account id lists front strings to ints (Materialize multi-select sends comma separated via serialize)
+    # request.form.getlist will already split repeated keys. If values are like '1,2' handle that too
+    def expand(id_list):
+      expanded = []
+      for item in id_list:
+        for part in str(item).split(','):
+          part = part.strip()
+          if part.isdigit():
+            expanded.append(int(part))
+      return expanded
+    envelope_ids = expand(e_ids_raw)
+    account_ids = expand(a_ids_raw)
+
+    print(amt_min)
+    print(amt_max)
+
     check_pending_transactions(uuid, timestamp)
-    # Retrieve the transactions from the search query
-    (transactions_data, offset, limit) = get_search_transactions(uuid,search_term,0,50)
+    (transactions_data, offset, limit) = get_search_transactions(uuid,start=0,amount=50,search_term=search_term,amt_min=amt_min,amt_max=amt_max,date_min=date_min,date_max=date_max,envelope_ids=envelope_ids,account_ids=account_ids)
     (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
     (active_accounts, accounts_data) = get_user_account_dict(uuid)
     data = {}
     data['current_page'] = "Search results"
     if not transactions_data:
-      data['transactions_html'] = render_template('transactions.html', current_page = 'Search results', transactions_data = [], empty_message = f'No results found for "{search_term}"')
+      data['transactions_html'] = render_template('transactions.html', current_page = 'Search results', transactions_data = [], empty_message = 'No search results found')
     else:
       data['transactions_html'] = render_template('transactions.html',current_page = 'Search results', transactions_data = transactions_data, envelopes_data = envelopes_data, accounts_data = accounts_data, offset = offset, limit=limit,TType = TType)
     return jsonify(data)
@@ -199,7 +244,7 @@ def data_reload():
       (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,0,50)
       page_total = balanceformat(get_envelope(envelope_id).balance/100)
     elif 'Search' in current_page:
-      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], 0, 50)
+      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], 0, 50) # TODO: Edit this function
       page_total = None
     else:
       current_page = 'All Transactions'
@@ -256,7 +301,7 @@ def load_more():
       envelope_id = int(regex.findall(current_page)[0])
       (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,current_offset,50)
     elif 'Search' in current_page:
-      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], current_offset, 50)
+      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], current_offset, 50) # TODO: edit this function
     else:
       (transactions_data, offset, limit) = get_home_transactions(uuid,current_offset,50)
 
