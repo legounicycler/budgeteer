@@ -418,18 +418,16 @@ def fill_envelopes(edited=False):
     amounts = []
     envelope_ids = []
     try:
-      deletes = []
+      # If the user didn't input a number for a particular envelope, remove it from the list that will be used to create the envelope_fill transaction
       for i in range(len(str_amounts)):
         if str_amounts[i] == "":
-          deletes.append(i)
+          continue
         else:
           amounts.append(int(round(float(str_amounts[i])*100)))
           envelope_ids.append(int(str_envelope_ids[i]))
-      for index in reversed(deletes):
-        amounts.pop(index)
-        envelope_ids.pop(index)
-    except:
-      raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for fill_envelopes!")
+    except Exception as e:
+      log_write(f"INTERNAL ERROR: {e}")
+      raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for new_envelope_fill!")
     
     if amounts:
       for name in names:
