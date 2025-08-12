@@ -1,5 +1,7 @@
 """
-TODO: Add description of the file here
+main.py
+This file contains all the main routes for the application once you're past login
+Does not include routes for error handling or the bug report form
 """
 
 #Flask imports
@@ -64,6 +66,7 @@ def home():
     except CustomException as e:
       return jsonify({"error": str(e)})
 
+# Display all transactions on the home dashboard
 @main_bp.route("/get_home_transactions_page", methods=["POST"])
 @login_required
 @check_confirmed
@@ -76,6 +79,7 @@ def get_all_transactions_page():
   except CustomException:
     return jsonify({"error": "ERROR: Something went wrong and your envelope data could not be loaded!"})
 
+# Display transactions from a specific envelope on the home dashboard
 @main_bp.route("/get_envelope_page", methods=["POST"])
 @login_required
 @check_confirmed
@@ -88,7 +92,8 @@ def get_envelope_page():
     return jsonify(_build_envelope_page(uuid, envelope_id, timestamp))
   except CustomException:
     return jsonify({"error": "ERROR: Something went wrong and your envelope data could not be loaded!"})
-  
+
+# Display transactions from a specific account on the home dashboard
 @main_bp.route("/get_account_page", methods=["POST"])
 @login_required
 @check_confirmed
@@ -102,6 +107,33 @@ def get_account_page():
   except CustomException:
     return jsonify({"error": "ERROR: Something went wrong and your account data could not be loaded!"})
 
+# Display the transactions from a searrch query on the home dashboard
+@main_bp.route('/api/search-transactions', methods=['POST'])
+@login_required
+@check_confirmed
+def search_transactions():
+  try:
+    uuid = get_uuid_from_cookie()
+    search_term = request.form['search_term'].strip()
+    # TODO: Add all the other searchfields here, then implement them in the database.py get_search_transactions function
+    timestamp = request.form['timestamp']
+
+    check_pending_transactions(uuid, timestamp)
+    # Retrieve the transactions from the search query
+    (transactions_data, offset, limit) = get_search_transactions(uuid,search_term,0,50)
+    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+    (active_accounts, accounts_data) = get_user_account_dict(uuid)
+    data = {}
+    data['current_page'] = "Search results"
+    if not transactions_data:
+      data['transactions_html'] = render_template('transactions.html', current_page = 'Search results', transactions_data = [], empty_message = f'No results found for "{search_term}"')
+    else:
+      data['transactions_html'] = render_template('transactions.html',current_page = 'Search results', transactions_data = transactions_data, envelopes_data = envelopes_data, accounts_data = accounts_data, offset = offset, limit=limit,TType = TType)
+    return jsonify(data)
+  except Exception as e:
+    return jsonify({'error': str(e)})
+
+# Display the transactions on the home dashboard from the page you were on before the search
 @main_bp.route('/api/reset-search', methods=['POST'])
 @login_required
 @check_confirmed
@@ -142,6 +174,107 @@ def reset_search():
     return jsonify({'error': str(ce)})
   except Exception as e:
     return jsonify({'error': f'Unexpected error resetting search: {e}'})
+
+# Display reloaded data on the home dashboard whenever a transaction is added/removed/edited or accounts/envelopes are edited
+@main_bp.route('/api/data-reload', methods=['POST'])
+@login_required
+@check_confirmed
+def data_reload():
+  try:
+    uuid = get_uuid_from_cookie()
+    u = get_user_by_uuid(uuid)
+    js_data = request.get_json()
+    current_page = js_data['current_page']
+    timestamp = js_data['timestamp']
+    should_reload_transactions_bin = js_data['should_reload_transactions_bin']
+    check_pending_transactions(uuid, timestamp) #Apply any pending transactions that need to before rendering the template
+    if 'account/' in current_page:
+      regex = re.compile(r'account/(\d+)')
+      account_id = int(regex.findall(current_page)[0])
+      (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,0,50)
+      page_total = balanceformat(get_account(account_id).balance/100)
+    elif 'envelope/' in current_page:
+      regex = re.compile(r'envelope/(\d+)')
+      envelope_id = int(regex.findall(current_page)[0])
+      (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,0,50)
+      page_total = balanceformat(get_envelope(envelope_id).balance/100)
+    elif 'Search' in current_page:
+      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], 0, 50)
+      page_total = None
+    else:
+      current_page = 'All Transactions'
+      (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
+      page_total = balanceformat(get_total(uuid))
+    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+    (active_accounts, accounts_data) = get_user_account_dict(uuid)
+    data = {}
+    data['total'] = get_total(uuid)
+    data['unallocated'] = get_envelope_balance(u.unallocated_e_id)/100
+    data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
+    data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
+    data['account_select_options_html'] = render_template('account_select_options.html', accounts_data=accounts_data)
+    data['account_select_options_special_html'] = render_template('account_select_options.html', accounts_data=accounts_data, special=True)
+    data['envelope_select_options_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
+    data['envelope_select_options_special_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id, special=True)
+    data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total,  unallocated_e_id=u.unallocated_e_id)
+    data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
+    data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
+    data['page_total'] = page_total
+    if should_reload_transactions_bin:
+      data['transactions_html'] = render_template(
+        'transactions.html',
+        current_page=current_page,
+        transactions_data=transactions_data,
+        envelopes_data=envelopes_data,
+        accounts_data=accounts_data,
+        offset=offset,
+        limit=limit,
+        TType=TType
+      )
+    return jsonify(data)
+  except CustomException as e:
+    return jsonify({"error": str(e)})
+
+# Loads more transactions for display into the transaction list on the home dashboard
+@main_bp.route('/api/load-more', methods=['POST'])
+@login_required
+@check_confirmed
+def load_more():
+  try:
+    uuid = get_uuid_from_cookie()
+    js_data = request.get_json()
+    current_offset = js_data['offset']
+    current_page = js_data['current_page']
+    # TODO: When implementing unit test framework, test what happens if the user somehow manually changes the current_page variable so that it doesn't include a valid account or envelope id
+    # TODO: When implementing unit test framework, if the user manually changes the offset variable to something other than a valid integer, the app will crash. Test for this.
+    if 'account/' in current_page:
+      regex = re.compile(r'account/(\d+)')
+      account_id = int(regex.findall(current_page)[0])
+      (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,current_offset,50)
+    elif 'envelope/' in current_page:
+      regex = re.compile(r'envelope/(\d+)')
+      envelope_id = int(regex.findall(current_page)[0])
+      (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,current_offset,50)
+    elif 'Search' in current_page:
+      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], current_offset, 50)
+    else:
+      (transactions_data, offset, limit) = get_home_transactions(uuid,current_offset,50)
+
+    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+    (active_accounts, accounts_data) = get_user_account_dict(uuid)
+    more_transactions = render_template(
+      'more_transactions.html',
+      transactions_data=transactions_data,
+      accounts_data=accounts_data,
+      envelopes_data=envelopes_data,
+      current_page=current_page,
+      TType = TType
+    )
+    return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions})
+  
+  except CustomException as e:
+      return jsonify({"error": str(e)})
+
 
 # ---------------- Helper builders (not routes) ----------------
 def _build_home_page(uuid, timestamp):
@@ -209,6 +342,7 @@ def _build_account_page(uuid, account_id, timestamp):
     )
   }
 
+# Route to create a new BASIC_TRANSACTION
 @main_bp.route('/new_expense', methods=['POST'])
 @login_required
 @check_confirmed
@@ -295,6 +429,7 @@ def new_expense(edited=False):
     toasts.append(f"ERROR: {str(e)}")
     return jsonify({'success': False, 'toasts': toasts})
 
+# Route to create a new ACCOUNT_TRANSFER or ENVELOPE_TRANSFER
 @main_bp.route('/new_transfer', methods=['POST'])
 @login_required
 @check_confirmed
@@ -382,6 +517,7 @@ def new_transfer(edited=False):
     toasts.append(f"ERROR: {str(e)}")
     return jsonify({'success': False, 'toasts': toasts})
 
+# Route to create a new INCOME
 @main_bp.route('/new_income', methods=['POST'])
 @login_required
 @check_confirmed
@@ -450,10 +586,11 @@ def new_income(edited=False):
     toasts.append(f"ERROR: {str(e)}")
     return jsonify({'success': False, 'toasts': toasts})
 
-@main_bp.route('/fill_envelopes', methods=['POST'])
+# Route to create a new ENVELOPE_FILL 
+@main_bp.route('/new_envelope_fill', methods=['POST'])
 @login_required
 @check_confirmed
-def fill_envelopes(edited=False):
+def new_envelope_fill(edited=False):
   try:
     uuid = get_uuid_from_cookie()
     names = [n.lstrip() for n in request.form['name'].split(',') if n.lstrip()] #Parse name field separated by commas
@@ -510,7 +647,7 @@ def fill_envelopes(edited=False):
           if sched_t_submitted:
             toasts.append(f'Added new envelope fill scheduled for {datetimeformat(nextdate)}!')
         else:
-          raise InvalidFormDataError("ERROR: No transaction name was submitted for fill_envelopes!")
+          raise InvalidFormDataError("ERROR: No transaction name was submitted for new_envelope_fill!")
     else:
       toasts.append("No envelope fill was created!")
 
@@ -520,6 +657,49 @@ def fill_envelopes(edited=False):
   except CustomException as e:
     return jsonify({"error": str(e)})
 
+# Routes to the various transaction editing functions (called from )
+@main_bp.route('/edit_transaction', methods=['POST'])
+@login_required
+@check_confirmed
+def edit_transaction():
+  try:
+
+    # Retrieve the common info among all transactions (id and the type) from the form
+    uuid = get_uuid_from_cookie()
+    id = int(request.form['edit-id'])
+    type = TType.from_int(int(request.form['type']))
+      
+    # Create a new transaction in the database based on the info you just edited
+    if (type == TType.BASIC_TRANSACTION):
+      response = new_expense(True)
+    elif (type == TType.ENVELOPE_TRANSFER or type == TType.ACCOUNT_TRANSFER):
+      response =  new_transfer(True)
+    elif (type == TType.INCOME):
+      response = new_income(True)
+    elif (type == TType.SPLIT_TRANSACTION):
+      response = new_expense(True)
+    elif (type == TType.ENVELOPE_FILL):
+      response = new_envelope_fill(True)
+    elif (type == TType.ENVELOPE_DELETE):
+      response = edit_envelope_delete()
+    elif (type == TType.ACCOUNT_DELETE):
+      response = edit_account_delete()
+    elif (type == TType.ACCOUNT_ADJUST):
+      response =  edit_account_adjust()
+
+    # Delete the original transaction in the database if a new one was created successfully
+    response_json = response.get_json()
+    if response_json is not None and not response_json.get('error'):
+      # If the transaction was an ENVELOPE_DELETE or ACCOUNT_DELETE, only the name/note was edited, so no need to delete the original transaction
+      if (type != TType.ENVELOPE_DELETE and type != TType.ACCOUNT_DELETE): 
+        delete_transaction(uuid, id)
+      
+    return response
+  
+  except CustomException as e:
+    return jsonify({"error": str(e)})
+
+# Route to edit ENVELOPE_DELETE transactions
 @main_bp.route('/edit_envelope_delete', methods=['POST'])
 @login_required
 @check_confirmed
@@ -538,6 +718,7 @@ def edit_envelope_delete():
   except CustomException as e:
     return jsonify({"error": str(e)})
 
+# Route to edit ACCOUNT_DELETE transactions
 @main_bp.route('/edit_account_delete', methods=['POST'])
 @login_required
 @check_confirmed
@@ -556,6 +737,7 @@ def edit_account_delete():
   except CustomException as e:
     return jsonify({"error": str(e)})
 
+# Route to edit ACCOUNT_ADJUST transactions
 @main_bp.route('/edit_account_adjust', methods=['POST'])
 @login_required
 @check_confirmed
@@ -584,70 +766,7 @@ def edit_account_adjust():
   except CustomException as e:
     return jsonify({"error": str(e)})
 
-@main_bp.route('/edit_transaction', methods=['POST'])
-@login_required
-@check_confirmed
-def edit_transaction():
-  try:
-    uuid = get_uuid_from_cookie()
-    id = int(request.form['edit-id'])
-    type = TType.from_int(int(request.form['type']))
-      
-    if (type == TType.BASIC_TRANSACTION):
-      response = new_expense(True)
-    elif (type == TType.ENVELOPE_TRANSFER or type == TType.ACCOUNT_TRANSFER):
-      response =  new_transfer(True)
-    elif (type == TType.INCOME):
-      response = new_income(True)
-    elif (type == TType.SPLIT_TRANSACTION):
-      response = new_expense(True)
-    elif (type == TType.ENVELOPE_FILL):
-      response = fill_envelopes(True)
-    elif (type == TType.ENVELOPE_DELETE):
-      response = edit_envelope_delete()
-    elif (type == TType.ACCOUNT_DELETE):
-      response = edit_account_delete()
-    elif (type == TType.ACCOUNT_ADJUST):
-      response =  edit_account_adjust()
-
-    response_json = response.get_json()
-    if response_json is not None and not response_json.get('error'):
-      # If the transaction was an ENVELOPE_DELETE or ACCOUNT_DELETE, only the name/note was edited, so no need to delete the original transaction
-      if (type != TType.ENVELOPE_DELETE and type != TType.ACCOUNT_DELETE): 
-        delete_transaction(uuid, id) #Only delete the original transaction if you were successful in creating the replacement edited transaction
-      
-    return response
-  
-  except CustomException as e:
-    return jsonify({"error": str(e)})
-
-@main_bp.route('/api/delete_transaction', methods=['POST'])
-@login_required
-@check_confirmed
-def api_delete_transaction():
-  try: 
-    uuid = get_uuid_from_cookie()
-    id = int(request.form['delete-id'])
-    # timestamp = date_parse(request.form['timestamp']) #Don't need to check timestamp in this function
-    
-    delete_transaction(uuid, id)
-    return jsonify({'toasts': ["Transaction deleted!"]})
-  except CustomException as e:
-    return jsonify({"error": str(e)})
-
-@main_bp.route('/api/transaction/<id>/group', methods=['GET'])
-@login_required
-@check_confirmed
-def get_grouped_json_page(id):
-  try:
-    uuid = get_uuid_from_cookie()
-    grouped_json = get_grouped_json(uuid, id)
-    return jsonify(grouped_json)
-  
-  except CustomException as e:
-    return jsonify({"error": str(e)})
-  
-
+# Edit the balances, names, and orders of existing accounts, and creates/deletes accounts (called from the account editor form)
 @main_bp.route('/api/edit-accounts', methods=['POST'])
 @login_required
 @check_confirmed
@@ -685,6 +804,7 @@ def edit_accounts_page():
   except CustomException as e:
     return jsonify({"error": str(e)})
 
+# Edit the balances, budgets, names, and orders of existing envelopes, and creates/deletes envelopes (called from the envelope editor form)
 @main_bp.route('/api/edit-envelopes', methods=['POST'])
 @login_required
 @check_confirmed
@@ -724,104 +844,22 @@ def edit_envelopes_page():
   except CustomException as e:
     return jsonify({"error": str(e)})
 
-@main_bp.route('/api/data-reload', methods=['POST'])
+# Route to delete a transaction (called from the delete button in the transaction editor)
+@main_bp.route('/api/delete_transaction', methods=['POST'])
 @login_required
 @check_confirmed
-def data_reload():
-  try:
+def api_delete_transaction():
+  try: 
     uuid = get_uuid_from_cookie()
-    u = get_user_by_uuid(uuid)
-    js_data = request.get_json()
-    current_page = js_data['current_page']
-    timestamp = js_data['timestamp']
-    should_reload_transactions_bin = js_data['should_reload_transactions_bin']
-    check_pending_transactions(uuid, timestamp) #Apply any pending transactions that need to before rendering the template
-    if 'account/' in current_page:
-      regex = re.compile(r'account/(\d+)')
-      account_id = int(regex.findall(current_page)[0])
-      (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,0,50)
-      page_total = balanceformat(get_account(account_id).balance/100)
-    elif 'envelope/' in current_page:
-      regex = re.compile(r'envelope/(\d+)')
-      envelope_id = int(regex.findall(current_page)[0])
-      (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,0,50)
-      page_total = balanceformat(get_envelope(envelope_id).balance/100)
-    elif 'Search' in current_page:
-      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], 0, 50)
-      page_total = None
-    else:
-      current_page = 'All Transactions'
-      (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
-      page_total = balanceformat(get_total(uuid))
-    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_user_account_dict(uuid)
-    data = {}
-    data['total'] = get_total(uuid)
-    data['unallocated'] = get_envelope_balance(u.unallocated_e_id)/100
-    data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
-    data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
-    data['account_select_options_html'] = render_template('account_select_options.html', accounts_data=accounts_data)
-    data['account_select_options_special_html'] = render_template('account_select_options.html', accounts_data=accounts_data, special=True)
-    data['envelope_select_options_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
-    data['envelope_select_options_special_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id, special=True)
-    data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total,  unallocated_e_id=u.unallocated_e_id)
-    data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
-    data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
-    data['page_total'] = page_total
-    if should_reload_transactions_bin:
-      data['transactions_html'] = render_template(
-        'transactions.html',
-        current_page=current_page,
-        transactions_data=transactions_data,
-        envelopes_data=envelopes_data,
-        accounts_data=accounts_data,
-        offset=offset,
-        limit=limit,
-        TType=TType
-      )
-    return jsonify(data)
+    id = int(request.form['delete-id'])
+    # timestamp = date_parse(request.form['timestamp']) #Don't need to check timestamp in this function
+    
+    delete_transaction(uuid, id)
+    return jsonify({'toasts': ["Transaction deleted!"]})
   except CustomException as e:
     return jsonify({"error": str(e)})
 
-@main_bp.route('/api/load-more', methods=['POST'])
-@login_required
-@check_confirmed
-def load_more():
-  try:
-    uuid = get_uuid_from_cookie()
-    js_data = request.get_json()
-    current_offset = js_data['offset']
-    current_page = js_data['current_page']
-    # TODO: When implementing unit test framework, test what happens if the user somehow manually changes the current_page variable so that it doesn't include a valid account or envelope id
-    # TODO: When implementing unit test framework, if the user manually changes the offset variable to something other than a valid integer, the app will crash. Test for this.
-    if 'account/' in current_page:
-      regex = re.compile(r'account/(\d+)')
-      account_id = int(regex.findall(current_page)[0])
-      (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,current_offset,50)
-    elif 'envelope/' in current_page:
-      regex = re.compile(r'envelope/(\d+)')
-      envelope_id = int(regex.findall(current_page)[0])
-      (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,current_offset,50)
-    elif 'Search' in current_page:
-      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], current_offset, 50)
-    else:
-      (transactions_data, offset, limit) = get_home_transactions(uuid,current_offset,50)
-
-    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_user_account_dict(uuid)
-    more_transactions = render_template(
-      'more_transactions.html',
-      transactions_data=transactions_data,
-      accounts_data=accounts_data,
-      envelopes_data=envelopes_data,
-      current_page=current_page,
-      TType = TType
-    )
-    return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions})
-  
-  except CustomException as e:
-      return jsonify({"error": str(e)})
-
+# Route to delete multiple transactions at once (called from the multidelete form encapsulating the transactions bin)
 @main_bp.route('/api/multi-delete', methods=['POST'])
 @login_required
 @check_confirmed
@@ -845,7 +883,21 @@ def multi_delete():
     
   except CustomException as e:
     return jsonify({"error": str(e)})
+
+# Get all the info from a grouped transaction when opening the transaction editor modal
+@main_bp.route('/api/transaction/<id>/group', methods=['GET'])
+@login_required
+@check_confirmed
+def get_grouped_json_page(id):
+  try:
+    uuid = get_uuid_from_cookie()
+    grouped_json = get_grouped_json(uuid, id)
+    return jsonify(grouped_json)
   
+  except CustomException as e:
+    return jsonify({"error": str(e)})
+
+# Loads the static HTML templates into the page memory (used for adding envelope/account rows to editors and more envelopes to transaction builder/editor)
 @main_bp.route('/api/load-static-html', methods=["POST"])
 @login_required
 @check_confirmed
@@ -855,28 +907,3 @@ def load_static_html():
     'edit_account_row': render_template('edit_account_row.html'),
     't_editor_new_env_row': render_template('transaction_editor_new_envelope_row.html')
   })
-
-@main_bp.route('/api/search-transactions', methods=['POST'])
-@login_required
-@check_confirmed
-def search_transactions():
-  try:
-    uuid = get_uuid_from_cookie()
-    search_term = request.form['search_term'].strip()
-    # TODO: Add all the other searchfields here, then implement them in the database.py get_search_transactions function
-    timestamp = request.form['timestamp']
-
-    check_pending_transactions(uuid, timestamp)
-    # Retrieve the transactions from the search query
-    (transactions_data, offset, limit) = get_search_transactions(uuid,search_term,0,50)
-    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_user_account_dict(uuid)
-    data = {}
-    data['current_page'] = "Search results"
-    if not transactions_data:
-      data['transactions_html'] = render_template('transactions.html', current_page = 'Search results', transactions_data = [], empty_message = f'No results found for "{search_term}"')
-    else:
-      data['transactions_html'] = render_template('transactions.html',current_page = 'Search results', transactions_data = transactions_data, envelopes_data = envelopes_data, accounts_data = accounts_data, offset = offset, limit=limit,TType = TType)
-    return jsonify(data)
-  except Exception as e:
-    return jsonify({'error': str(e)})

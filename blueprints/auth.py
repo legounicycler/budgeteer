@@ -1,3 +1,8 @@
+"""
+auth.py
+This file contains all the routes for logging in and out, creating new users, resetting passwords, etc.
+"""
+
 #Flask imports
 from flask import Blueprint, render_template, redirect, url_for, jsonify, make_response, flash, request, current_app
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user, login_manager
