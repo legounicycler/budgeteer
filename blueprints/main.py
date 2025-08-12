@@ -763,7 +763,7 @@ def data_reload():
     data['account_select_options_html'] = render_template('account_select_options.html', accounts_data=accounts_data)
     data['account_select_options_special_html'] = render_template('account_select_options.html', accounts_data=accounts_data, special=True)
     data['envelope_select_options_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
-    data['envelope_select_options_special_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, special=True)
+    data['envelope_select_options_special_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id, special=True)
     data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total,  unallocated_e_id=u.unallocated_e_id)
     data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
     data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
