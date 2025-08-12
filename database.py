@@ -582,21 +582,62 @@ def get_account_transactions(uuid, account_id, start, amount):
         limit = False
     return tlist, offset, limit
 
-def get_search_transactions(uuid, search_term, start, amount):
-    """Search for transactions with matching text in name or note."""
+def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None, amt_max=None, date_min=None, date_max=None, envelope_ids=None, account_ids=None):
+    """Advanced search for transactions.
+
+    All filters optional. Returns grouped representative transaction ids similar to home queries.
+    Amounts are stored in cents; amt_min/amt_max expected in cents.
+    date_min/date_max strings in 'YYYY-MM-DD'.
+    envelope_ids/account_ids lists of ints.
+    """
     print("GETTING SEARCH TRANSACTIONS")
-    print(f"Search term: {search_term}, Start: {start}, Amount: {amount}")
-    search_pattern = f"%{search_term}%"
+    print(f"Start: {start}, Amount: {amount}, Search term: {search_term}, amt_min: {amt_min}, amt_max: {amt_max}, date_min: {date_min}, date_max: {date_max}, env_ids: {envelope_ids}, acct_ids: {account_ids}")
     u = get_user_by_uuid(uuid)
-    c.execute("""
-        SELECT id FROM transactions 
-        WHERE user_id = ? 
-        AND (name LIKE ? OR note LIKE ?)
-        GROUP BY grouping 
-        ORDER by day DESC, id DESC
-        LIMIT ? OFFSET ?
-    """, (uuid, search_pattern, search_pattern, amount, start))
+
+    where_clauses = ["user_id = ?"]
+    params = [uuid]
+
+    if search_term:
+        search_pattern = f"%{search_term}%"
+        where_clauses.append("(name LIKE ? OR note LIKE ?)")
+        params.extend([search_pattern, search_pattern])
+
+    if date_min:
+        where_clauses.append("day >= ?")
+        params.append(date_min)
+    if date_max:
+        where_clauses.append("day <= ?")
+        params.append(date_max)
+
+    # For amount filtering, we need to determine an amount per grouping; we handle by filtering representative rows by raw amount sign corrected for types.
+    # Simplest approach: apply amount filters after fetching and computing t.amt.
+    amt_filter_post = (amt_min is not None) or (amt_max is not None)
+
+    if envelope_ids:
+        placeholders = ','.join(['?']*len(envelope_ids))
+        where_clauses.append(f"envelope_id IN ({placeholders})")
+        params.extend(envelope_ids)
+    if account_ids:
+        placeholders = ','.join(['?']*len(account_ids))
+        where_clauses.append(f"account_id IN ({placeholders})")
+        params.extend(account_ids)
+
+    where_sql = ' AND '.join(where_clauses)
+
     
+    query = f"""
+        SELECT id FROM transactions
+        WHERE {where_sql}
+        GROUP BY grouping
+        ORDER BY day DESC, id DESC
+        LIMIT ? OFFSET ?
+    """
+    params.extend([amount, start])
+
+    print(f"Search query: {query}")
+    print(f"Search params: {params}")
+
+    c.execute(query, tuple(params))
     grouped_ids = c.fetchall()
     tlist = []
     for id in grouped_ids:
@@ -634,6 +675,13 @@ def get_search_transactions(uuid, search_term, start, amount):
             t.amt = c.fetchone()[0]  # Total the amount for the envelope fill
 
         t.amt = t.amt/100
+        # Post amount filtering (in dollars) if necessary
+        if amt_filter_post:
+            amt_cents = abs(int(round(t.amt * 100)))
+            if amt_min is not None and amt_cents < amt_min:
+                continue
+            if amt_max is not None and amt_cents > amt_max:
+                continue
         tlist.append(t)
     
     # offset specifies where to start from on the next call
