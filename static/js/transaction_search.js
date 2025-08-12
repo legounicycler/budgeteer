@@ -147,7 +147,7 @@ Budgeteer.initializeSpecialSelects = function() {
   // 1. Initialize the selects (re-init safe)
   $('#search-envelopes, #search-accounts').formSelect({
     dropdownOptions: {
-      container: '.content',
+      container: '#fullscreen-wrapper',
       onOpenStart: function(triggerEl) {
         // triggerEl is the input that launched the dropdown
         const $trigger = $(triggerEl);
