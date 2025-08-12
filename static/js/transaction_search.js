@@ -38,7 +38,6 @@ $(document).ready(function() {
   });
 
   // Clear search field, and if you're on a search page then return to the previous page you started from
-  // TODO: Make this clear every field in the advanced search bar too
   $("#close-search").on('mousedown', function() {
     $(this).fadeOut(200); // Fade out the close button
     Budgeteer.current_search = null; // Reset the global variable used to store the current search term
@@ -46,7 +45,7 @@ $(document).ready(function() {
     // Clear all the fields in the advanced search bar
     $("#transaction-search-form").trigger("reset");
 
-    // Reset all checkboxes to unchecked
+    // Reset all envelope/account select checkboxes to unchecked
     $('#search-envelopes, #search-accounts').each(function() {
       const $select = $(this);
       const $input = $select.siblings('input.select-dropdown');
@@ -59,6 +58,7 @@ $(document).ready(function() {
 
     });
 
+    // Reset the labels
     M.updateTextFields();
 
     if (Budgeteer.only_clear_searchfield) return;
@@ -116,7 +116,7 @@ function toggleAdvancedSearch() {
     $('#dashboard-header').height(currentDashHeight);
     $('#bin').height(currentBinHeight);
     $("#dashboard-header").animate({height: newDashHeight}, 200);
-    $("#bin").animate({height: newBinHeight}, 200); // TODO: Possibly do a smooth animation on this as well
+    $("#bin").animate({height: newBinHeight}, 200);
     $("#dashboard-header, #advanced-search-button").removeClass("collapsed").addClass("expanded");
 
     // Adjust the tabselect attribute for all the inputs to make them selectable
@@ -131,7 +131,7 @@ function toggleAdvancedSearch() {
     var newBinHeight = $("#bin").height();
     $('#bin').height(currentBinHeight);
     $("#dashboard-header").animate({height: '90px'}, 200);
-    $("#bin").animate({height: newBinHeight}, 200); // TODO: Possibly do a smooth animation on this as well
+    $("#bin").animate({height: newBinHeight}, 200);
     $("#dashboard-header, #advanced-search-button").removeClass("expanded").addClass("collapsed");
   
     // Adjust the tabselect attribute for all the inputs to make them non-selectable
