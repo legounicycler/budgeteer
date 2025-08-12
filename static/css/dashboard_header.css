@@ -10,11 +10,12 @@
   padding-bottom: .1em;
 }
 
-#search-field {
+#transaction-search-input-field {
   width: calc(100% - 4rem);
   margin: 0px;
 }
 
+/* Style the main transaction search input with rounded corners */
 #transaction-search {
   height: 3rem;
   margin: 0;
@@ -25,6 +26,15 @@
   box-shadow: inset 0 0 5px #a2a2a2;
 }
 
+#advanced-search-row .select-wrapper {
+  background-color: white;
+  height: 2rem;
+  border-radius: 1rem;
+  margin-right: -1rem;
+  box-shadow: inset 0 0 5px #a2a2a2;
+}
+
+/* Style all the other transaction search inputs with rounded corners */
 #dashboard-header input.t-search-input {
   height: 2rem;
   padding-left: 1rem;
@@ -35,10 +45,7 @@
   box-shadow: inset 0 0 5px #a2a2a2;
 }
 
-#dashboard-header input.t-search-input:focus, #advanced-search-row .select-wrapper:focus-within {
-  box-shadow: inset 0 0 5px #24637c;
-}
-
+/* Style the advanced search envelope/account selectors to look like the other inputs with rounded corners */
 #advanced-search-row .select-wrapper {
   background-color: white;
   height: 2rem;
@@ -47,6 +54,12 @@
   box-shadow: inset 0 0 5px #a2a2a2;
 }
 
+/* Make visual focus on elements obvious with color change */
+#dashboard-header input.t-search-input:focus, #advanced-search-row .select-wrapper:focus-within {
+  box-shadow: inset 0 0 5px #24637c;
+}
+
+/* Style the text within the envelope/account dropdown trigger */
 #advanced-search-row .select-dropdown {
   height: 2rem;
   border-bottom: none;
@@ -54,112 +67,161 @@
   padding-left: 1rem;
 }
 
+/* Style the labels above all the advanced search inputs */
 #dashboard-header .input-field.col label {
   color: white;
   left: 1rem;
   top: -2px;
 }
 
+/* Position the labels above the envelope/account dropdowns */
 #dashboard-header .input-field.col label.special-select-label {
   top: -28px;
   left: 1rem;
-  color: #9e9e9e;
+  color: white;
 }
 
+/* Vertically align the search icon in the main transaction search input */
 #search-icon {
   top: calc(50% - .9rem);
   left: .75rem;
 }
 
-#advanced-search-button.collapsed {
-  transform: rotate(0deg);
-}
-
-#advanced-search-button.expanded {
-  transform: rotate(180deg);
-}
-
+/* Position the close search button in the main transaction search input */
 #close-search {
   top: calc(50% - 1rem);
   right: -2rem;
 }
 
+/* Animate the advanced search dropdown button */
+#advanced-search-button.collapsed {
+  transform: rotate(0deg);
+}
+
+/* Animate the advanced search dropdown button */
+#advanced-search-button.expanded {
+  transform: rotate(180deg);
+}
+
+/* Style the advanced search dropdown button */
 #advanced-search-button {
   margin-left: 1.8em;
   cursor: pointer;
 }
 
+/* Display the multiselect icons vertically */
 #multi-select-icons {
   display: flex;
   flex-direction: column;
 }
 
-#multi-select-clear, #multi-select-delete {
+/* Vertically position the multiselect clear button */
+#multi-select-clear {
+  margin-bottom: 5px;
   cursor: pointer;
 }
 
-#multi-select-clear {
-  margin-bottom: 5px;
-}
-
+/* Vertically position the multiselect delete button */
 #multi-select-delete {
   margin-top: 5px;
+  cursor: pointer;
 }
 
-#search-submit {
+/* Makes up for the left-padding added to the input elements in the column */
+#search-inputs-col {
+  padding-left: 0;
+}
+
+/* Style the search submit buttons */
+#search-submit1, #search-submit2 {
   height: 2rem;
   line-height: 2rem;
+  width: 2rem;
+  display: flex;
+  justify-content: center;
+  border-radius: 5px;
 }
 
-.custom-dropdown-class {
-  z-index: 996; /* Ensure dropdown is below the navbar with z-index of 997 */
+/* Align the search submit button to the right */
+#search-submit1-col {
+  display: flex;
+  justify-content: right;
 }
 
-.custom-dropdown-class li > span > label > span {
-  font-size: 1.2em !important;
-  padding-left: 25px !important;
-  text-overflow: ellipsis;
-  width: 100%;
-  height: 30px;
-  overflow: hidden;
-  display: inline-block;
-  white-space: nowrap;
+/* SET THE SIZE OF THE DROPDOWN ROW */
+.custom-dropdown-class li {
+  min-height: 30px;
+  overflow: hidden; /* This needs to be here so there's not a 1px scrolling bug */
 }
 
+/* SET THE SIZE OF THE DROPDOWN  */
 .custom-dropdown-class li > span {
   padding: 0px 7px;
   max-height: 30px;
 }
 
-.custom-dropdown-class li {
-  min-height: 30px;
+.custom-dropdown-class li > span > label {
+  height: 100%;
+}
+
+/* Style the text within the envelope/account dropdown optitons */
+.custom-dropdown-class li > span > label > span {
+  font-size: 1.2em !important;
+  padding: 0px 0px 0px 25px !important;
+  text-overflow: ellipsis;
+  width: 100%;
+  height: 30px !important;
+  line-height: 30px !important;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Vertically center the checkbox */
+.custom-dropdown-class [type="checkbox"] + span:not(.lever):before, [type="checkbox"]:not(.filled-in) + span:not(.lever):after {
+  margin: 0px;
+  top: 6px;
+}
+
+
+/* Make the checked checkbox smaller */
+[type="checkbox"]:checked + span:not(.lever):before {
+  height: 18px;
 }
 
 @media only screen and (max-width: 600px) {
-  #search-col, #dashboard-page-title-col {
+
+  /* Stack the title and search columns */
+  #dashboard-page-title-col, #search-col  {
     height: 50%
   }
 
+  /* Make the transaction search input smaller */
   #transaction-search {
     height: 2rem;
     font-size: .75rem;
   }
 
+  /* Change from flex to inherit so that the searchbar columns can wrap and display under the page title columns */
   #dashboard-title-and-search-row {
-    display: inherit; /* Change from flex to inherit so that the searchbar columns can wrap and display under the page title columns */
+    display: inherit;
   }
 
+  /* Style the dashboard page title since it now displays on top */
   #dashboard-page-title {
     padding-top: .3em;
   }
 
+  /* Display the multiselect icons in a row instead of a column */
   #multi-select-icons {
     flex-direction: row;
   }
 
+  /* Adjust position for row layout */
   #multi-select-clear {
     margin: 0;
   } 
+
+  /* Adjust position for row layout */
   #multi-select-delete {
     margin-left: 5px;
     margin-top: 0px;

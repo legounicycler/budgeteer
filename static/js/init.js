@@ -45,6 +45,85 @@
       });
       Budgeteer.transactionsScrollerElement = $('#transactions-scroller .simplebar-content-wrapper')[0];
 
+      function closeOpenScrollableSelectDropdowns(e) {
+        const $target = $(e.target);
+        $('.dropdown-content.select-dropdown:visible').each(function() {
+          const $dd = $(this);
+            // Only act on scrollable dropdowns
+            if (this.scrollHeight <= this.clientHeight) return;
+            // Ignore if scroll originated inside the dropdown
+            if ($target.closest(this).length) return;
+            // Close via its trigger input
+            const id = $dd.attr('id');
+            if (id) {
+              const $trigger = $('input.select-dropdown[data-target="' + id + '"]');
+              if ($trigger.length) {
+                // Materialize exposes jQuery plugin .dropdown('close')
+                $trigger.dropdown('close');
+              } else {
+                // Fallback (shouldn't normally hit)
+                $dd.hide();
+              }
+            }
+        });
+      }
+      // Mouse wheel (desktop) and touchmove (mobile) listeners
+      $(window).on('wheel', closeOpenScrollableSelectDropdowns);
+      $(window).on('touchmove', closeOpenScrollableSelectDropdowns);
+
+      // --- Prevent page scroll when scrolling inside a Materialize select dropdown (non‑passive listeners) ---
+      // Remove any previous delegated handlers (if reloaded)
+      $(document).off('wheel', '.dropdown-content.select-dropdown');
+      $(document).off('touchstart', '.dropdown-content.select-dropdown');
+      $(document).off('touchmove', '.dropdown-content.select-dropdown');
+
+      (function() {
+        const selector = '.dropdown-content.select-dropdown';
+
+        function atLimits(el, deltaY) {
+          const atTop = el.scrollTop === 0;
+            // >= with a 1px fudge factor
+          const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+          return (deltaY < 0 && atTop) || (deltaY > 0 && atBottom);
+        }
+
+        function wheelHandler(e) {
+          const el = e.target.closest(selector);
+          if (!el) return;
+          const deltaY = e.deltaY;
+          if (atLimits(el, deltaY)) {
+            e.preventDefault(); // block page scroll
+          }
+          // Always stop so outer wheel listeners (page) don’t run when inside dropdown
+          e.stopPropagation();
+        }
+
+        function touchStartHandler(e) {
+          const el = e.target.closest(selector);
+          if (!el) return;
+          el._lastTouchY = e.touches[0].clientY;
+        }
+
+        function touchMoveHandler(e) {
+          const el = e.target.closest(selector);
+          if (!el) return;
+          const currentY = e.touches[0].clientY;
+          const lastY = el._lastTouchY ?? currentY;
+          const deltaY = lastY - currentY; // finger up => positive
+          el._lastTouchY = currentY;
+
+          if (atLimits(el, deltaY)) {
+            e.preventDefault(); // suppress page / rubber-band
+          }
+          e.stopPropagation();
+        }
+
+        // Capture phase so we can stop before bubbling reaches window (and Materialize)
+        document.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
+        document.addEventListener('touchstart', touchStartHandler, { passive: true, capture: true });
+        document.addEventListener('touchmove', touchMoveHandler, { passive: false, capture: true });
+      })();
+
       // Set the custom scroll behavior that applies in the transactions bin on small screens
       window.addEventListener("wheel",function (e) {
         if (!Budgeteer.transactionsScrollerElement) {
