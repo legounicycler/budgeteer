@@ -18,7 +18,7 @@
                   <h5 class="truncate no-margin"><b>{{account.name}}</b></h5>
                 </div>
                 <div class="col s3 valign-wrapper account-balance">
-                  <span class="{{'negative' if account.balance < 0}} balance">{{account.balance|balanceformat}}</span>
+                  <span class="{{'negative ' if account.balance < 0}}{{'neutral ' if (account.balance == 0)}}balance">{{account.balance|balanceformat}}</span>
                 </div>
               </li>
             </a>

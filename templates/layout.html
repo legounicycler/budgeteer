@@ -91,7 +91,7 @@
                 <h4 class="blue-gray-text text-darken-4 bold">Total:</h4>
               </div>
               <div class="col s8 valign-wrapper">
-                <h4><span class="{{'negative' if total_funds < 0}} balance">{{total_funds|balanceformat}}</span></h4>
+                <h4><span class="{{'negative ' if total_funds < 0}}{{'neutral ' if (total_funds == 0)}}balance">{{total_funds|balanceformat}}</span></h4>
               </div>
             </a>
             <div id="unallocated" class="row collection-item">
@@ -99,7 +99,7 @@
                 <h6 class="blue-gray-text text-darken-4 bold">Unallocated:</h6>
               </div>
               <div class="col s8 valign-wrapper">
-                <h6><span id="unallocated-balance" class="{{'negative' if unallocated_balance < 0}} balance" data-amt="{{unallocated_balance}}">{{unallocated_balance|balanceformat}}</span></h6>
+                <h6><span id="unallocated-balance" class="{{'negative ' if unallocated_balance < 0}}{{'neutral ' if (unallocated_balance == 0)}}balance" data-amt="{{unallocated_balance}}">{{unallocated_balance|balanceformat}}</span></h6>
               </div>
             </div>
           </div>
@@ -112,11 +112,11 @@
           </ul>
         </div>
         <div id="envelopes" class="col s12 hide">
-          <a href="#envelope-modal" class="btn orange waves-effect modal-trigger" id="edit-envelopes">Edit Envelopes</a>
+          <a href="#envelope-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-envelopes">Edit Envelopes</a>
             {% include 'envelopes.html'%}
         </div>
         <div id="accounts" class="col s12 hide">
-          <a href="#account-modal" class="btn orange waves-effect modal-trigger" id="edit-accounts">Edit Accounts</a>
+          <a href="#account-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-accounts">Edit Accounts</a>
             {% include 'accounts.html'%}
         </div>
       </div>

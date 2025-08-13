@@ -418,7 +418,7 @@ def fill_envelopes(edited=False):
     amounts = []
     envelope_ids = []
     try:
-      # If the user didn't input a number for a particular envelope, remove it from the list that will be used to create the envelope_fill transaction
+      # If the user didn't input a number for a particular envelope, don't add it from the list that will be used to create the envelope_fill transaction
       for i in range(len(str_amounts)):
         if str_amounts[i] == "":
           continue

@@ -1,4 +1,4 @@
-<div id="envelope-modal" class="modal">
+<div id="envelope-editor-modal" class="modal">
   <div class="modal-content">
     <div class="row">
 
@@ -32,7 +32,7 @@
                   <input name="original-envelope-budget" type="hidden" value="{{envelope.budget}}" required>
                 </div>
                 <div class="col m3 hide-on-small-only valign-wrapper envelope-balance">
-                  <span class="{{'negative' if envelope.balance < 0}} balance">{{envelope.balance|balanceformat}}</span>
+                  <span class="{{'negative ' if envelope.balance < 0}}{{'neutral ' if (envelope.balance == 0)}}balance">{{envelope.balance|balanceformat}}</span>
                   <input name="envelope-balance" type="hidden" value="{{envelope.balance}}" required>
                 </div>
                 <div class="col s1 m2 valign-wrapper delete-envelope">

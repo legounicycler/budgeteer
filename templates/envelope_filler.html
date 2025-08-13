@@ -24,7 +24,7 @@
           <div class="row envelope-fill-orange-div">
             <div class="col s5 offset-1">
               <h6>Unallocated:</h6>
-              <h6><span id="unallocated-balance-envelope-filler" class="{{'negative' if unallocated_balance < 0}} balance">{{unallocated_balance|balanceformat}}</span></h6>
+              <h6><span id="unallocated-balance-envelope-filler" class="{{'negative ' if unallocated_balance < 0}}{{'neutral ' if (unallocated_balance == 0)}}balance">{{unallocated_balance|balanceformat}}</span></h6>
             </div>
             <div class="col s2 envelope-fill-arrow-col">
               <i class="medium material-icons blue-grey-text text-darken-2">arrow_forward</i>
@@ -64,7 +64,7 @@
                     </div>
                     <div class="col s4 m3 envelope-balance-col editor-col">
                       <div class="row envelope-fill-balance-row valign-wrapper">
-                        <span class="{{'negative' if envelope.balance < 0}} balance">{{envelope.balance|balanceformat}}</span>
+                        <span class="{{'negative ' if envelope.balance < 0}}{{'neutral ' if (envelope.balance == 0)}}balance">{{envelope.balance|balanceformat}}</span>
                       </div>
                       <div class="row envelope-fill-budget-row valign-wrapper">
                         <span class="tiny">of {{envelope.budget|balanceformat}}</span>

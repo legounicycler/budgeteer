@@ -17,7 +17,7 @@
           </div>
           <div class="col s4 m3 envelope-balance-col editor-col">
             <div class="row envelope-fill-balance-row valign-wrapper">
-              <span class="{{'negative' if envelope.balance < 0}} balance">{{envelope.balance|balanceformat}}</span>
+              <span class="{{'negative ' if envelope.balance < 0}}{{'neutral ' if (envelope.balance == 0)}}balance">{{envelope.balance|balanceformat}}</span>
             </div>
             <div class="row envelope-fill-budget-row valign-wrapper">
               <span class="tiny">of {{envelope.budget|balanceformat}}</span>

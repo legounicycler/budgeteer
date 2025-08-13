@@ -53,7 +53,7 @@
       // Prevent content from flashing content for a second on document load
       $('#envelopes, #accounts, #bin').removeClass('hide');
       
-      $('#envelope-modal, #account-modal, #editor-modal, #envelope-fill-modal').modal();
+      $('#envelope-editor-modal, #account-editor-modal, #editor-modal, #envelope-fill-modal').modal();
 
       $('#delete-modal').modal({
         dismissible: false,
@@ -1245,9 +1245,9 @@
         $('#page-total').text(o['page_total']);
         $('#accounts-bin').replaceWith(o['accounts_html']);
         $('#envelopes-bin').replaceWith(o['envelopes_html']);
-        $('#envelope-modal').replaceWith(o['envelope_editor_html']);
-        $('#account-modal').replaceWith(o['account_editor_html']);
-        $('#envelope-modal, #account-modal').modal();
+        $('#envelope-editor-modal').replaceWith(o['envelope_editor_html']);
+        $('#account-editor-modal').replaceWith(o['account_editor_html']);
+        $('#envelope-editor-modal, #account-editor-modal').modal();
         if (should_reload_transactions_bin) {
           $('#load-more').remove();
           $('#transactions-bin').replaceWith(o['transactions_html']);
@@ -1260,7 +1260,7 @@
         // 3. Update the unallocated balance text/data
         $('#unallocated span, #unallocated-balance-envelope-filler').attr('data-amt', o['unallocated']).data('amt', o['unallocated']).text(balance_format(o['unallocated'])).negative_check(o['unallocated']);
 
-        // 4.1 Update selects in transaction editor
+        // 4.1 Update selects in expense editor
         expense_editor.appendTo('#editor-row');
         $('.select-wrapper:has(.account-selector) select').html(o['account_selector_html']);
         $('.select-wrapper:has(.envelope-selector) select').html(o['envelope_selector_html']);
@@ -1288,7 +1288,7 @@
         // 5. Update the envelope fill editor
         envelope_fill_editor.appendTo('#editor-row');
         $('.envelope-fill-editor-bin').replaceWith(o['envelope_fill_editor_rows_html']);
-        $('#fill-total').text("$0.00").removeClass("negative");
+        $('#fill-total').text("$0.00").removeClass("negative").addClass("neutral");
         envelope_fill_editor.detach();
 
         //6. Re-enable the simplebar scrollers
@@ -1308,8 +1308,30 @@
       });
     };
 
+    $("#envelope-fill-form").submit(function(e) {
+      e.preventDefault()
+      var url = $(this).attr('action');
+      var method = $(this).attr('method');
+      var $form = $(this);
+      var $parentModal = $(this).closest('.modal');
+      $.ajax({
+        type: method,
+        url: url,
+        data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
+      }).done(function( o ) {
+        if (o['error']) { M.toast({html: o['error']}); return; }
+        $parentModal.modal("close");
+        $form[0].reset(); //Clears the data from the form fields
+        data_reload(current_page).then( function () {
+          $form.find(".schedule-content").hide();
+          update_schedule_msg($form.find('.schedule-select')); //Reset the scheduled message
+        });
+        o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
+      });
+    });
+
     // Submits transaction EDITOR form data, closes the modal, clears the form, and reloads the data
-    $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #envelope-fill-form, #edit-envelope-fill-form, #edit-envelope-delete-form, #edit-account-delete-form, #edit-account-adjust-form').submit(function(e) {
+    $('#edit-expense-form, #edit-transfer-form, #edit-income-form, #edit-envelope-fill-form, #edit-envelope-delete-form, #edit-account-delete-form, #edit-account-adjust-form').submit(function(e) {
       e.preventDefault()
       var url = $(this).attr('action');
       var method = $(this).attr('method');
