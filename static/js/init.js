@@ -743,6 +743,11 @@
     // When hovering over the date, show the multidelete buttons
     var lastChecked = null; // Used for shift selection
     $('#bin').on('click', '.transaction', function(e) {
+      if ($(".dropdown-content.select-dropdown").is(":visible")) {
+        //Don't open if you're clicking while a select dropdown is open (the advanced search envelope/account selector)
+        //Instead, let the normal click event close the dropdown
+        return;
+      }
       t_editor_modal_open($(this));
     }).on('mouseenter', '.transaction-date', function() {
       if (Budgeteer.none_checked) {
@@ -809,6 +814,7 @@
       $scroller = $('#transactions-scroller .simplebar-content-wrapper'); // Store the JQuery object for the transactions scroller since it's not ready on document ready
       $allCheckboxes.each(function() {originalStates.push(this.checked)}); // Store the original state of the checkboxes
       $tRow = $(this).addClass('disable-select'); // Keeps the user from selecting/highlighting the text during a longpress
+      $tRow.removeClass("waves-effect"); //Disable the waves effect
       startingTargetIndex = $allTRows.index($tRow);
       start_time = new Date().getTime();
       start_y = e.touches[0].clientY;
@@ -970,6 +976,21 @@
 
       // 3. Re-enable selecting/highlighting the text and open the editor modal
       $(this).removeClass('disable-select');
+      $tRow.addClass("waves-effect"); //Re-enable the waves effect
+    });
+
+    // Supress waves effect while touch scrolling
+    $("#envelopes-bin").on("touchstart", ".envelope-link", function(e) {
+      $(this).removeClass("waves-effect");
+    }).on("touchend", ".envelope-link", function(e) {
+      $(this).addClass("waves-effect");
+    });
+
+    // Supress waves effect while touch scrolling
+    $("#accounts-bin").on("touchstart", ".account-link", function(e) {
+      $(this).removeClass("waves-effect");
+    }).on("touchend", ".account-link", function(e) {
+      $(this).addClass("waves-effect");
     });
 
     // Toggler code for transfer tab of transaction creator/editor
