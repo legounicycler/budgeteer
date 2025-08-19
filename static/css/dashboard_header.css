@@ -54,9 +54,31 @@
   box-shadow: inset 0 0 5px #a2a2a2;
 }
 
+#search-inputs-col .input-field {
+  margin-bottom: 0;
+}
+
+#advanced-search-row .helper-text {
+  height: 1em;
+}
+
+#advanced-search-row .helper-text, #advanced-search-row .helper-text:after {
+  margin: 0 0 0 1em;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+#advanced-search-row .helper-text:after {
+  margin: 0px;
+}
+
 /* Make visual focus on elements obvious with color change */
 #dashboard-header input.t-search-input:focus, #advanced-search-row .select-wrapper:focus-within {
   box-shadow: inset 0 0 5px #24637c;
+}
+
+#dashboard-header input.t-search-input.invalid, #advanced-search-row .select-wrapper.invalid {
+  box-shadow: inset 0 0 5px rgb(200, 0, 0);
 }
 
 /* Style the text within the envelope/account dropdown trigger */
