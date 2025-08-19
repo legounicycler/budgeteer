@@ -64,12 +64,13 @@
 
       $('#transaction-modal').modal({
         onOpenEnd: function () {
-          tab_index = $('#type-tabs').tabs().index;
-          if (tab_index == 0) {
+          var instance = M.Tabs.getInstance($("#type-tabs"));
+          instance.updateTabIndicator(); //TODO: Get this working to where it updates the tab indicator only once when the page loads, not ever time you open the modal
+          if (instance.index == 0) {
             $('#new-expense-form input[name="name"]').eq().select();
-          } else if (tab_index == 1) {
+          } else if (instance.index == 1) {
             $('#new-transfer-form input[name="name"]').eq().select();
-          } else if (tab_index == 2) {
+          } else if (instance.index == 2) {
             $('#new-income-form input[name="name"]').eq().select();
           }
         },
@@ -96,13 +97,15 @@
 
       // Define hotkey behavior on the main page
       $('body').keydown(function(e){
+        // Check if any input is focused
+        const inputIsFocused = $("input:focus, textarea:focus, select:focus").length > 0;
         if(e.key == "Escape" && M.Modal._modalsOpen == 0){
           // Clear all transaction selection checkboxes on ESCAPE KEY (if you're not hitting escape to close a modal)
           $('.t-delete-checkbox:checked').click();
           Budgeteer.none_checked = true;
-        } else if (e.key == "t" && M.Modal._modalsOpen == 0 && $("#transaction-search").not(":focus").length > 0) {
+        } else if (e.key == "t" && M.Modal._modalsOpen == 0 && !inputIsFocused) {
           $("#transaction-modal").modal("open");
-        } else if (e.key == "e" && M.Modal._modalsOpen == 0 && $("#transaction-search").not(":focus").length > 0) {
+        } else if (e.key == "e" && M.Modal._modalsOpen == 0 && !inputIsFocused) {
           $("#envelope-fill-modal").modal("open");
         }
       });
