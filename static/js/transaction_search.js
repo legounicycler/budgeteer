@@ -16,7 +16,7 @@ $(document).ready(function() {
 
     $("#multi-select-icons").addClass("hide");
     Budgeteer.only_clear_searchfield = false;
-    Budgeteer.current_search = searchTerm; // Store the current search term
+    Budgeteer.current_search = searchTerm; // TODO: This will need to store all search parameters
     if (Budgeteer.current_page != "Search Results") { //If you're entering a new search from a search page, update the previous and current page
       Budgeteer.previous_page = Budgeteer.current_page;
       Budgeteer.current_page = "Search Results";
@@ -48,7 +48,7 @@ $(document).ready(function() {
     $("#transaction-search-form").trigger("reset");
 
     // Reset all envelope/account select checkboxes to unchecked
-    $('#search-envelopes, #search-accounts').each(function() {
+    $('#search_envelope_ids, #search_account_ids').each(function() {
       const $select = $(this);
       const $input = $select.siblings('input.select-dropdown');
       const $ul = $('#' + $input.attr('data-target'));
@@ -147,7 +147,7 @@ function toggleAdvancedSearch() {
 Budgeteer.initializeSpecialSelects = function() {
 
   // 1. Initialize the selects (re-init safe)
-  $('#search-envelopes, #search-accounts').formSelect({
+  $('#search_envelope_ids, #search_account_ids').formSelect({
     dropdownOptions: {
       container: '#dashboard-column',
       onOpenStart: function(triggerEl) {
@@ -236,7 +236,7 @@ Budgeteer.initializeSpecialSelects = function() {
 
   // 2.1 - Add custom style to dropdown to make envelope/account selections thinner/smaller
   // 2.2 - Override the onOpenEnd function for the select dropdown to manually set focus
-  $('#search-envelopes, #search-accounts').each(function() {
+  $('#search_envelope_ids, #search_account_ids').each(function() {
     const $select = $(this);
     const $input = $select.siblings('input.select-dropdown');
     const $ul = $('#' + $input.attr('data-target'));
