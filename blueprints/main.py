@@ -125,8 +125,8 @@ def search_transactions():
     amt_max = form.search_amt_max.data
     date_min = form.search_date_min.data #TODO: Test this more rigorously!
     date_max = form.search_date_max.data
-    str_envelope_ids = request.form.getlist('envelope_ids') #TODO: Make this a flaskform field with custom validator that converts to int
-    str_account_ids = request.form.getlist('account_ids')
+    str_envelope_ids = request.form.getlist('search_envelope_ids') #TODO: Make this a flaskform field with custom validator that converts to int
+    str_account_ids = request.form.getlist('search_account_ids')
     timestamp = request.form['timestamp'] #TODO: Somehow validate timestamp format
 
     envelope_ids = []
