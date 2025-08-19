@@ -1,0 +1,74 @@
+<div id="dashboard-header" class="orange lighten-1 white-text collapsed">
+  <form id="transaction-search-form" action="{{ url_for('main.search_transactions') }}" method="post" novalidate>
+    {{ search_form.csrf_token }}
+    <div id="dashboard-title-and-search-row" class="row collapsed">
+      <div id="dashboard-page-title-col" class="col s12 m7 l8 left-align valign-wrapper">
+        <h4 id="dashboard-page-title" class="truncate">
+          <span id="current-page">All Transactions</span>
+          <span id="separator"> | </span>
+          <i id="page-total">{{total_funds|balanceformat}}</i>
+        </h4>
+      </div>
+      <div id="search-col" class="col s12 m5 l4 valign-wrapper">
+        <div id="transaction-search-input-field" class="input-field">
+          {{ search_form.search_term(class_='blue-grey-text white', id='transaction-search') }}
+          <label id="search-icon" class="label-icon" for="transaction-search"><i class="material-icons left">search</i></label>
+          <i id="close-search" class="material-icons">close</i>
+        </div>
+        <i id="advanced-search-button" tabindex="0" class="material-icons">arrow_drop_down</i>
+        <div id="multi-select-icons" class="hide">
+          <a id="multi-select-clear"><i class="material-icons white-text">clear</i></a>
+          <a id="multi-select-delete"><i class="material-icons white-text">delete</i></a>
+        </div>
+      </div>
+    </div>
+    <div id="advanced-search-row" class="row">
+      <div id="search-inputs-col" class="col s12 l11">
+        <div class="input-field col s3 l2">
+          <label for="search-amt-min">Min. Amt</label>
+          {{ search_form.search_amt_min(id='search_amt_min') }}
+          <span class="helper-text red-text left-align"></span>
+        </div>
+        <div class="input-field col s3 l2">
+          <label for="search-amt-max">Max. Amt</label>
+          {{ search_form.search_amt_max(id='search_amt_max') }}
+          <span class="helper-text red-text left-align"></span>
+        </div>
+        <div class="input-field col s3 l2">
+          <label for="search-date-min">Min. Date</label>
+          {{ search_form.search_date_min(id='search_date_min') }}
+          <span class="helper-text red-text left-align" data-error="Date must match format mm/dd/yyyy"></span>
+        </div>
+        <div class="input-field col s3 l2">
+          <label for="search-date-max">Max. Date</label>
+          {{ search_form.search_date_max(id='search_date_max') }}
+          <span class="helper-text red-text left-align" data-error="Date must match format mm/dd/yyyy"></span>
+        </div>
+        <div class="input-field col s5 l2">
+          <select id="search-envelopes" class="envelope-selector" name="search_envelope_ids" multiple>
+            {% with special=true %}
+              {% include 'envelope_select_options.html' %}
+            {% endwith %}
+          </select>
+          <label for="search-envelopes" class="special-select-label white-text">Envelope(s)</label>
+          <span class="helper-text red-text left-align"></span>
+        </div>
+        <div class="input-field col s5 l2">
+          <select id="search-accounts" class="account-selector" name="search_account_ids" multiple>
+            {% with  special=true %}
+              {% include 'account_select_options.html' %}
+            {% endwith %}
+          </select>
+          <label for="search-accounts" class="special-select-label white-text">Account(s)</label>
+          <span class="helper-text red-text left-align"></span>
+        </div>
+        <div id="search-submit1-col" class="input-field col s2 hide-on-large-only">
+          <button id="search-submit1" tabindex="-1" type="submit" class="btn orange darken-2"><i class="material-icons">search</i></button>
+        </div>
+      </div>
+      <div class="input-field col l1 hide-on-med-and-down">
+        <button id="search-submit2" tabindex="-1" type="submit" class="btn orange darken-2"><i class="material-icons">search</i></button>
+      </div>
+    </div>
+  </form>
+</div>
