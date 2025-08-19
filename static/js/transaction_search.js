@@ -7,15 +7,16 @@ $(document).ready(function() {
 
   $("#transaction-search-form").on("submit", function(e) {
     e.preventDefault();
+    if (!$(this)[0].checkValidity()) { $(this)[0].reportValidity(); return;}
+    if (isFormCompletelyEmpty($(this))) { return; }
+
     var url = $(this).attr('action');
     var method = $(this).attr('method');
     var searchTerm = $("#transaction-search").val().trim();
 
     $("#multi-select-icons").addClass("hide");
-
     Budgeteer.only_clear_searchfield = false;
     Budgeteer.current_search = searchTerm; // Store the current search term
-    if (!searchTerm) return; //TODO: This line should change because in an advanced search you don't necessarily have to enter a search term, you can just search by date ranges, etc.
     if (Budgeteer.current_page != "Search Results") { //If you're entering a new search from a search page, update the previous and current page
       Budgeteer.previous_page = Budgeteer.current_page;
       Budgeteer.current_page = "Search Results";
@@ -26,7 +27,8 @@ $(document).ready(function() {
       method: method,
       data: $(this).serialize() + "&timestamp=" + gen_timestamp(),
     }).done(function(o) {
-      if (o.error) {M.toast({html: o.error}); return;}
+      if (o.toasts) {o.toasts.forEach((toast) => M.toast({html: toast}));}
+      if (o.errors) {console.log(o.errors); displayFieldErrors(o.errors); return;}
       $('#transactions-bin').replaceWith(o.transactions_html);
       if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]); }
       $('#current-page').text(o.current_page);
@@ -327,3 +329,39 @@ Budgeteer.initializeSpecialSelects = function() {
     $tabbables.eq(targetIdx).focus();
   }
 };
+
+function isFormCompletelyEmpty($form, opts) {
+  opts = opts || {};
+  var exclude = opts.excludeSelector || 'input[type="hidden"], input[type="submit"], button, .ignore-empty';
+
+  var empty = true;
+  $form.find('input, textarea, select').not(exclude).each(function() {
+    var $el = $(this);
+    var tag = this.tagName.toLowerCase();
+    var type = ($el.attr('type') || '').toLowerCase();
+
+    if (type === 'checkbox' || type === 'radio') {
+      if ($el.is(':checked')) { empty = false; return false; }
+      return; // next
+    }
+
+    if (type === 'file') {
+      if (this.files && this.files.length) { empty = false; return false; }
+      return;
+    }
+
+    if (tag === 'select') {
+      var val = $el.val();
+      if (Array.isArray(val) ? val.length > 0 : (val !== null && String(val).trim() !== '')) {
+        empty = false; return false;
+      }
+      return;
+    }
+
+    // text-like inputs & textarea
+    var v = $el.val();
+    if (v !== null && String(v).trim() !== '') { empty = false; return false; }
+  });
+
+  return empty;
+}

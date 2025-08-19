@@ -161,6 +161,9 @@
           dp._modalPatched = true;
       });
 
+      // Clear the dates in the optional date fields in the search bar
+      $("#search_date_min, #search_date_max").val("");
+
       $("#search-date-min, #search-date-max").val(""); // Clear the date fields only for the advanced search fields
 
       // Adds arrowkey functionality to datepicker
@@ -394,7 +397,7 @@
           $(this).removeClass("invalid").addClass("valid");
         } else {
           $span.text("$...").removeClass('negative').addClass('neutral');
-          $(this).removeClass("valid");
+          $(this).removeClass("valid").removeClass("invalid");
         }
       } catch (error) {
         $span.text("$...").removeClass('negative').addClass('neutral').removeClass("valid");
@@ -413,10 +416,13 @@
       } catch (error) {
         return;
       }
-    });
-
-    $("#settings, #about").click(function() {
-      M.toast({html: "Coming soon!"})
+    }).on("blur", ".special-input", function() {
+      try {
+        num = math.evaluate($(this).val());
+      } catch (error) {
+        $(this).addClass("invalid");
+        return;
+      }
     });
 
     }); // end of document ready
