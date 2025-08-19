@@ -28,7 +28,7 @@ $(document).ready(function() {
       data: $(this).serialize() + "&timestamp=" + gen_timestamp(),
     }).done(function(o) {
       if (o.toasts) {o.toasts.forEach((toast) => M.toast({html: toast}));}
-      if (o.errors) {console.log(o.errors); displayFieldErrors(o.errors); return;}
+      if (o.errors) {displayFieldErrors(o.errors); return;}
       $('#transactions-bin').replaceWith(o.transactions_html);
       if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]); }
       $('#current-page').text(o.current_page);
