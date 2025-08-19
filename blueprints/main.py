@@ -9,7 +9,7 @@ from flask import Blueprint, request, jsonify, render_template, make_response
 from flask_login import login_required, current_user
 
 #Library imports
-import re
+import re, traceback
 
 #Custom import
 from database import *
@@ -113,37 +113,26 @@ def get_account_page():
 @login_required
 @check_confirmed
 def search_transactions():
+
+  # 1. Validate the form fields
   form = TransactionSearchForm()
   if not form.validate():
     errors = {field.name: field.errors for field in form if field.errors}
     return jsonify(success=False, errors=errors)
-  
+
+  # 2. Extract the validated data and run search
   try:
     uuid = get_uuid_from_cookie()
     search_term = form.search_term.data
     amt_min = form.search_amt_min.data
     amt_max = form.search_amt_max.data
-    date_min = form.search_date_min.data #TODO: Test this more rigorously!
+    date_min = form.search_date_min.data
     date_max = form.search_date_max.data
-    str_envelope_ids = request.form.getlist('search_envelope_ids') #TODO: Make this a flaskform field with custom validator that converts to int
-    str_account_ids = request.form.getlist('search_account_ids')
-    timestamp = request.form['timestamp'] #TODO: Somehow validate timestamp format
+    envelope_ids = form.search_envelope_ids.data or []
+    account_ids = form.search_account_ids.data or []
+    timestamp = request.form['timestamp']
 
-    envelope_ids = []
-    try: 
-      for i in range(len(str_envelope_ids)):
-        envelope_ids.append(int(str_envelope_ids[i]))
-    except:
-      raise InvalidFormDataError("INVALID ENVELOPE IDS")
-    
-    account_ids = []
-    try: 
-      for i in range(len(str_account_ids)):
-        account_ids.append(int(str_account_ids[i]))
-    except:
-      raise InvalidFormDataError("INVALID ACCOUNT IDS")
-
-
+    # 3. Render the templates and return the response
     check_pending_transactions(uuid, timestamp)
     (transactions_data, offset, limit) = get_search_transactions(
       uuid,
@@ -159,26 +148,12 @@ def search_transactions():
     )
     (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
     (active_accounts, accounts_data) = get_user_account_dict(uuid)
-    data = {'current_page': 'Search results'}
+    response = {'current_page': 'Search results'}
     if not transactions_data:
-      data['transactions_html'] = render_template(
-        'transactions.html',
-        current_page='Search results',
-        transactions_data=[],
-        empty_message='No search results found'
-      )
+      response['transactions_html'] = render_template('transactions.html', current_page='Search results', transactions_data=[], empty_message='No search results found')
     else:
-      data['transactions_html'] = render_template(
-        'transactions.html',
-        current_page='Search results',
-        transactions_data=transactions_data,
-        envelopes_data=envelopes_data,
-        accounts_data=accounts_data,
-        offset=offset,
-        limit=limit,
-        TType=TType
-      )
-    return jsonify(data)
+      response['transactions_html'] = render_template('transactions.html', current_page='Search results', transactions_data=transactions_data, envelopes_data=envelopes_data, accounts_data=accounts_data, offset=offset, limit=limit, TType=TType)
+    return jsonify(response)
   except Exception as e:
     return jsonify({'toasts': [str(e)]})
 
