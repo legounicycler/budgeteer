@@ -1,9 +1,11 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, EmailField, SubmitField, validators, SelectField, TextAreaField, HiddenField, SearchField
+from wtforms import validators, StringField, PasswordField, EmailField, SelectField, SelectMultipleField, TextAreaField, SearchField, HiddenField, SubmitField
 from wtforms.validators import Optional, ValidationError
+from typing import Optional as TypingOptional
 from flask_wtf.file import FileField, FileAllowed
 from datetime import datetime
 
+# region ---------------CUSTOM FIELDS---------------
 
 class AmtStringField(StringField):
     """StringField that validates/converts float-like strings to int.
@@ -13,7 +15,7 @@ class AmtStringField(StringField):
     - Appends an internal validator that runs last; it converts field.data to int or raises ValidationError.
     - If allow_empty=True, empty input becomes None.
     """
-    def __init__(self, label=None, validators=None, allow_empty: bool=None, message: str=None, **kwargs):
+    def __init__(self, label=None, validators=None, allow_empty: TypingOptional[bool]=None, message: TypingOptional[str]=None, **kwargs):
         self.message = message or 'Field must be a number'
         # Preserve user validators order; append internal converter last
         vlist = list(validators) if validators else []
@@ -60,7 +62,7 @@ class DateStringField(StringField):
     - On invalid date input, raises wtforms.ValidationError during validation.
     - On valid input, field.data is set to datetime.
     """
-    def __init__(self, label=None, validators=None, allow_empty: bool=None, message: str=None, **kwargs):
+    def __init__(self, label=None, validators=None, allow_empty: TypingOptional[bool]=None, message: TypingOptional[str]=None, **kwargs):
         self.message = message or 'Field must be a valid date'
         # Preserve user validators order; append internal converter last
         vlist = list(validators) if validators else []
@@ -88,17 +90,152 @@ class DateStringField(StringField):
             return
         self.data = raw
 
-    def _convert_to_date(self, form, field):
-        data = self.data
+    def _convert_to_date(self, form, field): #TODO: Re-examine this function after GPT5mini reworked it
+        data = field.data
         if data is None or (isinstance(data, str) and data.strip() == ''):
             if self.allow_empty:
                 field.data = None
                 return
             raise ValidationError(self.message)
         try:
-            self.data = datetime.strptime(str(data).strip(), '%m/%d/%Y')
+            field.data = datetime.strptime(str(data).strip(), '%m/%d/%Y')
         except (ValueError, TypeError):
+            raise ValidationError(self.message)
+
+# NOTE: Untested
+class IdSelectField(SelectField):
+    """SelectField that preserves the raw string for earlier validators then
+    converts the final value to an int in a trailing validator.
+
+    Behavior:
+      - No submitted value -> self.data = None
+      - Single submitted value -> self.data = raw string for other validators,
+        then converted to int by the trailing validator.
+    """
+    def __init__(self, label=None, validators=None, message: TypingOptional[str] = None, **kwargs):
+        self.message = message or 'Invalid id; value must be an integer'
+        vlist = list(validators) if validators else []
+        # Detect Optional() presence so empty inputs remain acceptable
+        self._has_optional = any(isinstance(v, Optional) for v in vlist)
+        # Append converter as the LAST validator so other validators see the raw string
+        vlist.append(self._convert_to_int)
+        super().__init__(label, validators=vlist, **kwargs)
+
+    def pre_validate(self, form):
+        """
+        Skip WTForms' choices validation when choices is not provided server-side.
+        If choices are present, defer to the normal SelectField behavior.
+        """
+        if getattr(self, 'choices', None) is None:
+            return
+        return super().pre_validate(form)
+
+    def process_formdata(self, valuelist):
+        # Preserve the raw string for other validators; normalize empty -> None when appropriate
+        if not valuelist:
             self.data = None
+            return
+        raw = valuelist[0]
+        if isinstance(raw, str) and raw.strip() == '':
+            if self._has_optional:
+                self.data = None
+            else:
+                self.data = raw
+            return
+        self.data = raw
+
+    def _convert_to_int(self, form, field):
+        data = field.data
+        if data is None or (isinstance(data, str) and str(data).strip() == ''):
+            if self._has_optional:
+                field.data = None
+                return
+            raise ValidationError(self.message)
+        try:
+            field.data = int(str(data).strip())
+        except (ValueError, TypeError):
+            raise ValidationError(self.message)
+
+class IdSelectMultipleField(SelectMultipleField):
+    """SelectMultipleField that keeps raw string values for other validators,
+    then converts them to a list[int] as the last validation step.
+
+    Behavior:
+      - No submitted values -> self.data = None
+      - Single submitted value -> self.data = ['raw_string']
+      - Multiple submitted values -> self.data = ['a','b','c']
+    The conversion to ints happens in the _convert_to_ints validator appended
+    last so any other validators (e.g. Optional(), custom validators expecting
+    raw strings) run first.
+    """
+    def __init__(self, label=None, validators=None, message: TypingOptional[str] = None, **kwargs):
+        self.message = message or 'Invalid id list; values must be integers'
+        vlist = list(validators) if validators else []
+        # Detect Optional() presence so empty inputs remain acceptable
+        self._has_optional = any(isinstance(v, Optional) for v in vlist)
+        # Append converter as the LAST validator
+        vlist.append(self._convert_to_ints)
+        super().__init__(label, validators=vlist, **kwargs)
+
+    def pre_validate(self, form):
+        """
+        Skip WTForms' choices validation when choices is not provided server-side.
+        (Which it isn't because materialize is generating the choices dynamically, so we can't pre-supply them in the form definitions)
+        If choices are present, defer to the normal SelectMultipleField behavior.
+        """
+        if getattr(self, 'choices', None) is None:
+            return
+        return super().pre_validate(form)
+
+    def process_formdata(self, valuelist):
+        # Normalize incoming submission into None or a list of raw strings.
+        # Leave conversion to ints to the validator so other validators see raw strings.
+        if not valuelist:
+            self.data = None
+            return
+
+        # Keep all non-empty, stripped string values
+        parts = [str(v).strip() for v in valuelist if v is not None and str(v).strip() != '']
+        if not parts:
+            self.data = None
+            return
+
+        self.data = parts
+
+    def _convert_to_ints(self, form, field):
+        data = field.data
+        # If empty and Optional() present, let Optional short-circuit (data stays None)
+        if data is None:
+            if self._has_optional:
+                field.data = None
+                return
+            raise ValidationError(self.message)
+
+        # Accept a single string (defensive) or a list of strings
+        if isinstance(data, str):
+            tokens = [data.strip()] if data.strip() != '' else []
+        elif isinstance(data, (list, tuple)):
+            tokens = [str(x).strip() for x in data if x is not None and str(x).strip() != '']
+        else:
+            raise ValidationError(self.message)
+
+        if not tokens:
+            if self._has_optional:
+                field.data = None
+                return
+            raise ValidationError(self.message)
+
+        out = []
+        for t in tokens:
+            try:
+                out.append(int(t))
+            except (ValueError, TypeError):
+                raise ValidationError(self.message)
+        field.data = out
+
+# endregion ---------------CUSTOM FIELDS---------------
+
+# region ---------------FORMS--------------- 
 
 class LoginForm(FlaskForm):
     email = EmailField("Email", [validators.InputRequired(), validators.Email()], render_kw={"autocomplete": "username"})
@@ -185,3 +322,17 @@ class TransactionSearchForm(FlaskForm):
         allow_empty=True,
         render_kw={"placeholder": "MM/DD/YYYY", "tabindex": "-1", "class": "datepicker blue-grey-text white t-search-input validate", "pattern": r"^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$"}
     )
+
+    # NOTE: This field is not placed into the template with jinja, but rather a select element is directly given the id
+    # This is because materialize generates 
+    search_envelope_ids = IdSelectMultipleField(
+        "Envelope IDs",
+        [Optional()]
+    )
+    # NOTE: This field is not placed into the template with jinja, but rather a select element is directly given the id
+    search_account_ids = IdSelectMultipleField(
+        "Account IDs",
+        [Optional()]
+    )
+
+# endregion ---------------FORMS---------------
