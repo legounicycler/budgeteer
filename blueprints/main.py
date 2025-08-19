@@ -14,7 +14,7 @@ import re
 #Custom import
 from database import *
 from exceptions import *
-from forms import NewExpenseForm, NewTransferForm, NewIncomeForm, BugReportForm
+from forms import NewExpenseForm, NewTransferForm, NewIncomeForm, BugReportForm, TransactionSearchForm
 from filters import datetimeformat
 from textLogging import log_write
 from blueprints.auth import check_confirmed, get_uuid_from_cookie
@@ -59,7 +59,8 @@ def home():
         new_expense_form = NewExpenseForm(),
         new_transfer_form = NewTransferForm(),
         new_income_form = NewIncomeForm(),
-        bug_report_form = BugReportForm()
+        bug_report_form = BugReportForm(),
+        search_form = TransactionSearchForm()
       ))
       response.delete_cookie('timestamp')
       return response
@@ -112,85 +113,83 @@ def get_account_page():
 @login_required
 @check_confirmed
 def search_transactions():
+  form = TransactionSearchForm()
+  if not form.validate():
+    errors = {field.name: field.errors for field in form if field.errors}
+    return jsonify(success=False, errors=errors)
+  
   try:
     uuid = get_uuid_from_cookie()
-    # All fields optional
-    search_term = request.form.get('search_term', '').strip()
-    amt_min_raw = request.form.get('search_amt_min', '').strip()
-    amt_max_raw = request.form.get('search_amt_max', '').strip()
-    date_min_raw = request.form['search_date_min']
-    date_max_raw = request.form['search_date_max']
-    e_ids_raw = request.form.getlist('search_envelope_ids') if 'search_envelope_ids' in request.form else []
-    a_ids_raw = request.form.getlist('search_account_ids') if 'search_account_ids' in request.form else []
-    timestamp = request.form['timestamp']
+    search_term = form.search_term.data
+    amt_min = form.search_amt_min.data
+    amt_max = form.search_amt_max.data
+    date_min = form.search_date_min.data #TODO: Test this more rigorously!
+    date_max = form.search_date_max.data
+    str_envelope_ids = request.form.getlist('envelope_ids') #TODO: Make this a flaskform field with custom validator that converts to int
+    str_account_ids = request.form.getlist('account_ids')
+    timestamp = request.form['timestamp'] #TODO: Somehow validate timestamp format
 
-    amt_min = None
-    amt_max = None
+    envelope_ids = []
     try: 
-      if amt_min_raw:
-        amt_min = (int(round(float(amt_min_raw) * 100)))
-      if amt_max_raw:
-        amt_max = (int(round(float(amt_max_raw) * 100)))
+      for i in range(len(str_envelope_ids)):
+        envelope_ids.append(int(str_envelope_ids[i]))
     except:
-      raise InvalidFormDataError("ERROR: Invalid form data in 'amount' field for search!")
+      raise InvalidFormDataError("INVALID ENVELOPE IDS")
+    
+    account_ids = []
+    try: 
+      for i in range(len(str_account_ids)):
+        account_ids.append(int(str_account_ids[i]))
+    except:
+      raise InvalidFormDataError("INVALID ACCOUNT IDS")
 
-    date_min = None
-    date_max = None
-    if date_min_raw:
-      try:
-        date_min = datetime.strptime(date_min_raw, '%m/%d/%Y')
-      except ValueError:
-        raise InvalidFormDataError("ERROR: Invalid date format for 'Min date'. Expected format: MM/DD/YYYY")
-
-    if date_max_raw:
-      try:
-        date_max = datetime.strptime(date_max_raw, '%m/%d/%Y')
-      except ValueError:
-        raise InvalidFormDataError("ERROR: Invalid date format for 'Max date'. Expected format: MM/DD/YYYY")
-
-    # Convert envelope/account id lists front strings to ints (Materialize multi-select sends comma separated via serialize)
-    # request.form.getlist will already split repeated keys. If values are like '1,2' handle that too
-    def expand(id_list):
-      expanded = []
-      for item in id_list:
-        for part in str(item).split(','):
-          part = part.strip()
-          if part.isdigit():
-            expanded.append(int(part))
-      return expanded
-    envelope_ids = expand(e_ids_raw)
-    account_ids = expand(a_ids_raw)
-
-    print(amt_min)
-    print(amt_max)
 
     check_pending_transactions(uuid, timestamp)
-    (transactions_data, offset, limit) = get_search_transactions(uuid,start=0,amount=50,search_term=search_term,amt_min=amt_min,amt_max=amt_max,date_min=date_min,date_max=date_max,envelope_ids=envelope_ids,account_ids=account_ids)
+    (transactions_data, offset, limit) = get_search_transactions(
+      uuid,
+      start=0,
+      amount=50,
+      search_term=search_term,
+      amt_min=amt_min,
+      amt_max=amt_max,
+      date_min=date_min,
+      date_max=date_max,
+      envelope_ids=envelope_ids,
+      account_ids=account_ids
+    )
     (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
     (active_accounts, accounts_data) = get_user_account_dict(uuid)
-    data = {}
-    data['current_page'] = "Search results"
+    data = {'current_page': 'Search results'}
     if not transactions_data:
-      data['transactions_html'] = render_template('transactions.html', current_page = 'Search results', transactions_data = [], empty_message = 'No search results found')
+      data['transactions_html'] = render_template(
+        'transactions.html',
+        current_page='Search results',
+        transactions_data=[],
+        empty_message='No search results found'
+      )
     else:
-      data['transactions_html'] = render_template('transactions.html',current_page = 'Search results', transactions_data = transactions_data, envelopes_data = envelopes_data, accounts_data = accounts_data, offset = offset, limit=limit,TType = TType)
+      data['transactions_html'] = render_template(
+        'transactions.html',
+        current_page='Search results',
+        transactions_data=transactions_data,
+        envelopes_data=envelopes_data,
+        accounts_data=accounts_data,
+        offset=offset,
+        limit=limit,
+        TType=TType
+      )
     return jsonify(data)
   except Exception as e:
-    return jsonify({'error': str(e)})
+    return jsonify({'toasts': [str(e)]})
 
 # Display the transactions on the home dashboard from the page you were on before the search
 @main_bp.route('/api/reset-search', methods=['POST'])
 @login_required
 @check_confirmed
 def reset_search():
-  """Return the transaction list for the previously viewed page before a search.
+  """Return to previous page after search with basic validation.
 
-  Expects JSON: { "previous-page": <string>, "timestamp": <timestamp str> }
-  previous_page represents the page the user was on before the search
-  previous_page formats supported:
-    - None or 'All Transactions' -> home transactions page
-    - 'envelope/<id>' -> specific envelope page
-    - 'account/<id>' -> specific account page
+  Accepts JSON payload with previous_page and timestamp; timestamp is required.
   """
   try:
     uuid = get_uuid_from_cookie()
@@ -199,14 +198,12 @@ def reset_search():
     timestamp = js_data.get('timestamp')
     if prev.lower() in ['all transactions']:
       return jsonify(_build_home_page(uuid, timestamp))
-    
     if prev.startswith('envelope/'):
       try:
         envelope_id = int(prev.split('/',1)[1])
       except ValueError:
         return jsonify({'error': 'Invalid envelope id'})
       return jsonify(_build_envelope_page(uuid, envelope_id, timestamp))
-    
     if prev.startswith('account/'):
       try:
         account_id = int(prev.split('/',1)[1])
@@ -214,7 +211,6 @@ def reset_search():
         return jsonify({'error': 'Invalid account id'})
       return jsonify(_build_account_page(uuid, account_id, timestamp))
     return jsonify({'error': 'Invalid previous_page value supplied to reset-search.'})
-  
   except CustomException as ce:
     return jsonify({'error': str(ce)})
   except Exception as e:
