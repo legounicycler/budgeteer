@@ -389,6 +389,7 @@
 
     $("body").on("input", ".special-input", function() {
       $span =  $(this).parent().siblings(".amount-col").find("span");
+      $errorSpan = $(this).siblings(".helper-text");
       try {
         num = math.evaluate($(this).val());
         if (!isNaN(num)) {
@@ -405,6 +406,7 @@
       } catch (error) {
         $span.text("$...").removeClass('negative').addClass('neutral').removeClass("valid");
         $(this).removeClass("valid").addClass("invalid");
+        $errorSpan.hide(); //If the user is actively editing the input, don't show an error message
       }
     }).on("change",".special-input", function() {
       try {
@@ -424,6 +426,7 @@
         num = math.evaluate($(this).val());
       } catch (error) {
         $(this).addClass("invalid").removeClass("valid");
+        $errorSpan.show(); // If the user navigates off the input and the text they inputted is not a number, show the error message
         return;
       }
     });
@@ -1429,17 +1432,17 @@
     });
 
     // Clear the "required" error message on the amount inputs in the transaction creator/editor modal when you start typing
-    $("#transaction-modal input, #editor-modal input").on("invalid", function() {
-      if ($(this).hasClass("special-input")) {
-        $(this).siblings("span").removeClass("hidden"); // For special inputs (inline math), remove the hidden class to display the error message
-      }
-      $(this).addClass("invalid").removeClass("valid");
-    }).on("input", function(e) {
-      $(e.target).removeClass("invalid"); // As soon as you fill in the empty name input, remove the invalid class
-      if ($(this).hasClass("special-input")) {
-        $(this).siblings("span").addClass("hidden"); // For special inputs (inline math), add the hidden class to hide the error message
-      }
-    });
+    // $("#transaction-modal input, #editor-modal input").on("invalid", function() {
+    //   if ($(this).hasClass("special-input")) {
+    //     $(this).siblings("span").removeClass("hidden"); // For special inputs (inline math), remove the hidden class to display the error message
+    //   }
+    //   $(this).addClass("invalid").removeClass("valid");
+    // }).on("input", function(e) {
+    //   $(e.target).removeClass("invalid"); // As soon as you fill in the empty name input, remove the invalid class
+    //   if ($(this).hasClass("special-input")) {
+    //     $(this).siblings("span").addClass("hidden"); // For special inputs (inline math), add the hidden class to hide the error message
+    //   }
+    // });
 
     // If you attempt to submit a form in the transaction creator/editor modal without selecting an envelope/account, display an error message
     $("#transaction-modal select, #editor-modal select").on("invalid", function() {
