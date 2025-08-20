@@ -39,15 +39,45 @@ $(document).ready(function() {
 
   });
 
+$('#transaction-search-form').on('blur', 'input', function(){
+  // On blur show syntactic browser validation messages
+  var field = this;
+  var $f = $(field);
+  var $helper = $f.siblings('.helper-text');
+  if (!$helper.length) $helper = $f.parent().find('.helper-text').first();
+  if (field.checkValidity && !field.checkValidity()) {
+    $f.removeClass('valid').addClass('invalid');
+  }
+
+  // If the form is completely empty, hide the clear button
+  // if (isFormCompletelyEmpty($('#transaction-search-form'))) {
+  //   $('#clear-search').css("pointer-events", "none").attr("display", "none"); // TODO: THIS DOESN'T WORK
+  // }
+
+}).on('change', 'input', function(){
+  // On change, clear error messages since the user is actively editing
+  var $f = $(this);
+  var $helper = $f.siblings('.helper-text');
+  if (!$helper.length) $helper = $f.parent().find('.helper-text').first();
+  $helper.removeAttr('data-server-error');
+  if ($f.hasClass('invalid')) $f.removeClass('invalid');
+
+  // If the form is NOT completely empty, show the clear button
+  // if (!isFormCompletelyEmpty($('#transaction-search-form'))) {
+  //   $('#clear-search').css("pointer-events", "auto").attr("display", "inline-block").css("color", "#444"); // TODO: THIS DOESN'T WORK
+  // }
+});
+
   // Clear search field, and if you're on a search page then return to the previous page you started from
-  $("#close-search").on('mousedown', function() {
+  $("#clear-search").on('mousedown', function() {
     $(this).fadeOut(200); // Fade out the close button
     Budgeteer.current_search = null; // Reset the global variable used to store the current search term
     
     // Clear all the fields in the advanced search bar
     $("#transaction-search-form").trigger("reset");
+    // TODO: Clear the errors?
 
-    // Reset all envelope/account select checkboxes to unchecked
+    // Reset all envelope/account select checkboxes in search dropdowns to unchecked
     $('#search_envelope_ids, #search_account_ids').each(function() {
       const $select = $(this);
       const $input = $select.siblings('input.select-dropdown');
@@ -83,15 +113,6 @@ $(document).ready(function() {
       Budgeteer.only_clear_searchfield = true;
       $("#multi-select-icons").addClass("hide");
     });
-  });
-
-  // Event handlers for the #transaction-search input
-  $('#transaction-search').on('input', function() {
-      $('#close-search').toggle(!!$(this).val()); // Show/hide the #close-search icon based on if there's text
-  }).on('blur', function() {
-      $('#close-search').css("pointer-events", "none");
-  }).on('focus', function() {
-      $('#close-search').css("pointer-events", "auto");
   });
 
   // Show/hide the advanced search fields when the advanced search dropdown arrow is clicked
