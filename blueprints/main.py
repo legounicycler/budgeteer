@@ -117,8 +117,7 @@ def search_transactions():
   # 1. Validate the form fields
   form = TransactionSearchForm()
   if not form.validate():
-    errors = {field.name: field.errors for field in form if field.errors}
-    return jsonify(success=False, errors=errors)
+    return jsonify(success=False, errors={field.name: field.errors for field in form if field.errors})
 
   # 2. Extract the validated data and run search
   try:

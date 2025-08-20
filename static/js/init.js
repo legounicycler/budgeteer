@@ -423,7 +423,7 @@
       try {
         num = math.evaluate($(this).val());
       } catch (error) {
-        $(this).addClass("invalid");
+        $(this).addClass("invalid").removeClass("valid");
         return;
       }
     });
