@@ -62,14 +62,10 @@
   height: 1em;
 }
 
-#advanced-search-row .helper-text, #advanced-search-row .helper-text:after {
+#advanced-search-row .helper-text:after {
   margin: 0 0 0 1em;
   text-decoration: underline;
   font-weight: bold;
-}
-
-#advanced-search-row .helper-text:after {
-  margin: 0px;
 }
 
 /* Make visual focus on elements obvious with color change */
@@ -110,7 +106,7 @@
 }
 
 /* Position the close search button in the main transaction search input */
-#close-search {
+#clear-search {
   top: calc(50% - 1rem);
   right: -2rem;
 }
@@ -249,3 +245,40 @@
     margin-top: 0px;
   }
 }
+
+/* Show server-side errors (data-server-error) in the same ::after position Materialize uses,
+   and make them override the regular data-error display when present. */
+
+/* Ensure helper-text itself is visible and interactive when a server error is present */
+/* .input-field .helper-text[data-server-error] {
+  color: rgba(0, 0, 0, 0.54);
+  pointer-events: auto;
+  -webkit-user-select: text;
+     -moz-user-select: text;
+      -ms-user-select: text;
+          user-select: text;
+} */
+
+/* Display the server error in the ::after pseudo-element (same slot Materialize uses).
+   Use a selector that targets the helper-text having data-server-error and the invalid state
+   of the control so it overrides the generic materialize rule. */
+input.invalid ~ .helper-text[data-server-error]::after,
+textarea.invalid ~ .helper-text[data-server-error]::after,
+.select-wrapper.invalid ~ .helper-text[data-server-error]::after {
+  content: attr(data-server-error) !important;
+  /* color: #F44336; */
+  /* opacity: 1 !important; */
+  /* pointer-events: auto !important; */
+}
+
+/* Because Materialize often sets the helper-text content to transparent when using
+   data-error rules, explicitly restore visibility for the helper when data-server-error present. */
+/* input.invalid ~ .helper-text[data-server-error],
+textarea.invalid ~ .helper-text[data-server-error],
+.select-wrapper.invalid ~ .helper-text[data-server-error] {
+  color: rgba(0,0,0,0.54) !important;
+  pointer-events: auto !important;
+} */
+
+/* Optional: if you want server errors to use same aria/announce behavior, ensure
+   the attribute is accessible (no JS change required if server sets data-server-error). */

@@ -13,7 +13,7 @@
         <div id="transaction-search-input-field" class="input-field">
           {{ search_form.search_term(class_='blue-grey-text white', id='transaction-search') }}
           <label id="search-icon" class="label-icon" for="transaction-search"><i class="material-icons left">search</i></label>
-          <i id="close-search" class="material-icons">close</i>
+          <i id="clear-search" class="material-icons">close</i>
         </div>
         <i id="advanced-search-button" tabindex="0" class="material-icons">arrow_drop_down</i>
         <div id="multi-select-icons" class="hide">
@@ -26,23 +26,23 @@
       <div id="search-inputs-col" class="col s12 l11">
         <div class="input-field col s3 l2">
           <label for="search-amt-min">Min. Amt</label>
-          {{ search_form.search_amt_min(id='search_amt_min') }}
-          <span class="helper-text red-text left-align"></span>
+          {{ search_form.search_amt_min(maxlength=False) }}
+          <span class="helper-text red-text left-align" data-error="Invalid number format"></span>
         </div>
         <div class="input-field col s3 l2">
           <label for="search-amt-max">Max. Amt</label>
-          {{ search_form.search_amt_max(id='search_amt_max') }}
-          <span class="helper-text red-text left-align"></span>
+          {{ search_form.search_amt_max(maxlength=False) }}
+          <span class="helper-text red-text left-align" data-error="Invalid number format"></span>
         </div>
         <div class="input-field col s3 l2">
           <label for="search-date-min">Min. Date</label>
-          {{ search_form.search_date_min(id='search_date_min') }}
-          <span class="helper-text red-text left-align" data-error="Date must match format mm/dd/yyyy"></span>
+          {{ search_form.search_date_min() }}
+          <span class="helper-text red-text left-align" data-error="Format as MM/DD/YYYY"></span>
         </div>
         <div class="input-field col s3 l2">
           <label for="search-date-max">Max. Date</label>
-          {{ search_form.search_date_max(id='search_date_max') }}
-          <span class="helper-text red-text left-align" data-error="Date must match format mm/dd/yyyy"></span>
+          {{ search_form.search_date_max() }}
+          <span class="helper-text red-text left-align" data-error="Format as MM/DD/YYYY"></span>
         </div>
         <div class="input-field col s5 l2">
           <select id="search_envelope_ids" class="envelope-selector" name="search_envelope_ids" multiple>

@@ -302,12 +302,12 @@ class TransactionSearchForm(FlaskForm):
     )
     search_amt_min = AmtStringField(
         "Min. Amt",
-        [Optional(), validators.Regexp(r'^\$?\d+(?:\.\d{1,2})?$', message="Invalid min amount")],
+        [Optional(), validators.Regexp(r'^\$?\d+(?:\.\d{1,2})?$', message="Invalid number format"), validators.Length(max=19, message="Number too large")],
         render_kw={"placeholder": "$0.00", "tabindex": "-1", "class": "special-input blue-grey-text white t-search-input validate"}
     )
     search_amt_max = AmtStringField(
         "Max. Amt",
-        [Optional(), validators.Regexp(r'^\$?\d+(?:\.\d{1,2})?$', message="Invalid max amount")],
+        [Optional(), validators.Regexp(r'^\$?\d+(?:\.\d{1,2})?$', message="Invalid number format"), validators.Length(max=19, message="Number too large")],
         render_kw={"placeholder": "$0.00", "tabindex": "-1", "class": "special-input blue-grey-text white t-search-input validate"}
     )
     search_date_min = DateStringField(
@@ -334,5 +334,39 @@ class TransactionSearchForm(FlaskForm):
         "Account IDs",
         [Optional()]
     )
+
+    def validate(self):
+        """Run standard validators then enforce cross-field constraints
+        (min <= max for amounts and dates). Attach errors to both fields
+        when constraint fails.
+        """
+        print("Validating TransactionSearchForm")
+        rv = super().validate()
+        if not rv:
+            return False
+
+        ok = True
+
+        # Amounts: values are converted to integer cents by AmtStringField
+        a_min = self.search_amt_min.data
+        a_max = self.search_amt_max.data
+        if a_min is not None and a_max is not None:
+            if a_min > a_max:
+                msg = 'Min. amt > max. amt'
+                self.search_amt_min.errors.append(msg) # type: ignore
+                self.search_amt_max.errors.append(msg) # type: ignore
+                ok = False
+
+        # Dates: values are converted to datetime by DateStringField
+        d_min = self.search_date_min.data
+        d_max = self.search_date_max.data
+        if d_min is not None and d_max is not None:
+            if d_min > d_max:
+                msg = "Min. date > max. date"
+                self.search_date_min.errors.append(msg) # type: ignore
+                self.search_date_max.errors.append(msg) # type: ignore
+                ok = False
+
+        return ok
 
 # endregion ---------------FORMS---------------
