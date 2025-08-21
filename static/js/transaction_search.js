@@ -1,27 +1,24 @@
 window.Budgeteer = window.Budgeteer || {};
 Budgeteer.previous_page = null; // Used to store the previous page before a search
-Budgeteer.only_clear_searchfield = true; // If true, only clear the search field, if false, return to previous page after search
-Budgeteer.current_search = null; // Used to store the current search term
+Budgeteer.only_clear_searchfield = true; // Defines the behavior of the "X" icon in the searchfield. If true, it only clears the search field, otherwise it returns to page you were on before the search
+Budgeteer.current_search = {}; // Used to store the current search parameters. Set when a valid search is performed.Used in data-reload, load-more functions
 
 $(document).ready(function() {
 
   $("#transaction-search-form").on("submit", function(e) {
     e.preventDefault();
+
+    // If there are front-end validation errors, display them and don't execute a search
     if (!$(this)[0].checkValidity()) { $(this)[0].reportValidity(); return;}
+
+    // If every field is empty, don't execute a search
     if (isFormCompletelyEmpty($(this))) { return; }
 
+    // Get the form action and method
     var url = $(this).attr('action');
     var method = $(this).attr('method');
-    var searchTerm = $("#transaction-search").val().trim();
 
-    $("#multi-select-icons").addClass("hide");
-    Budgeteer.only_clear_searchfield = false;
-    Budgeteer.current_search = searchTerm; // TODO: This will need to store all search parameters
-    if (Budgeteer.current_page != "Search Results") { //If you're entering a new search from a search page, update the previous and current page
-      Budgeteer.previous_page = Budgeteer.current_page;
-      Budgeteer.current_page = "Search Results";
-    }
-
+    // Execute the search
     $.ajax({
       url: url,
       method: method,
@@ -34,7 +31,24 @@ $(document).ready(function() {
       $('#current-page').text(o.current_page);
       $("#page-total").hide();
       $("#separator").hide();
+      $("#multi-select-icons").addClass("hide");
+
+      //Update the global variables
       Budgeteer.none_checked = true;
+      Budgeteer.current_search = {
+        searchTerm: $("#transaction-search").val().trim(),
+        searchAmtMin: $("#search_amt_min").val().trim(),
+        searchAmtMax: $("#search_amt_max").val().trim(),
+        searchDateMin: $("#search_date_min").val().trim(),
+        searchDateMax: $("#search_date_max").val().trim(),
+        searchEnvelopeIds: $("#search_envelope_ids").val(),
+        searchAccountIds: $("#search_account_ids").val()
+      };
+      Budgeteer.only_clear_searchfield = false; // Set the behavior of the "X" icon when clicked to return to previous page rather than only clearing the search fields
+      if (Budgeteer.current_page != "Search Results") { //Update the previous and current page unless you're entering a new search from a search results page,
+        Budgeteer.previous_page = Budgeteer.current_page;
+        Budgeteer.current_page = "Search Results";
+      }
     });
 
   });
@@ -71,7 +85,7 @@ $(document).ready(function() {
   // Clear search field, and if you're on a search page then return to the previous page you started from
   $("#clear-search").on('mousedown', function() {
     $(this).fadeOut(200); // Fade out the close button
-    Budgeteer.current_search = null; // Reset the global variable used to store the current search term
+    Budgeteer.current_search = {}; // Reset the global variable used to store the current search term
     
     // Clear all the fields in the advanced search bar
     $("#transaction-search-form").trigger("reset");
