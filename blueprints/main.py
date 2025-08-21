@@ -10,6 +10,7 @@ from flask_login import login_required, current_user
 
 #Library imports
 import re, traceback
+from werkzeug.datastructures import MultiDict
 
 #Custom import
 from database import *
@@ -33,24 +34,22 @@ def home():
       uuid = get_uuid_from_cookie()
       u = get_user_by_uuid(uuid)
       check_pending_transactions(uuid, timestamp)
-      (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
-      (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-      (active_accounts, accounts_data) = get_user_account_dict(uuid)
-      unallocated_balance = get_envelope_balance(u.unallocated_e_id)/100
-      total_funds = get_total(uuid)
+      (transactions_data, offset, at_end, total_funds) = get_home_transactions(uuid,0,50)
+      (are_active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+      (are_active_accounts, accounts_data) = get_user_account_dict(uuid)
       response = make_response(render_template(
         'layout.html',
         current_page='All transactions',
-        active_envelopes=active_envelopes,
-        unallocated_balance=unallocated_balance,
+        are_active_envelopes=are_active_envelopes,
+        unallocated_balance=get_envelope_balance(u.unallocated_e_id)/100,
         envelopes_data=envelopes_data,
         budget_total=budget_total,
-        active_accounts=active_accounts,
+        are_active_accounts=are_active_accounts,
         accounts_data=accounts_data,
         transactions_data=transactions_data,
         total_funds=total_funds,
         offset=offset,
-        limit=limit,
+        at_end=at_end,
         email=current_user.email,
         first_name=current_user.first_name,
         last_name=current_user.last_name,
@@ -122,36 +121,25 @@ def search_transactions():
   # 2. Extract the validated data and run search
   try:
     uuid = get_uuid_from_cookie()
-    search_term = form.search_term.data
-    amt_min = form.search_amt_min.data
-    amt_max = form.search_amt_max.data
-    date_min = form.search_date_min.data
-    date_max = form.search_date_max.data
-    envelope_ids = form.search_envelope_ids.data or []
-    account_ids = form.search_account_ids.data or []
+    search_term = form.search_term.data #string
+    amt_min = form.search_amt_min.data #int
+    amt_max = form.search_amt_max.data #int
+    date_min = form.search_date_min.data #datetime
+    date_max = form.search_date_max.data #datetime
+    envelope_ids = form.search_envelope_ids.data or [] #list[int]
+    account_ids = form.search_account_ids.data or [] #list[int]
     timestamp = request.form['timestamp']
 
     # 3. Render the templates and return the response
     check_pending_transactions(uuid, timestamp)
-    (transactions_data, offset, limit) = get_search_transactions(
-      uuid,
-      start=0,
-      amount=50,
-      search_term=search_term,
-      amt_min=amt_min,
-      amt_max=amt_max,
-      date_min=date_min,
-      date_max=date_max,
-      envelope_ids=envelope_ids,
-      account_ids=account_ids
-    )
-    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_user_account_dict(uuid)
+    (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids)
+    (_, envelopes_data, _) = get_user_envelope_dict(uuid)
+    (_, accounts_data) = get_user_account_dict(uuid)
     response = {'current_page': 'Search results'}
     if not transactions_data:
       response['transactions_html'] = render_template('transactions.html', current_page='Search results', transactions_data=[], empty_message='No search results found')
     else:
-      response['transactions_html'] = render_template('transactions.html', current_page='Search results', transactions_data=transactions_data, envelopes_data=envelopes_data, accounts_data=accounts_data, offset=offset, limit=limit, TType=TType)
+      response['transactions_html'] = render_template('transactions.html', current_page='Search results', transactions_data=transactions_data, envelopes_data=envelopes_data, accounts_data=accounts_data, offset=offset, at_end=at_end, TType=TType)
     return jsonify(response)
   except Exception as e:
     return jsonify({'toasts': [str(e)]})
@@ -203,52 +191,56 @@ def data_reload():
     timestamp = js_data['timestamp']
     should_reload_transactions_bin = js_data['should_reload_transactions_bin']
     check_pending_transactions(uuid, timestamp) #Apply any pending transactions that need to before rendering the template
+    
+    # Fetch the reloaded transactions according to the current_page
     if 'account/' in current_page:
       regex = re.compile(r'account/(\d+)')
       account_id = int(regex.findall(current_page)[0])
-      (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,0,50)
-      page_total = balanceformat(get_account(account_id).balance/100)
+      (transactions_data, offset, at_end, account) = get_account_transactions(uuid,account_id,0,50)
+      page_total = balanceformat(account.balance/100)
     elif 'envelope/' in current_page:
       regex = re.compile(r'envelope/(\d+)')
       envelope_id = int(regex.findall(current_page)[0])
-      (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,0,50)
-      page_total = balanceformat(get_envelope(envelope_id).balance/100)
+      (transactions_data, offset, at_end, envelope) = get_envelope_transactions(uuid,envelope_id,0,50)
+      page_total = balanceformat(envelope.balance/100)
     elif 'Search' in current_page:
-      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], 0, 50) # TODO: Edit this function
+      cs = js_data.get('current_search') or {}
+      (search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids) = _revalidate_search_params(cs)
+
+      # Fetch the searched transactions
+      (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids)
       page_total = None
+    elif current_page == 'All Transactions':
+      (transactions_data, offset, at_end, total_funds) = get_home_transactions(uuid,0,50)
+      page_total = balanceformat(total_funds)
     else:
-      current_page = 'All Transactions'
-      (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
-      page_total = balanceformat(get_total(uuid))
-    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_user_account_dict(uuid)
+      log_write(f"LOAD MORE TRANSACTIONS ERROR: Unknown current_page value: {current_page}")
+      return jsonify(error="Something went wrong. Please refresh and try again.")
+    
+    # Render/return the data needed to reload the page
+    (are_active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+    (are_active_accounts, accounts_data) = get_user_account_dict(uuid)
     data = {}
     data['total'] = get_total(uuid)
     data['unallocated'] = get_envelope_balance(u.unallocated_e_id)/100
-    data['accounts_html'] = render_template('accounts.html', active_accounts=active_accounts, accounts_data=accounts_data)
-    data['envelopes_html'] = render_template('envelopes.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
+    data['accounts_html'] = render_template('accounts.html', are_active_accounts=are_active_accounts, accounts_data=accounts_data)
+    data['envelopes_html'] = render_template('envelopes.html', are_active_envelopes=are_active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
     data['account_select_options_html'] = render_template('account_select_options.html', accounts_data=accounts_data)
     data['account_select_options_special_html'] = render_template('account_select_options.html', accounts_data=accounts_data, special=True)
     data['envelope_select_options_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
     data['envelope_select_options_special_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id, special=True)
     data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total,  unallocated_e_id=u.unallocated_e_id)
     data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
-    data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', active_envelopes=active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
+    data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', are_active_envelopes=are_active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
     data['page_total'] = page_total
     if should_reload_transactions_bin:
-      data['transactions_html'] = render_template(
-        'transactions.html',
-        current_page=current_page,
-        transactions_data=transactions_data,
-        envelopes_data=envelopes_data,
-        accounts_data=accounts_data,
-        offset=offset,
-        limit=limit,
-        TType=TType
-      )
+      data['transactions_html'] = render_template('transactions.html',current_page=current_page,transactions_data=transactions_data,envelopes_data=envelopes_data,accounts_data=accounts_data,offset=offset,at_end=at_end,TType=TType)
     return jsonify(data)
   except CustomException as e:
     return jsonify({"error": str(e)})
+  except Exception as e:
+    log_write(f"DATA RELOAD ERROR: {str(e)}")
+    return jsonify({"error": "An unknown error occurred. Please refresh and try again."})
 
 # Loads more transactions for display into the transaction list on the home dashboard
 @main_bp.route('/api/load-more', methods=['POST'])
@@ -262,44 +254,49 @@ def load_more():
     current_page = js_data['current_page']
     # TODO: When implementing unit test framework, test what happens if the user somehow manually changes the current_page variable so that it doesn't include a valid account or envelope id
     # TODO: When implementing unit test framework, if the user manually changes the offset variable to something other than a valid integer, the app will crash. Test for this.
+    
+    # Fetch the new transactions according to the current_page
     if 'account/' in current_page:
       regex = re.compile(r'account/(\d+)')
       account_id = int(regex.findall(current_page)[0])
-      (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,current_offset,50)
+      (transactions_data, offset, at_end, _) = get_account_transactions(uuid,account_id,current_offset,50)
     elif 'envelope/' in current_page:
       regex = re.compile(r'envelope/(\d+)')
       envelope_id = int(regex.findall(current_page)[0])
-      (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,current_offset,50)
+      (transactions_data, offset, at_end, _) = get_envelope_transactions(uuid,envelope_id,current_offset,50)
     elif 'Search' in current_page:
-      (transactions_data, offset, limit) = get_search_transactions(uuid, js_data['search_term'], current_offset, 50) # TODO: edit this function
-    else:
-      (transactions_data, offset, limit) = get_home_transactions(uuid,current_offset,50)
+      current_search = js_data.get('current_search') or {}
+      (search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids) = _revalidate_search_params(current_search)
 
-    (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-    (active_accounts, accounts_data) = get_user_account_dict(uuid)
-    more_transactions = render_template(
-      'more_transactions.html',
-      transactions_data=transactions_data,
-      accounts_data=accounts_data,
-      envelopes_data=envelopes_data,
-      current_page=current_page,
-      TType = TType
-    )
-    return jsonify({'offset': offset, 'limit': limit, 'transactions': more_transactions})
+      # Fetch the searched transactions
+      (transactions_data, offset, at_end) = get_search_transactions(uuid, current_offset, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids)
+    elif current_page == 'All Transactions':
+      (transactions_data, offset, at_end, _) = get_home_transactions(uuid,current_offset,50)
+    else:
+      log_write(f"LOAD MORE TRANSACTIONS ERROR: Unknown current_page value: {current_page}")
+      return jsonify(error="Something went wrong. Please refresh and try again.")
+
+    # Render/return the more_transactions.html template and offset/at_end data (needed to update the data attributes on the #load-more button)
+    (_, envelopes_data, _) = get_user_envelope_dict(uuid)
+    (_, accounts_data) = get_user_account_dict(uuid)
+    more_transactions = render_template('more_transactions.html',transactions_data=transactions_data,accounts_data=accounts_data,envelopes_data=envelopes_data,current_page=current_page,TType = TType)
+    return jsonify({'offset': offset, 'at_end': at_end, 'transactions': more_transactions})
   
   except CustomException as e:
-      return jsonify({"error": str(e)})
+    return jsonify({"error": str(e)})
+  except Exception as e:
+    log_write(f"LOAD MORE TRANSACTIONS ERROR: {str(e)}")
+    return jsonify({"error": "An unknown error occurred. Please refresh and try again."})
 
 
 # ---------------- Helper builders (not routes) ----------------
 def _build_home_page(uuid, timestamp):
   check_pending_transactions(uuid, timestamp)
-  (transactions_data, offset, limit) = get_home_transactions(uuid,0,50)
-  (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-  (active_accounts, accounts_data) = get_user_account_dict(uuid)
-  page_total = balanceformat(get_total(uuid))
+  (transactions_data, offset, at_end, total_funds) = get_home_transactions(uuid,0,50)
+  (_, envelopes_data, _) = get_user_envelope_dict(uuid)
+  (_, accounts_data) = get_user_account_dict(uuid)
   return {
-    'page_total': page_total,
+    'page_total': balanceformat(total_funds),
     'current_page': 'All Transactions',
     'transactions_html': render_template(
       'transactions.html',
@@ -308,21 +305,19 @@ def _build_home_page(uuid, timestamp):
       envelopes_data=envelopes_data,
       accounts_data=accounts_data,
       offset=offset,
-      limit=limit,
+      at_end=at_end,
       TType=TType
     )
   }
 
 def _build_envelope_page(uuid, envelope_id, timestamp):
   check_pending_transactions(uuid, timestamp)
-  (transactions_data, offset, limit) = get_envelope_transactions(uuid,envelope_id,0,50)
-  (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-  (active_accounts, accounts_data) = get_user_account_dict(uuid)
-  page_total = balanceformat(get_envelope(envelope_id).balance/100)
-  name = get_envelope(envelope_id).name
+  (transactions_data, offset, at_end, envelope) = get_envelope_transactions(uuid,envelope_id,0,50)
+  (_, envelopes_data, _) = get_user_envelope_dict(uuid)
+  (_, accounts_data) = get_user_account_dict(uuid)
   return {
-    'page_total': page_total,
-    'current_page': name,
+    'page_total': balanceformat(envelope.balance/100),
+    'current_page': envelope.name,
     'transactions_html': render_template(
       'transactions.html',
       current_page=f'envelope/{envelope_id}',
@@ -330,21 +325,19 @@ def _build_envelope_page(uuid, envelope_id, timestamp):
       envelopes_data=envelopes_data,
       accounts_data=accounts_data,
       offset=offset,
-      limit=limit,
+      at_end=at_end,
       TType=TType
     )
   }
 
 def _build_account_page(uuid, account_id, timestamp):
   check_pending_transactions(uuid, timestamp)
-  (transactions_data, offset, limit) = get_account_transactions(uuid,account_id,0,50)
-  (active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
-  (active_accounts, accounts_data) = get_user_account_dict(uuid)
-  page_total = balanceformat(get_account(account_id).balance/100)
-  name = get_account(account_id).name
+  (transactions_data, offset, at_end, account) = get_account_transactions(uuid,account_id,0,50)
+  (_, envelopes_data, _) = get_user_envelope_dict(uuid)
+  (_, accounts_data) = get_user_account_dict(uuid)
   return {
-    'page_total': page_total,
-    'current_page': name,
+    'page_total': balanceformat(account.balance/100),
+    'current_page': account.name,
     'transactions_html': render_template(
       'transactions.html',
       current_page=f'account/{account_id}',
@@ -352,10 +345,73 @@ def _build_account_page(uuid, account_id, timestamp):
       envelopes_data=envelopes_data,
       accounts_data=accounts_data,
       offset=offset,
-      limit=limit,
+      at_end=at_end,
       TType=TType
     )
   }
+
+def _revalidate_search_params(cs):
+  """
+  Used in /api/data_reload and /api/load-more
+  These routes receive a json version of the cached search parameters entered into the transaction search form. (from the JS: Budgeteer.current_search)
+  This data needs to be re-validated using the built in WTForms validators on the TransactionSearchForm() for two reasons
+  1. To ensure the data is still valid and hasn't changed since it was cached.
+  2. To run any necessary data conversions (e.g. strings to integers) using the form's validators.
+
+  PARAMS:
+  * cs: A dict of all the cached search parameters from the transaction search form. Keys include:
+    - searchTerm
+    - searchAmtMin
+    - searchAmtMax
+    - searchDateMin
+    - searchDateMax
+    - searchEnvelopeIds
+    - searchAccountIds
+
+  RETURNS:
+  * A tuple of the validated/converted search parameters:
+    - search_term(string)
+    - amt_min(int)
+    - amt_max(int)
+    - date_min(datetime)
+    - date_max(datetime)
+    - envelope_ids(list[int])
+    - account_ids(list[int])
+  """
+
+  # Build a MultiDict that mimics form submission so WTForms validators/processors run
+  md_items = []
+  md_items.append(('search_term', cs.get('searchTerm', '')))
+  md_items.append(('search_amt_min', cs.get('searchAmtMin', '')))
+  md_items.append(('search_amt_max', cs.get('searchAmtMax', '')))
+  md_items.append(('search_date_min', cs.get('searchDateMin', '')))
+  md_items.append(('search_date_max', cs.get('searchDateMax', '')))
+
+  # For multi-selects, include one tuple per selected value so MultiDict.getlist() works
+  for id in (cs.get('searchEnvelopeIds') or []):
+    md_items.append(('search_envelope_ids', id))
+  for id in (cs.get('searchAccountIds') or []):
+    md_items.append(('search_account_ids', id))
+
+  form = TransactionSearchForm(MultiDict(md_items))
+  # If you have CSRF globally enabled and this code runs outside a normal form flow,
+  # you can disable CSRF on the form class or pass meta={'csrf': False} when constructing.
+
+  # Validate the form to ensure all data is present and valid and to run conversions using the custom validators
+  if not form.validate():
+    log_write(f"LOAD MORE SEARCH TRANSACTIONS FAIL: Revalidation of cached search fields failed") # This shouldn't happen unless someone programatically submits faulty data
+    raise InvalidFormDataError("ERROR: Something went wrong. Please refresh the page and try again.")
+
+  # Now use the converted/validated values
+  search_term = form.search_term.data
+  amt_min = form.search_amt_min.data
+  amt_max = form.search_amt_max.data
+  date_min = form.search_date_min.data
+  date_max = form.search_date_max.data
+  envelope_ids = form.search_envelope_ids.data or []
+  account_ids = form.search_account_ids.data or []
+
+  return (search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids)
 
 # Route to create a new BASIC_TRANSACTION
 @main_bp.route('/new_expense', methods=['POST'])
