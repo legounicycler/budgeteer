@@ -319,7 +319,7 @@
           refresh_reconcile();
           Budgeteer.current_page = "All Transactions";
           Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
-          Budgeteer.current_search = null;
+          Budgeteer.current_search = {};
         });
       });
 
@@ -342,7 +342,7 @@
           refresh_reconcile();
           Budgeteer.current_page = "envelope/".concat(envelope_id);
           Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
-          Budgeteer.current_search = null;
+          Budgeteer.current_search = {};
         });
       });
 
@@ -365,7 +365,7 @@
           refresh_reconcile();
           Budgeteer.current_page = "account/".concat(account_id);
           Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
-          Budgeteer.current_search = null;
+          Budgeteer.current_search = {};
         });
       });
 
@@ -1155,25 +1155,25 @@
     // Load more transactions button
     $('#bin').on('click', '#load-more', function() {
       data = {}
-      if (Budgeteer.current_page === "Search Results") {
-        data['search_term'] = Budgeteer.current_search;
-      }
       data['offset'] = parseInt($(this).attr('data-offset'));
       data['current_page'] = Budgeteer.current_page;
+      if (Budgeteer.current_page === "Search Results") {
+        data['current_search'] = Budgeteer.current_search;
+      }
       $.ajax({
         type: 'POST',
         url: '/api/load-more',
-        data: JSON.stringify(data),
+        data: JSON.stringify(data), //TODO: Should this have a timestamp?
         contentType: 'application/json'
       }).done(function( o ) {
         if (o['error']) { M.toast({html: o['error']}); return; }
-        $('#load-more').before(o['transactions'])
-        if (o['limit']) {
-          $('#load-more').remove()
+        $('#load-more').before(o['transactions']);
+        if (o['at_end']) {
+          $('#load-more').remove();
         } else {
-          $('#load-more').attr('data-offset', o['offset'])
+          $('#load-more').attr('data-offset', o['offset']);
         }
-        refresh_reconcile()
+        refresh_reconcile();
       });
     });
 
@@ -1258,10 +1258,17 @@
 
     // Retrieves updated data from database and updates the necessary html
     function data_reload(current_page, should_reload_transactions_bin=true) {
-      data = {"current_page": current_page, "timestamp": gen_timestamp(), "should_reload_transactions_bin": should_reload_transactions_bin}
+      
+      // 1. Prepare the necessary data to send to the server
+      data = {}
+      data["current_page"] = current_page;
+      data["timestamp"] = gen_timestamp();
+      data["should_reload_transactions_bin"] = should_reload_transactions_bin;
       if (current_page.includes('Search')) {
-        data['search_term'] = $('#transaction-search').val().trim();
+        data['current_search'] = Budgeteer.current_search;
       }
+
+      // 2. Send the data to the server
       return $.ajax({
         type: "POST",
         url: "/api/data-reload",

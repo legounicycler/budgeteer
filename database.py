@@ -408,13 +408,21 @@ def get_transaction(id):
 def get_home_transactions(uuid, start, amount):
     """
     For displaying transactions on the HOME PAGE ONLY
-    Given a start number and an amount of transactions to fetch, returns:
-    1. A list of transaction objects for display
-    2. An offset signifying how many transactions are currently displayed, or where the next start should be.
-    3. limit - If this is true, there are no more transactions to fetch
-    
-    Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
-    with its summed total
+
+    PARAMS:
+    * uuid (str) - The UUID of the user making the request
+    * start (int) - The starting index for pagination
+    * amount (int) - The number of transactions to fetch
+
+    RETURNS:
+    * tlist (list[Transaction]) - A list of Transaction objects for display.
+    * offset (int) - An integer signifying how many transactions are currently displayed, which determines where the next fetch should start on a load-more request
+    * at_end (bool) - True signifies there are no more transactions to fetch
+    * total_funds (int) - The sum of all account balances. Displayed in dashboard header title and in the #page-total div
+
+    NOTES:
+    * Grouped transactions (Split transactions and envelope fills) display as a single transaction with their summed total
+    * Returned Transaction amounts are converted to floats for display (i.e. -12.34)
     """
     u = get_user_by_uuid(uuid)
     
@@ -465,23 +473,34 @@ def get_home_transactions(uuid, start, amount):
 
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
-    # if limit is True you're at the end of the list
+    # if at_end is True you're at the end of the list
     if len(tlist) < amount:
-        limit = True
+        at_end = True
     else:
-        limit = False
-    return tlist, offset, limit
+        at_end = False
+    total_funds = get_total(uuid)
+
+    return tlist, offset, at_end, total_funds
 
 def get_envelope_transactions(uuid, envelope_id, start, amount):
     """
     For displaying transactions on the ENVELOPE PAGE ONLY
-    Given a start number and an amount of transactions to fetch, returns for a particular envelope:
-    1. A list of transaction objects for display
-    2. An offset signifying how many transactions are currently displayed, or where the next start should be.
-    3. limit - If this is true, there are no more transactions to fetch
-    
-    Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
-    with its summed total
+
+    PARAMS:
+    * uuid (str) - The UUID of the user making the request
+    * envelope_id (int) - The ID of the envelope to fetch transactions for
+    * start (int) - The starting index for pagination
+    * amount (int) - The number of transactions to fetch
+
+    RETURNS:
+    * tlist (list[Transaction]) - A list of Transaction objects for display.
+    * offset (int) - An integer signifying how many transactions are currently displayed, which determines where the next fetch should start on a load-more request
+    * at_end (bool) - If this is true, there are no more transactions to fetch
+    * envelope (Envelope) - The envelope object itself
+
+    NOTES:
+    * Grouped transactions (Split transactions and envelope fills) display as a single transaction with their summed total
+    * Transaction amounts are converted to floats for display (i.e. -12.34)
     """
 
     # Make sure envelope exists and uuid matches envelope uuid
@@ -520,23 +539,32 @@ def get_envelope_transactions(uuid, envelope_id, start, amount):
 
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
-    # if limit is True you're at the end of the list
+    # if at_end is True you're at the end of the list
     if len(tlist) < amount:
-        limit = True
+        at_end = True
     else:
-        limit = False
-    return tlist, offset, limit
+        at_end = False
+    return tlist, offset, at_end, get_envelope(envelope_id)
 
 def get_account_transactions(uuid, account_id, start, amount):
     """
     For displaying transactions on the ACCOUNTS PAGE ONLY
-    Given a start number and an amount of transactions to fetch, returns for a particular account:
-    1. A list of transaction objects for display
-    2. An offset signifying how many transactions are currently displayed, or where the next start should be.
-    3. limit - If this is true, there are no more transactions to fetch
-    
-    Note: Grouped transactions (Split transactions and envelope fills) displays as a single transaction
-    with its summed total
+
+    PARAMS:
+    * uuid (str) - The UUID of the user making the request
+    * account_id (int) - The ID of the account to fetch transactions for
+    * start (int) - The starting index for pagination
+    * amount (int) - The number of transactions to fetch
+
+    RETURNS:
+    * tlist (list[Transaction]) - A list of Transaction objects for display.
+    * offset (int) - An integer signifying how many transactions are currently displayed, which determines where the next fetch should start on a load-more request
+    * at_end (bool) - True signifies there are no more transactions to fetch
+    * account (Account) - The account object itself
+
+    NOTES:
+    * Grouped transactions (Split transactions and envelope fills) display as a single transaction with their summed total
+    * Transaction amounts are converted to floats for display (i.e. -12.34)
     """
     # Make sure account exists and uuid matches account uuid
     c.execute("SELECT user_id FROM accounts WHERE id=?",(account_id,))
@@ -575,20 +603,38 @@ def get_account_transactions(uuid, account_id, start, amount):
     
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
-    # if limit is True you're at the end of the list
+    # if at_end is True you're at the end of the list
     if len(tlist) < amount:
-        limit = True
+        at_end = True
     else:
-        limit = False
-    return tlist, offset, limit
+        at_end = False
+    return tlist, offset, at_end, get_account(account_id)
 
 def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None, amt_max=None, date_min=None, date_max=None, envelope_ids=None, account_ids=None):
-    """Advanced search for transactions.
+    """
+    For displaying transactions on the SEARCH PAGE ONLY
+    
+    PARAMS:
+    * uuid (str): The UUID of the user
+    * start (int): The starting index for fetching transactions
+    * amount (int): The number of transactions to fetch
+    * search_term (str): Optional search term to filter transactions by name or note
+    * amt_min (int): Optional minimum amount filter
+    * amt_max (int): Optional maximum amount filter
+    * date_min (datetime): Optional minimum date filter
+    * date_max (datetime): Optional maximum date filter
+    * envelope_ids (list[int]): Optional list of envelope IDs to filter by
+    * account_ids (list[int]): Optional list of account IDs to filter by
 
-    All filters optional. Returns grouped representative transaction ids similar to home queries.
-    Amounts are stored in cents; amt_min/amt_max expected in cents.
-    date_min/date_max strings in 'YYYY-MM-DD'.
-    envelope_ids/account_ids lists of ints.
+    RETURNS:
+    * tlist (list[Transaction]) - A list of Transaction objects for display
+    * offset (int) - An integer signifying how many transactions are currently displayed, which determines where the next fetch should start on a load-more request
+    * at_end (bool) - True signifies there are no more transactions to fetch
+    
+    NOTES:
+    * Grouped transactions (Split transactions and envelope fills, account/envelope transfers) display as a single transaction with their summed total
+    * Transaction amounts are converted to floats for display (i.e. -12.34)
+    * All search filters optional.
     """
     print("GETTING SEARCH TRANSACTIONS")
     print(f"Start: {start}, Amount: {amount}, Search term: {search_term}, amt_min: {amt_min}, amt_max: {amt_max}, date_min: {date_min}, date_max: {date_max}, env_ids: {envelope_ids}, acct_ids: {account_ids}")
@@ -609,8 +655,10 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
         where_clauses.append("day <= ?")
         params.append(date_max)
 
-    # For amount filtering, we need to determine an amount per grouping; we handle by filtering representative rows by raw amount sign corrected for types.
-    # Simplest approach: apply amount filters after fetching and computing t.amt.
+    # TODO: This part doesn't actually work. Need to  work out how to include the min/max into the query otherwise it doesn't actually return 50 results
+    # For filtering transactions by the min and max amounts, we need to determine a summed amount per grouping, not by individual transaction
+    # This is easiest to do after you've fetched all the grouped transactions, then you can filter out those that fall outside the bounds
+    # So if either an amt_min or amt_max is provided, set amt_filter_post to True to signal that we should filter out the grouped transactions that fall outside the range
     amt_filter_post = (amt_min is not None) or (amt_max is not None)
 
     if envelope_ids:
@@ -624,7 +672,6 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
 
     where_sql = ' AND '.join(where_clauses)
 
-    
     query = f"""
         SELECT id FROM transactions
         WHERE {where_sql}
@@ -675,23 +722,27 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
             t.amt = c.fetchone()[0]  # Total the amount for the envelope fill
 
         t.amt = t.amt/100
+        print(f"Post-filtered amount for transaction {t.id}: {t.amt}")
         # Post amount filtering (in dollars) if necessary
+
         if amt_filter_post:
             amt_cents = abs(int(round(t.amt * 100)))
             if amt_min is not None and amt_cents < amt_min:
+                print(f"Post-filtered transaction {t.id} below minimum amount: {amt_cents} < {amt_min}")
                 continue
             if amt_max is not None and amt_cents > amt_max:
+                print(f"Post-filtered transaction {t.id} above maximum amount: {amt_cents} > {amt_max}")
                 continue
         tlist.append(t)
     
     # offset specifies where to start from on the next call
     offset = start + len(tlist)
-    # if limit is True you're at the end of the list
+    # if at_end is True you're at the end of the list
     if len(tlist) < amount:
-        limit = True
+        at_end = True
     else:
-        limit = False
-    return tlist, offset, limit
+        at_end = False
+    return tlist, offset, at_end
 
 def delete_transaction(uuid, t_id):
     """
@@ -920,21 +971,25 @@ def get_account(id):
 def get_user_account_dict(uuid):
     """
     Used for displaying the accounts in the side panel and selects.
-    Returns:
-    1. A boolean that says whether there are accounts to render
-    2. A tuple with a dictionary with keys of account_id and values of account objects.
+    
+    RETURNS:
+    * A boolean that says whether there are accounts to render
+    * A tuple with a dictionary with keys of account_id and values of account objects.
+
+    NOTES:
+    * Account amounts are converted to floats for display (i.e. 23.05)
     """
     c.execute("SELECT id FROM accounts where user_id=? ORDER by display_order ASC, id ASC", (uuid,))
     ids = unpack(c.fetchall())
     a_dict = {}
-    active_accounts = False
+    are_active_accounts = False
     for id in ids:
         a = get_account(id)
         a.balance = a.balance/100
         a_dict[id] = a
         if a.deleted == 0:
-            active_accounts = True
-    return (active_accounts, a_dict)
+            are_active_accounts = True
+    return (are_active_accounts, a_dict)
 
 def get_user_account_order(uuid):
     """
@@ -1112,16 +1167,20 @@ def get_envelope(id):
 def get_user_envelope_dict(uuid):
     """
     Used for displaying the envelopes in the side panel and selects.
-    Returns:
-    1. A boolean that says whether there are envelopes to render
-    2. A tuple with a dictionary with keys of envelope_id and values of envelope objects.
-    3. A string displaying the total budget for all envelopes
+
+    RETURNS:
+    * A boolean that says whether there are envelopes to render
+    * A tuple with a dictionary with keys of envelope_id and values of envelope objects.
+    * A string displaying the total budget for all envelopes
+
+    NOTES:
+    * Envelope amounts & budgets are converted to floats for display (i.e. 23.05)
     """
     u = get_user_by_uuid(uuid)
     c.execute("SELECT id FROM envelopes WHERE user_id=? ORDER by display_order ASC, id ASC", (uuid,))
     ids = unpack(c.fetchall())
     e_dict = {}
-    active_envelopes = False
+    are_active_envelopes = False
     budget_total = 0
     for id in ids:
         e = get_envelope(id)
@@ -1129,9 +1188,9 @@ def get_user_envelope_dict(uuid):
         e.budget = e.budget/100
         e_dict[id] = e
         if e.deleted == 0 and e.id != u.unallocated_e_id:
-            active_envelopes = True
+            are_active_envelopes = True
             budget_total = budget_total + e.budget
-    return (active_envelopes, e_dict, budget_total)
+    return (are_active_envelopes, e_dict, budget_total)
 
 def get_user_envelope_order(uuid):
     """
@@ -1387,7 +1446,12 @@ def update_user_last_login(u, date):
 
 def get_total(uuid):
     """
-    Sums the account balances for display
+    RETURNS:
+    * The sum of all balances of accounts for the provided user.
+
+    NOTES:
+    * The returned value is in dollars for display (i.e. 23.05)
+    * Displays in the dashboard header titile on the home page and in the #total div on all pages
     """
     c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (uuid,))
     total = c.fetchone()[0]
@@ -1436,7 +1500,13 @@ def get_grouped_ids_from_id(t_id):
 def get_grouped_json(uuid, t_id):
     """
     Given a transaction id, return a json with the transaction data necessary to fill the transaction editor
-    This function is called for displaying ENVELOPE_TRANSFER's, ACCOUNT_TRANSFER's, SPLIT_TRANSACTION's, and ENVELOPE_FILL's
+
+    RETURNS:
+    * A dictionary containing the transaction data
+
+    NOTES:
+    * This function is called for displaying ENVELOPE_TRANSFER's, ACCOUNT_TRANSFER's, SPLIT_TRANSACTION's, and ENVELOPE_FILL's
+    * The transaction amounts are converted to floats for display (i.e. 23.05)
     """
     if get_transaction(t_id).user_id != uuid:
         raise UnauthorizedAccessError(f"ERROR: User {uuid} attempted to get grouped transaction data for id={t_id} which belongs to user {get_transaction(t_id).user_id}.")

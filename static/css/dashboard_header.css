@@ -66,6 +66,7 @@
   margin: 0 0 0 1em;
   text-decoration: underline;
   font-weight: bold;
+  line-height: 10px; /* This allows the text to wrap to a second line without flowing over into column below */
 }
 
 /* Make visual focus on elements obvious with color change */
