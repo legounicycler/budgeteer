@@ -24,8 +24,9 @@ $(document).ready(function() {
       method: method,
       data: $(this).serialize() + "&timestamp=" + gen_timestamp(),
     }).done(function(o) {
-      if (o.toasts) {o.toasts.forEach((toast) => M.toast({html: toast}));}
-      if (o.errors) {displayFieldErrors(o.errors); return;}
+      if (o.error) {M.toast({html: o.error}); return;}
+      if (o.field_errors) {displayFieldErrors(o.field_errors); return;}
+      
       $('#transactions-bin').replaceWith(o.transactions_html);
       if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]); }
       $('#current-page').text(o.current_page);
@@ -35,6 +36,7 @@ $(document).ready(function() {
 
       //Update the global variables
       Budgeteer.none_checked = true;
+      Budgeteer.only_clear_searchfield = false; // Set the behavior of the "X" icon when clicked to return to previous page rather than only clearing the search fields
       Budgeteer.current_search = {
         searchTerm: $("#transaction-search").val().trim(),
         searchAmtMin: $("#search_amt_min").val().trim(),
@@ -44,11 +46,11 @@ $(document).ready(function() {
         searchEnvelopeIds: $("#search_envelope_ids").val(),
         searchAccountIds: $("#search_account_ids").val()
       };
-      Budgeteer.only_clear_searchfield = false; // Set the behavior of the "X" icon when clicked to return to previous page rather than only clearing the search fields
-      if (Budgeteer.current_page != "Search Results") { //Update the previous and current page unless you're entering a new search from a search results page,
+      if (Budgeteer.current_page != "Search results") { //Update the previous and current page unless you're entering a new search from a search results page,
         Budgeteer.previous_page = Budgeteer.current_page;
-        Budgeteer.current_page = "Search Results";
+        Budgeteer.current_page = "Search results";
       }
+      if (o.toasts) { o.toasts.forEach((toast) => M.toast({html: toast})); }
     });
 
   });
