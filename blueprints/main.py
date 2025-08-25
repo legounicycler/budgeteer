@@ -116,7 +116,7 @@ def search_transactions():
   # 1. Validate the form fields
   form = TransactionSearchForm()
   if not form.validate():
-    return jsonify(success=False, errors={field.name: field.errors for field in form if field.errors})
+    return jsonify(field_errors={field.name: field.errors for field in form if field.errors})
 
   # 2. Extract the validated data and run search
   try:
@@ -142,7 +142,8 @@ def search_transactions():
       response['transactions_html'] = render_template('transactions.html', current_page='Search results', transactions_data=transactions_data, envelopes_data=envelopes_data, accounts_data=accounts_data, offset=offset, at_end=at_end, TType=TType)
     return jsonify(response)
   except Exception as e:
-    return jsonify({'toasts': [str(e)]})
+    log_write(f"ERROR in get_search_transactions() function: {e}\n{traceback.format_exc()}")
+    return jsonify({'error': "Something went wrong!"})
 
 # Display the transactions on the home dashboard from the page you were on before the search
 @main_bp.route('/api/reset-search', methods=['POST'])
@@ -161,7 +162,7 @@ def reset_search():
     if prev.lower() in ['all transactions']:
       return jsonify(_build_home_page(uuid, timestamp))
     if prev.startswith('envelope/'):
-      try:
+      try: # TODO: Probably don't need these value errors here. Use generic message in the bottom try/catch.
         envelope_id = int(prev.split('/',1)[1])
       except ValueError:
         return jsonify({'error': 'Invalid envelope id'})
@@ -206,8 +207,6 @@ def data_reload():
     elif 'Search' in current_page:
       cs = js_data.get('current_search') or {}
       (search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids) = _revalidate_search_params(cs)
-
-      # Fetch the searched transactions
       (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids)
       page_total = None
     elif current_page == 'All Transactions':
@@ -425,9 +424,9 @@ def new_expense(edited=False):
       raise InvalidFormDataError("ERROR: No transaction name was submitted for new expense!")
 
     if not form.validate():
-      errors = {field.name: field.errors for field in form if field.errors}
-      log_write(f"NEW EXPENSE FAIL: Errors - {errors}")
-      return jsonify(success=False, errors=errors)
+      field_errors = {field.name: field.errors for field in form if field.errors}
+      log_write(f"NEW EXPENSE FAIL: Field Errors - {field_errors}")
+      return jsonify(success=False, field_errors=field_errors)
 
     uuid = get_uuid_from_cookie()
     names = [n.lstrip() for n in names.split(',') if n.lstrip()] #Parse name field separated by commas
@@ -512,9 +511,9 @@ def new_transfer(edited=False):
       raise InvalidFormDataError("ERROR: No transaction name was submitted for new transfer!")
 
     if not form.validate():
-      errors = {field.name: field.errors for field in form if field.errors}
-      log_write(f"NEW TRANSFER FAIL: Errors - {errors}")
-      return jsonify(success=False, errors=errors)
+      field_errors = {field.name: field.errors for field in form if field.errors}
+      log_write(f"NEW TRANSFER FAIL: Field Errors - {field_errors}")
+      return jsonify(success=False, field_errors=field_errors)
 
     uuid = get_uuid_from_cookie()
     transfer_type = int(request.form['transfer_type'])
@@ -600,9 +599,9 @@ def new_income(edited=False):
       raise InvalidFormDataError("ERROR: No transaction name was submitted for new income!")
 
     if not form.validate():
-      errors = {field.name: field.errors for field in form if field.errors}
-      log_write(f"NEW INCOME FAIL: Errors - {errors}")
-      return jsonify(success=False, errors=errors)
+      field_errors = {field.name: field.errors for field in form if field.errors}
+      log_write(f"NEW INCOME FAIL: Field Errors - {field_errors}")
+      return jsonify(success=False, field_errors=field_errors)
 
     uuid = get_uuid_from_cookie()
     u = get_user_by_uuid(uuid)
