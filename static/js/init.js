@@ -1157,7 +1157,7 @@
       data = {}
       data['offset'] = parseInt($(this).attr('data-offset'));
       data['current_page'] = Budgeteer.current_page;
-      if (Budgeteer.current_page === "Search Results") {
+      if (Budgeteer.current_page === "Search results") {
         data['current_search'] = Budgeteer.current_search;
       }
       $.ajax({
@@ -1487,7 +1487,7 @@
         url: url,
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
-        if (o['success']) {
+        if (o.success) {
           if (remain_open == 1) { // RESET NAME FIELD, STAY OPEN
             // If the form was submitted with the submit and new button
             $('#transaction-modal form').data('remain-open',0) //Reset the remain-open attribute
@@ -1538,7 +1538,7 @@
             });
           }
         } else {
-          if (o.errors) {displayFieldErrors(o.errors);}
+          if (o.field_errors) {displayFieldErrors(o.field_errors);}
         }
         if (o['toasts']) { o['toasts'].forEach((toast) => M.toast({html: toast})); } //Display toasts
       });
@@ -1622,6 +1622,7 @@
               refresh_reconcile();
               o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
             }, 500);
+            Budgeteer.none_checked = true;
           });
 
         });
@@ -1823,7 +1824,7 @@
         $("#edit-envelope-fill").detach();
         $("#edit-envelope-delete").detach();
         $("#edit-account-adjust").detach()
-        $("#edit-amount").text(balance_format(-1*amt)).negative_check(-1*amt);
+        $("#edit-amount").text(balance_format(amt)).negative_check(amt);
         $("#edit-account-delete-id").val(account_id)
         $("#noneditable-date").val(date);
       } else if (type == ACCOUNT_ADJUST) {
