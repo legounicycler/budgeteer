@@ -471,13 +471,8 @@ def get_home_transactions(uuid, start, amount):
         t.amt = t.amt/100
         tlist.append(t)
 
-    # offset specifies where to start from on the next call
     offset = start + len(tlist)
-    # if at_end is True you're at the end of the list
-    if len(tlist) < amount:
-        at_end = True
-    else:
-        at_end = False
+    at_end = (len(tlist) < amount)
     total_funds = get_total(uuid)
 
     return tlist, offset, at_end, total_funds
@@ -537,13 +532,8 @@ def get_envelope_transactions(uuid, envelope_id, start, amount):
         t.amt = t.amt * -1 / 100
         tlist.append(t)
 
-    # offset specifies where to start from on the next call
     offset = start + len(tlist)
-    # if at_end is True you're at the end of the list
-    if len(tlist) < amount:
-        at_end = True
-    else:
-        at_end = False
+    at_end = (len(tlist) < amount)
     return tlist, offset, at_end, get_envelope(envelope_id)
 
 def get_account_transactions(uuid, account_id, start, amount):
@@ -601,13 +591,8 @@ def get_account_transactions(uuid, account_id, start, amount):
         t.amt = thing[1] * -1 / 100
         tlist.append(t)
     
-    # offset specifies where to start from on the next call
     offset = start + len(tlist)
-    # if at_end is True you're at the end of the list
-    if len(tlist) < amount:
-        at_end = True
-    else:
-        at_end = False
+    at_end = (len(tlist) < amount)
     return tlist, offset, at_end, get_account(account_id)
 
 def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None, amt_max=None, date_min=None, date_max=None, envelope_ids=None, account_ids=None):
@@ -619,8 +604,8 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
     * start (int): The starting index for fetching transactions
     * amount (int): The number of transactions to fetch
     * search_term (str): Optional search term to filter transactions by name or note
-    * amt_min (int): Optional minimum amount filter
-    * amt_max (int): Optional maximum amount filter
+    * amt_min (int): Optional minimum amount filter (in cents)
+    * amt_max (int): Optional maximum amount filter (in cents)
     * date_min (datetime): Optional minimum date filter
     * date_max (datetime): Optional maximum date filter
     * envelope_ids (list[int]): Optional list of envelope IDs to filter by
@@ -630,69 +615,104 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
     * tlist (list[Transaction]) - A list of Transaction objects for display
     * offset (int) - An integer signifying how many transactions are currently displayed, which determines where the next fetch should start on a load-more request
     * at_end (bool) - True signifies there are no more transactions to fetch
-    
-    NOTES:
-    * Grouped transactions (Split transactions and envelope fills, account/envelope transfers) display as a single transaction with their summed total
-    * Transaction amounts are converted to floats for display (i.e. -12.34)
-    * All search filters optional.
     """
-    print("GETTING SEARCH TRANSACTIONS")
+
+    print("GETTING SEARCH TRANSACTIONS (grouped, computed display_amt in SQL)")
     print(f"Start: {start}, Amount: {amount}, Search term: {search_term}, amt_min: {amt_min}, amt_max: {amt_max}, date_min: {date_min}, date_max: {date_max}, env_ids: {envelope_ids}, acct_ids: {account_ids}")
     u = get_user_by_uuid(uuid)
 
-    where_clauses = ["user_id = ?"]
-    params = [uuid]
+    # WHERE filters (rows that participate in grouping)
+    where_clauses = ["user_id = :user_id"]
+    params = {"user_id": uuid}
 
     if search_term:
-        search_pattern = f"%{search_term}%"
-        where_clauses.append("(name LIKE ? OR note LIKE ?)")
-        params.extend([search_pattern, search_pattern])
-
+        params["search_pattern"] = f"%{search_term}%"
+        where_clauses.append("(name LIKE :search_pattern OR note LIKE :search_pattern)")
     if date_min:
-        where_clauses.append("day >= ?")
-        params.append(date_min)
+        where_clauses.append("day >= :date_min"); params["date_min"] = date_min
     if date_max:
-        where_clauses.append("day <= ?")
-        params.append(date_max)
-
-    # TODO: This part doesn't actually work. Need to  work out how to include the min/max into the query otherwise it doesn't actually return 50 results
-    # For filtering transactions by the min and max amounts, we need to determine a summed amount per grouping, not by individual transaction
-    # This is easiest to do after you've fetched all the grouped transactions, then you can filter out those that fall outside the bounds
-    # So if either an amt_min or amt_max is provided, set amt_filter_post to True to signal that we should filter out the grouped transactions that fall outside the range
-    amt_filter_post = (amt_min is not None) or (amt_max is not None)
+        where_clauses.append("day <= :date_max"); params["date_max"] = date_max
 
     if envelope_ids:
-        placeholders = ','.join(['?']*len(envelope_ids))
-        where_clauses.append(f"envelope_id IN ({placeholders})")
-        params.extend(envelope_ids)
+        placeholders = []
+        for i, eid in enumerate(envelope_ids):
+            key = f"env_{i}"
+            placeholders.append(f":{key}")
+            params[key] = eid
+        where_clauses.append(f"envelope_id IN ({', '.join(placeholders)})")
+
     if account_ids:
-        placeholders = ','.join(['?']*len(account_ids))
-        where_clauses.append(f"account_id IN ({placeholders})")
-        params.extend(account_ids)
+        placeholders = []
+        for i, aid in enumerate(account_ids):
+            key = f"acc_{i}"
+            placeholders.append(f":{key}")
+            params[key] = aid
+        where_clauses.append(f"account_id IN ({', '.join(placeholders)})")
 
-    where_sql = ' AND '.join(where_clauses)
+    where_sql = " AND ".join(where_clauses)
 
-    query = f"""
-        SELECT id FROM transactions
+    inner = f'''
+        SELECT
+            MIN(id) AS rep_id,
+            MAX(day) AS group_day,
+            COALESCE(
+                CASE
+                    WHEN MAX(CASE WHEN type IN ({TType.BASIC_TRANSACTION.id}, {TType.INCOME.id}, {TType.ACCOUNT_ADJUST.id}, {TType.ACCOUNT_DELETE.id}) THEN 1 ELSE 0 END) = 1
+                        THEN -SUM(amount)
+                    WHEN MAX(CASE WHEN type IN ({TType.ENVELOPE_TRANSFER.id}, {TType.ACCOUNT_TRANSFER.id}) THEN 1 ELSE 0 END) = 1
+                        THEN MAX(ABS(amount))
+                    WHEN MAX(CASE WHEN type = {TType.SPLIT_TRANSACTION.id} THEN 1 ELSE 0 END) = 1
+                        THEN -SUM(amount)
+                    WHEN MAX(CASE WHEN type = {TType.ENVELOPE_FILL.id} THEN 1 ELSE 0 END) = 1
+                        THEN SUM(CASE WHEN envelope_id = :unalloc THEN amount ELSE 0 END)
+                    ELSE SUM(amount)
+                END
+            , NULL) AS display_amt
+        FROM transactions
         WHERE {where_sql}
         GROUP BY grouping
-        ORDER BY day DESC, id DESC
-        LIMIT ? OFFSET ?
-    """
-    params.extend([amount, start])
+    '''
 
-    print(f"Search query: {query}")
-    print(f"Search params: {params}")
+    # outer WHERE (on the subquery's display_amt) using named params
+    outer_where = []
+    if amt_min is not None:
+        outer_where.append("ABS(display_amt) >= :amt_min"); params["amt_min"] = amt_min
+    if amt_max is not None:
+        outer_where.append("ABS(display_amt) <= :amt_max"); params["amt_max"] = amt_max
+    outer_where_sql = ("WHERE " + " AND ".join(outer_where)) if outer_where else ""
 
-    c.execute(query, tuple(params))
-    grouped_ids = c.fetchall()
+    query = f'''
+        SELECT rep_id, group_day, display_amt
+        FROM (
+            {inner}
+        ) sub
+        {outer_where_sql}
+        ORDER BY group_day DESC, rep_id DESC
+        LIMIT :limit OFFSET :offset
+    '''
+
+    # add unallocated id, limit and offset to params dict
+    params["unalloc"] = u.unallocated_e_id
+    params["limit"] = amount
+    params["offset"] = start
+
+    print("Search query:", query)
+    print("Search params:", params)
+    c.execute(query, params)
+    rows = c.fetchall()
+
     tlist = []
-    for id in grouped_ids:
-        t = get_transaction(id[0])
-        # Set the amount for display - similar to get_home_transactions
-        if t.type == TType.BASIC_TRANSACTION or t.type == TType.INCOME or t.type == TType.ACCOUNT_ADJUST or t.type == TType.ACCOUNT_DELETE:
-            t.amt = -1 * t.amt
-        elif t.type == TType.ENVELOPE_TRANSFER:
+    for (rep_id, _, display_amt) in rows:
+        t = get_transaction(rep_id)
+
+        # Override and normalize amount from SQL (display_amt is in cents and already matches front-end sign rules)
+        if display_amt is None:
+            display_amt = 0
+        t.amt = display_amt / 100.0
+
+        # For transfers use aggregated positive/negative endpoint ids so we don't need extra queries
+        if t.type == TType.ENVELOPE_TRANSFER:
+            # Get the id for the other envelope and put it in the t.account_id field for special display in the .transaction-details div
             t_ids = get_ids_from_grouping(t.grouping)
             if (t.amt > 0):
                 from_envelope_id = get_transaction(t_ids[0]).envelope_id
@@ -700,10 +720,12 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
             else:
                 from_envelope_id = get_transaction(t_ids[1]).envelope_id
                 to_envelope_id = get_transaction(t_ids[0]).envelope_id
-            t.envelope_id = from_envelope_id
-            t.account_id = to_envelope_id
-            t.amt = abs(t.amt)
+            # Display format (eID -> aID) or for envelope transfers, (fromEnvelope -> toEnvelope)
+            t.envelope_id = from_envelope_id # When displaying transactions, envelope ID is always displayed first.
+            t.account_id = to_envelope_id    # When displaying transactions, account ID is always displayed second
+            # t.amt = abs(t.amt)
         elif t.type == TType.ACCOUNT_TRANSFER:
+            # Get the id for the other account and put it in the t.account_id field for special display in the .transaction-details div
             t_ids = get_ids_from_grouping(t.grouping)
             if (t.amt > 0):
                 from_account_id = get_transaction(t_ids[0]).account_id
@@ -711,37 +733,16 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
             else:
                 from_account_id = get_transaction(t_ids[1]).account_id
                 to_account_id = get_transaction(t_ids[0]).account_id
-            t.envelope_id = from_account_id
-            t.account_id = to_account_id
-            t.amt = abs(t.amt)
-        elif t.type == TType.SPLIT_TRANSACTION:
-            c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=?", (t.grouping,))
-            t.amt = -1 * c.fetchone()[0]  # Total the amount for all the constituent transactions
-        elif t.type == TType.ENVELOPE_FILL:
-            c.execute("SELECT SUM(amount) FROM transactions WHERE grouping=? AND envelope_id=?", (t.grouping,u.unallocated_e_id))
-            t.amt = c.fetchone()[0]  # Total the amount for the envelope fill
+            # Display format (eID -> aID) or for account transfers, (fromAccount -> toAccount)
+            t.envelope_id = from_account_id # When displaying transactions, envelope ID is always displayed first.
+            t.account_id = to_account_id    # When displaying transactions, account ID is always displayed second
+            # t.amt = abs(t.amt)
+        # For other types (BASIC, SPLIT, ENVELOPE_FILL, etc.) display_amt already matches your existing logic
 
-        t.amt = t.amt/100
-        print(f"Post-filtered amount for transaction {t.id}: {t.amt}")
-        # Post amount filtering (in dollars) if necessary
-
-        if amt_filter_post:
-            amt_cents = abs(int(round(t.amt * 100)))
-            if amt_min is not None and amt_cents < amt_min:
-                print(f"Post-filtered transaction {t.id} below minimum amount: {amt_cents} < {amt_min}")
-                continue
-            if amt_max is not None and amt_cents > amt_max:
-                print(f"Post-filtered transaction {t.id} above maximum amount: {amt_cents} > {amt_max}")
-                continue
         tlist.append(t)
-    
-    # offset specifies where to start from on the next call
+
     offset = start + len(tlist)
-    # if at_end is True you're at the end of the list
-    if len(tlist) < amount:
-        at_end = True
-    else:
-        at_end = False
+    at_end = (len(tlist) < amount)
     return tlist, offset, at_end
 
 def delete_transaction(uuid, t_id):
