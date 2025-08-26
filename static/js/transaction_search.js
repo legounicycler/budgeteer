@@ -64,12 +64,6 @@ $(document).ready(function() {
     if (field.checkValidity && !field.checkValidity()) {
       $f.removeClass('valid').addClass('invalid');
     }
-
-    // If the form is completely empty, hide the clear button
-    // if (isFormCompletelyEmpty($('#transaction-search-form'))) {
-    //   $('#clear-search').css("pointer-events", "none").attr("display", "none"); // TODO: THIS DOESN'T WORK
-    // }
-
   }).on('change', 'input', function(){
     // On change, clear error messages since the user is actively editing
     var $f = $(this);
@@ -79,10 +73,26 @@ $(document).ready(function() {
     if ($f.hasClass('invalid')) $f.removeClass('invalid');
 
     // If the form is NOT completely empty, show the clear button
-    // if (!isFormCompletelyEmpty($('#transaction-search-form'))) {
-    //   $('#clear-search').css("pointer-events", "auto").attr("display", "inline-block").css("color", "#444"); // TODO: THIS DOESN'T WORK
-    // }
+    if (isFormCompletelyEmpty($('#transaction-search-form')) && Budgeteer.current_page != "Search results") {
+      $('#clear-search').css({"pointer-events": "none", "display": "none"}).attr("tabindex", "-1");
+    } else {
+      $('#clear-search').css({"pointer-events": "auto", "display": "inline-block"}).attr("tabindex", "0");
+    }
+  }).on('change', 'select', function(){
+    if (isFormCompletelyEmpty($('#transaction-search-form')) && Budgeteer.current_page != "Search results") {
+      $('#clear-search').css({"pointer-events": "none", "display": "none"}).attr("tabindex", "-1");
+    } else {
+      $('#clear-search').css({"pointer-events": "auto", "display": "inline-block"}).attr("tabindex", "0");
+    }
+  }).on('input', 'input', function(){
+    if (isFormCompletelyEmpty($('#transaction-search-form')) && Budgeteer.current_page != "Search results") {
+      $('#clear-search').css({"pointer-events": "none", "display": "none"}).attr("tabindex", "-1");
+    } else {
+      $('#clear-search').css({"pointer-events": "auto", "display": "inline-block"}).attr("tabindex", "0");
+    }
   });
+
+
 
   // Clear search field, and if you're on a search page then return to the previous page you started from
   $("#clear-search").on('mousedown', function() {
@@ -138,7 +148,6 @@ $(document).ready(function() {
     }
   });
 
-  Budgeteer.initializeSpecialSelects();
 
 }); // End document ready
 
