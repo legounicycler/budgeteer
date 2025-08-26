@@ -39,7 +39,7 @@ def home():
       (are_active_accounts, accounts_data) = get_user_account_dict(uuid)
       response = make_response(render_template(
         'layout.html',
-        current_page='All transactions',
+        current_page='All Transactions',
         are_active_envelopes=are_active_envelopes,
         unallocated_balance=get_envelope_balance(u.unallocated_e_id)/100,
         envelopes_data=envelopes_data,

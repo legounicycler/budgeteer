@@ -360,9 +360,25 @@ def insert_transaction(t):
     """
     with conn:
         # ---1. INSERT THE TRANSACTION INTO THE TABLE---
-        c.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)",
-        (t.id, t.type.id, t.name, t.amt, t.date, t.envelope_id, t.account_id, t.grouping, t.note, t.schedule, t.status, t.user_id, t.pending))
-        
+        c.execute(
+            "INSERT INTO transactions VALUES (:id, :type, :name, :amt, :date, :envelope_id, :account_id, :grouping, :note, :schedule, :status, :user_id, 0, 0, :pending)",
+            {
+                "id": t.id,
+                "type": t.type.id,
+                "name": t.name,
+                "amt": t.amt,
+                "date": t.date,
+                "envelope_id": t.envelope_id,
+                "account_id": t.account_id,
+                "grouping": t.grouping,
+                "note": t.note,
+                "schedule": t.schedule,
+                "status": t.status,
+                "user_id": t.user_id,
+                "pending": t.pending
+            }
+        )
+
         # ---2. UPDATE THE ACCOUNT/ENVELOPE BALANCES---
         if not t.pending: #Only update balances if transaction is not pending
             apply_transaction(t.account_id, t.envelope_id, t.amt)
@@ -617,22 +633,24 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
     * at_end (bool) - True signifies there are no more transactions to fetch
     """
 
-    print("GETTING SEARCH TRANSACTIONS (grouped, computed display_amt in SQL)")
-    print(f"Start: {start}, Amount: {amount}, Search term: {search_term}, amt_min: {amt_min}, amt_max: {amt_max}, date_min: {date_min}, date_max: {date_max}, env_ids: {envelope_ids}, acct_ids: {account_ids}")
+    # 1. Fetch the user object
     u = get_user_by_uuid(uuid)
 
-    # WHERE filters (rows that participate in grouping)
+    # 2. Build a list of WHERE clauses and their associated parameters based on all the search terms
     where_clauses = ["user_id = :user_id"]
-    params = {"user_id": uuid}
+    params = {"user_id": uuid, "limit": amount, "offset": start, "unalloc": u.unallocated_e_id}
 
+    # 2.1 Create the parameters and where clauses for the search_term and dates
     if search_term:
         params["search_pattern"] = f"%{search_term}%"
+        # Search both name and note fields
         where_clauses.append("(name LIKE :search_pattern OR note LIKE :search_pattern)")
     if date_min:
         where_clauses.append("day >= :date_min"); params["date_min"] = date_min
     if date_max:
         where_clauses.append("day <= :date_max"); params["date_max"] = date_max
 
+    # 2.2 Create the parameters and WHERE clauses for the given envelope_ids
     if envelope_ids:
         placeholders = []
         for i, eid in enumerate(envelope_ids):
@@ -641,6 +659,7 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
             params[key] = eid
         where_clauses.append(f"envelope_id IN ({', '.join(placeholders)})")
 
+    # 2.3 Create the parameters and WHERE clauses for the given account_ids
     if account_ids:
         placeholders = []
         for i, aid in enumerate(account_ids):
@@ -649,23 +668,32 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
             params[key] = aid
         where_clauses.append(f"account_id IN ({', '.join(placeholders)})")
 
+    # 2.4 Combine all WHERE clauses into a single SQL string
     where_sql = " AND ".join(where_clauses)
 
+    # 3. Construct the inner SQL query
+    # In order to filter transactions by amount, one representative transaction per unique grouping number must first be fetched (using rep_id)
+    # Then the transaction display amount must be computed according to the transaction type (i.e. the amt for a split transaction is the sum of its parts)
+    # This query applies the previously constructed WHERE clauses and parameters, and the min/max amt parameters are applied in the outer query
+    # The group_day is used to order the results in the outer query
+    # For calculating display amounts:
+    #   ENVELOPE/ACCOUNT_TRANSFER's display as the absolute value of the amount transferred between envelopes/accounts
+    #   ENVELOPE_FILL's display as the amount filled from unallocated to the envelope
+    #   ENVELOPE_DELETE's display as the amount deleted from the envelope
+    #   Everything else displays as the negative sum of the amounts (since all amounts in the database are negative of what is typicallly displayed)
     inner = f'''
         SELECT
             MIN(id) AS rep_id,
             MAX(day) AS group_day,
             COALESCE(
                 CASE
-                    WHEN MAX(CASE WHEN type IN ({TType.BASIC_TRANSACTION.id}, {TType.INCOME.id}, {TType.ACCOUNT_ADJUST.id}, {TType.ACCOUNT_DELETE.id}) THEN 1 ELSE 0 END) = 1
-                        THEN -SUM(amount)
                     WHEN MAX(CASE WHEN type IN ({TType.ENVELOPE_TRANSFER.id}, {TType.ACCOUNT_TRANSFER.id}) THEN 1 ELSE 0 END) = 1
                         THEN MAX(ABS(amount))
-                    WHEN MAX(CASE WHEN type = {TType.SPLIT_TRANSACTION.id} THEN 1 ELSE 0 END) = 1
-                        THEN -SUM(amount)
                     WHEN MAX(CASE WHEN type = {TType.ENVELOPE_FILL.id} THEN 1 ELSE 0 END) = 1
                         THEN SUM(CASE WHEN envelope_id = :unalloc THEN amount ELSE 0 END)
-                    ELSE SUM(amount)
+                    WHEN MAX(CASE WHEN type = {TType.ENVELOPE_DELETE.id} THEN 1 ELSE 0 END) = 1
+                        THEN SUM(amount)
+                    ELSE -SUM(amount)
                 END
             , NULL) AS display_amt
         FROM transactions
@@ -673,7 +701,7 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
         GROUP BY grouping
     '''
 
-    # outer WHERE (on the subquery's display_amt) using named params
+    # 4. Construct the outer WHERE clauses which appliy filtering based on the min/max amts
     outer_where = []
     if amt_min is not None:
         outer_where.append("ABS(display_amt) >= :amt_min"); params["amt_min"] = amt_min
@@ -681,6 +709,7 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
         outer_where.append("ABS(display_amt) <= :amt_max"); params["amt_max"] = amt_max
     outer_where_sql = ("WHERE " + " AND ".join(outer_where)) if outer_where else ""
 
+    # 5. Construct the final query combining the inner and outer queries
     query = f'''
         SELECT rep_id, group_day, display_amt
         FROM (
@@ -691,26 +720,21 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
         LIMIT :limit OFFSET :offset
     '''
 
-    # add unallocated id, limit and offset to params dict
-    params["unalloc"] = u.unallocated_e_id
-    params["limit"] = amount
-    params["offset"] = start
-
-    print("Search query:", query)
-    print("Search params:", params)
+    # 6. Execute the query and fetch results
     c.execute(query, params)
     rows = c.fetchall()
 
+    # 7. Generate the final list of display transactions by updating the necessary object attributes
     tlist = []
     for (rep_id, _, display_amt) in rows:
         t = get_transaction(rep_id)
 
-        # Override and normalize amount from SQL (display_amt is in cents and already matches front-end sign rules)
+        # 7.1 Override the amt to display_amt
         if display_amt is None:
             display_amt = 0
         t.amt = display_amt / 100.0
 
-        # For transfers use aggregated positive/negative endpoint ids so we don't need extra queries
+        # 7.2 Update other transaction attributes as needed
         if t.type == TType.ENVELOPE_TRANSFER:
             # Get the id for the other envelope and put it in the t.account_id field for special display in the .transaction-details div
             t_ids = get_ids_from_grouping(t.grouping)
@@ -725,7 +749,7 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
             t.account_id = to_envelope_id    # When displaying transactions, account ID is always displayed second
             # t.amt = abs(t.amt)
         elif t.type == TType.ACCOUNT_TRANSFER:
-            # Get the id for the other account and put it in the t.account_id field for special display in the .transaction-details div
+            # Same idea as envelope transfers but for accounts
             t_ids = get_ids_from_grouping(t.grouping)
             if (t.amt > 0):
                 from_account_id = get_transaction(t_ids[0]).account_id
@@ -733,14 +757,15 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
             else:
                 from_account_id = get_transaction(t_ids[1]).account_id
                 to_account_id = get_transaction(t_ids[0]).account_id
-            # Display format (eID -> aID) or for account transfers, (fromAccount -> toAccount)
             t.envelope_id = from_account_id # When displaying transactions, envelope ID is always displayed first.
             t.account_id = to_account_id    # When displaying transactions, account ID is always displayed second
             # t.amt = abs(t.amt)
-        # For other types (BASIC, SPLIT, ENVELOPE_FILL, etc.) display_amt already matches your existing logic
+        # For other types (BASIC, SPLIT, ENVELOPE_FILL, etc.) display_amt already matches existing logic
 
+        # 7.3 Append the updated transaction to the list
         tlist.append(t)
 
+    # 8. Update the pagination information and return the results
     offset = start + len(tlist)
     at_end = (len(tlist) < amount)
     return tlist, offset, at_end
