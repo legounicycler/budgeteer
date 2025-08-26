@@ -256,6 +256,9 @@
         }
       });
 
+      // Hide the clear search button (because it's unhidden when the datepickers get initialized)
+      $('#clear-search').css({"pointer-events": "none", "display": "none"});
+
       // When schedule checkbox is focused, open it on ENTER
       $('input[name="scheduled"]').keydown(function(e) {
         if (e.key == "Enter") {
