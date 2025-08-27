@@ -225,6 +225,19 @@
   #transaction-search {
     height: 2rem;
     font-size: .75rem;
+    padding-left: 2.5rem;
+  }
+
+  /* Position the search icon in the main transaction search input */
+  #search-icon {
+    top: calc(50% - 12px);
+    left: .5rem;
+  }
+
+  #close-search {
+    right: -2.5rem;
+    font-size: 1.8rem;
+    top: calc(50% - .9rem);
   }
 
   /* Change from flex to inherit so that the searchbar columns can wrap and display under the page title columns */

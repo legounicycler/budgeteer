@@ -35,6 +35,7 @@
     Budgeteer.current_page = "All Transactions"; //Used to determine which transactions to reload on a data reload (also used in transactions.html to properly color transaction amount)
     Budgeteer.none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
     Budgeteer.transactionsScrollerElement = null; // Store the div for the transactions scroller which is used in the custom scroll behavior function. Updated on data_reload()
+    Budgeteer.showMultiSelectIcons = showMultiSelectIcons;
 
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
@@ -720,18 +721,36 @@
 
     // Hide/show the transaction checkbox or date AND hide/show the multidelete buttons
     function multideleteToggleCheck() {
+      var prev_none_checked = Budgeteer.none_checked;
       Budgeteer.none_checked = true;
       $('.t-delete-checkbox').each(function() {
         if (this.checked) Budgeteer.none_checked = false;
       });
-      if (Budgeteer.none_checked) {
-        $('.checkbox-bucket, .multi-select-col').hide();
-        $('#multi-select-icons').addClass("hide");
+      if (Budgeteer.none_checked && !prev_none_checked) {
+        $('.checkbox-bucket').hide();
         $('.date-bucket').show();
-      } else {
-        $('.checkbox-bucket, .multi-select-col').show();
-        $('#multi-select-icons').removeClass("hide");
+        showMultiSelectIcons(false);
+      } else if (!Budgeteer.none_checked && prev_none_checked) {
+        $('.checkbox-bucket').show();
         $('.date-bucket').hide();
+        showMultiSelectIcons(true);
+      } else {
+        return;
+      }
+
+    }
+
+    // New function to toggle multi-select icons with animation
+    function showMultiSelectIcons(show) {
+      console.log("SHOWMULTISELECTICONS FUNCTION");
+      if (show) {
+        $('#multi-select-icons').removeClass('hide').css("width", "auto");
+        var newWidth = $('#multi-select-icons').width();
+        $('#multi-select-icons').css('width', '0px').removeClass("hide").animate({width: newWidth}, 100);
+      } else {
+        $('#multi-select-icons').animate({width: '0px'}, 100, function() {
+          $(this).addClass('hide').css("display", ""); //NOTE: The css display must be set to "" otherwise it gets automatically set to none by the animate function
+        });
       }
     }
 
@@ -1607,8 +1626,6 @@
         data: $(this).serialize() + "&timestamp=" + gen_timestamp() //Append a timestamp to the serialized form data
       }).done(function( o ) {
         if (o['error']) { M.toast({html: o['error']}); return; }
-        $(".multi-select-col").hide();
-        $("#multi-select-icons").addClass("hide");
         data_reload(Budgeteer.current_page, false).then(function() {
 
           // 1. Update the data offset
@@ -1617,15 +1634,13 @@
           $("#load-more").attr('data-offset', parseInt(original_offset) - num_deleted);
 
           // 2. Remove the deleted transactions rows
-          $(".t-delete-checkbox:checked").closest(".transaction-row").css({"display": "block", "border": "none"}).animate({height: "0px"}, 500).promise().done(function() {
+          $(".t-delete-checkbox:checked").closest(".transaction-row").css({"display": "block", "border": "none"}).animate({height: "0px"}, 200).promise().done(function() {
             setTimeout(() => {
               $(".t-delete-checkbox:checked").closest(".transaction-row").remove();
-              $(".date-bucket").show();
-              $('.checkbox-bucket').hide();
+              multideleteToggleCheck();
               refresh_reconcile();
               o['toasts'].forEach((toast) => M.toast({html: toast})); //Display toasts
-            }, 500);
-            Budgeteer.none_checked = true;
+            }, 200);
           });
 
         });
