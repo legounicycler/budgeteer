@@ -92,16 +92,12 @@ $(document).ready(function() {
     }
   });
 
-
-
-  // Clear search field, and if you're on a search page then return to the previous page you started from
-  $("#clear-search").on('mousedown', function() {
-    $(this).fadeOut(200); // Fade out the close button
+  function clearSearch() {
+    $("#clear-search").fadeOut(200); // Fade out the close button
     Budgeteer.current_search = {}; // Reset the global variable used to store the current search term
-    
+
     // Clear all the fields in the advanced search bar
     $("#transaction-search-form").trigger("reset");
-    // TODO: Clear the errors?
 
     // Reset all envelope/account select checkboxes in search dropdowns to unchecked
     $('#search_envelope_ids, #search_account_ids').each(function() {
@@ -110,10 +106,9 @@ $(document).ready(function() {
       const $ul = $('#' + $input.attr('data-target'));
       $ul.find('input[type="checkbox"]').each(function() {
         if ($(this).prop('checked')) {
-         $(this).parent().parent().parent().click(); //Click the li element to uncheck/unselect the checkbox
+          $(this).parent().parent().parent().click(); // Click the li element to uncheck/unselect the checkbox
         }
       });
-
     });
 
     // Reset the labels
@@ -139,6 +134,17 @@ $(document).ready(function() {
       Budgeteer.only_clear_searchfield = true;
       $("#multi-select-icons").addClass("hide");
     });
+  }
+
+  $("#clear-search").on('pointerdown', function(e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return; //Don't trigger on right-click
+    e.preventDefault();
+    clearSearch();
+  }).on('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      clearSearch();
+    }
   });
 
   // Show/hide the advanced search fields when the advanced search dropdown arrow is clicked
