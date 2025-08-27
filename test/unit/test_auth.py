@@ -24,37 +24,6 @@ def modify_dict(d, key, value):
 # endregion HELPERS
 
 # region FIXTURES
-
-# Define a fixture for the context of a logged-in user
-@pytest.fixture
-def logged_in_user_client(client):
-    """
-    Creates a fixture for a logged-in user in the Flask application context.
-
-    Parameters:
-    - app: The Flask application instance.
-    - client: The test client for the Flask application.
-
-    Returns:
-    - The test client with a logged-in user in the context.
-    """
-    
-    # 1. Insert a new user to the database
-    uuid = generate_uuid()
-    (new_password_hash, new_password_salt) = User.hash_password("password")
-    new_user = User(uuid, "email@example.com", new_password_hash, new_password_salt, "Firstname", "Lastname", datetime.now())
-    insert_user(new_user)
-
-    #2. Simulate a user login
-    login_user(new_user)
-
-    # 3. Yield the test client with the logged-in user in the context
-    yield client
-
-@pytest.fixture
-def mail_instance(app):
-    return app.extensions['mail']
-
 @pytest.fixture
 def mock_verify_recaptcha(mocker):
     return mocker.patch('blueprints.auth.verify_recaptcha', return_value=True)
