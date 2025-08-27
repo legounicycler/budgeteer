@@ -110,3 +110,12 @@ nav .brand-logo {
 i.material-icons {
   vertical-align: bottom;
 }
+
+/* Display the server error in the ::after pseudo-element (same slot Materialize uses).
+   Use a selector that targets the helper-text having data-server-error and the invalid state
+   of the control so it overrides the generic materialize rule. */
+input.invalid ~ .helper-text[data-server-error]::after,
+textarea.invalid ~ .helper-text[data-server-error]::after,
+.select-wrapper.invalid ~ .helper-text[data-server-error]::after {
+  content: attr(data-server-error) !important;
+}
