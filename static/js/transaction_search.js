@@ -32,7 +32,7 @@ $(document).ready(function() {
       $('#current-page').text(o.current_page);
       $("#page-total").hide();
       $("#separator").hide();
-      $("#multi-select-icons").addClass("hide");
+      Budgeteer.showMultiSelectIcons(false);
 
       //Update the global variables
       Budgeteer.none_checked = true;
@@ -74,19 +74,25 @@ $(document).ready(function() {
 
     // If the form is NOT completely empty, show the clear button
     if (isFormCompletelyEmpty($('#transaction-search-form')) && Budgeteer.current_page != "Search results") {
-      $('#clear-search').css({"pointer-events": "none", "display": "none"}).attr("tabindex", "-1");
+      $('#clear-search').fadeOut(200, function() {
+        $(this).css({"pointer-events": "none"}).attr("tabindex", "-1");
+      });
     } else {
       $('#clear-search').css({"pointer-events": "auto", "display": "inline-block"}).attr("tabindex", "0");
     }
   }).on('change', 'select', function(){
     if (isFormCompletelyEmpty($('#transaction-search-form')) && Budgeteer.current_page != "Search results") {
-      $('#clear-search').css({"pointer-events": "none", "display": "none"}).attr("tabindex", "-1");
+      $('#clear-search').fadeOut(200, function() {
+        $(this).css({"pointer-events": "none"}).attr("tabindex", "-1");
+      });
     } else {
       $('#clear-search').css({"pointer-events": "auto", "display": "inline-block"}).attr("tabindex", "0");
     }
   }).on('input', 'input', function(){
     if (isFormCompletelyEmpty($('#transaction-search-form')) && Budgeteer.current_page != "Search results") {
-      $('#clear-search').css({"pointer-events": "none", "display": "none"}).attr("tabindex", "-1");
+      $('#clear-search').fadeOut(200, function() {
+        $(this).css({"pointer-events": "none"}).attr("tabindex", "-1");
+      });
     } else {
       $('#clear-search').css({"pointer-events": "auto", "display": "inline-block"}).attr("tabindex", "0");
     }
@@ -132,7 +138,7 @@ $(document).ready(function() {
       refresh_reconcile();
       Budgeteer.none_checked = true;
       Budgeteer.only_clear_searchfield = true;
-      $("#multi-select-icons").addClass("hide");
+      Budgeteer.showMultiSelectIcons(false);
     });
   }
 
