@@ -300,7 +300,7 @@ Budgeteer.initializeSpecialSelects = function() {
 
   // 2.1 - Add custom style to dropdown to make envelope/account selections thinner/smaller
   // 2.2 - Override the onOpenEnd function for the select dropdown to manually set focus
-  $('#search_envelope_ids, #search_account_ids').each(function() {
+  $('#search_envelope_ids, #search_account_ids, #search_transaction_type').each(function() {
     const $select = $(this);
     const $input = $select.siblings('input.select-dropdown');
     const $ul = $('#' + $input.attr('data-target'));
