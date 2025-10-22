@@ -131,7 +131,7 @@
       Budgeteer.initializeSpecialSelects();
 
       // Add the class which specially styles the selects in the advanced search bar
-      $('#search_envelope_ids, #search_account_ids').each(function() {
+      $('#search_envelope_ids, #search_account_ids, #search_transaction_type').each(function() {
         // Get the data-target attribute from the select's generated input
         var dataTarget = $(this).siblings('input.select-dropdown').attr('data-target');
         $('#' + dataTarget).addClass('custom-dropdown-class');

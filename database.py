@@ -185,7 +185,7 @@ class TType(Enum):
     ENVELOPE_FILL = (5, "Envelope Fill", "input")
     ENVELOPE_DELETE = (6, "Envelope Delete", "layers_clear")
     ACCOUNT_DELETE = (7, "Account Delete", "money_off")
-    ACCOUNT_ADJUST = (8, "Account Adjust", "build")
+    ACCOUNT_ADJUST = (8, "Account Adjustment", "build")
 
     def __init__(self, id, desc, icon):
         self.id = id # Integer value (used in database)

@@ -162,8 +162,8 @@
   padding-left: 0;
 }
 
-/* Style the search submit buttons */
-#search-submit1, #search-submit2 {
+/* Style the search submit button */
+#search-submit{
   height: 2rem;
   line-height: 2rem;
   width: 2rem;
@@ -173,7 +173,7 @@
 }
 
 /* Align the search submit button to the right */
-#search-submit1-col {
+#search-submit-col {
   display: flex;
   justify-content: right;
 }
