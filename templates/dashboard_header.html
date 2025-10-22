@@ -27,22 +27,22 @@
         <div class="input-field col s3 l2">
           <label for="search-amt-min">Min. Amt</label>
           {{ search_form.search_amt_min(maxlength=False) }}
-          <span class="helper-text red-text left-align" data-error="Invalid number format"></span>
+          <span class="helper-text red-text left-align" data-error="Invalid number"></span>
         </div>
         <div class="input-field col s3 l2">
           <label for="search-amt-max">Max. Amt</label>
           {{ search_form.search_amt_max(maxlength=False) }}
-          <span class="helper-text red-text left-align" data-error="Invalid number format"></span>
+          <span class="helper-text red-text left-align" data-error="Invalid number"></span>
         </div>
         <div class="input-field col s3 l2">
           <label for="search-date-min">Min. Date</label>
           {{ search_form.search_date_min() }}
-          <span class="helper-text red-text left-align" data-error="Format as MM/DD/YYYY"></span>
+          <span class="helper-text red-text left-align" data-error="MM/DD/YYYY"></span>
         </div>
         <div class="input-field col s3 l2">
           <label for="search-date-max">Max. Date</label>
           {{ search_form.search_date_max() }}
-          <span class="helper-text red-text left-align" data-error="Format as MM/DD/YYYY"></span>
+          <span class="helper-text red-text left-align" data-error="MM/DD/YYYY"></span>
         </div>
         <div class="input-field col s5 l2">
           <select id="search_envelope_ids" class="envelope-selector" name="search_envelope_ids" multiple>

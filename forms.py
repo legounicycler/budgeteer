@@ -352,9 +352,9 @@ class TransactionSearchForm(FlaskForm):
         a_max = self.search_amt_max.data
         if a_min is not None and a_max is not None:
             if a_min > a_max:
-                msg = 'Min. amt > max. amt'
-                self.search_amt_min.errors.append(msg) # type: ignore
-                self.search_amt_max.errors.append(msg) # type: ignore
+                error_msg = 'min amt > max amt'
+                self.search_amt_min.errors.append(error_msg) # type: ignore
+                self.search_amt_max.errors.append(error_msg) # type: ignore
                 ok = False
 
         # Dates: values are converted to datetime by DateStringField
@@ -362,9 +362,9 @@ class TransactionSearchForm(FlaskForm):
         d_max = self.search_date_max.data
         if d_min is not None and d_max is not None:
             if d_min > d_max:
-                msg = "Min. date > max. date"
-                self.search_date_min.errors.append(msg) # type: ignore
-                self.search_date_max.errors.append(msg) # type: ignore
+                error_msg = "min date > max date"
+                self.search_date_min.errors.append(error_msg) # type: ignore
+                self.search_date_max.errors.append(error_msg) # type: ignore
                 ok = False
 
         return ok
