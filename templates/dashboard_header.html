@@ -23,28 +23,28 @@
       </div>
     </div>
     <div id="advanced-search-row" class="row">
-      <div id="search-inputs-col" class="col s12 l11">
-        <div class="input-field col s3 l2">
+      <div id="search-inputs-col" class="col s12">
+        <div class="input-field col s3 l3">
           <label for="search-amt-min">Min. Amt</label>
           {{ search_form.search_amt_min(maxlength=False) }}
           <span class="helper-text red-text left-align" data-error="Invalid number"></span>
         </div>
-        <div class="input-field col s3 l2">
+        <div class="input-field col s3 l3">
           <label for="search-amt-max">Max. Amt</label>
           {{ search_form.search_amt_max(maxlength=False) }}
           <span class="helper-text red-text left-align" data-error="Invalid number"></span>
         </div>
-        <div class="input-field col s3 l2">
+        <div class="input-field col s3 l3">
           <label for="search-date-min">Min. Date</label>
           {{ search_form.search_date_min() }}
           <span class="helper-text red-text left-align" data-error="MM/DD/YYYY"></span>
         </div>
-        <div class="input-field col s3 l2">
+        <div class="input-field col s3 l3">
           <label for="search-date-max">Max. Date</label>
           {{ search_form.search_date_max() }}
           <span class="helper-text red-text left-align" data-error="MM/DD/YYYY"></span>
         </div>
-        <div class="input-field col s5 l2">
+        <div class="input-field col s4 l4">
           <select id="search_envelope_ids" class="envelope-selector" name="search_envelope_ids" multiple>
             {% with special=true %}
               {% include 'envelope_select_options.html' %}
@@ -53,7 +53,7 @@
           <label for="search_envelope_ids" class="special-select-label white-text">Envelope(s)</label>
           <span class="helper-text red-text left-align"></span>
         </div>
-        <div class="input-field col s5 l2">
+        <div class="input-field col s4 l4">
           <select id="search_account_ids" class="account-selector" name="search_account_ids" multiple>
             {% with  special=true %}
               {% include 'account_select_options.html' %}
@@ -62,12 +62,24 @@
           <label for="search_account_ids" class="special-select-label white-text">Account(s)</label>
           <span class="helper-text red-text left-align"></span>
         </div>
-        <div id="search-submit1-col" class="input-field col s2 hide-on-large-only">
-          <button id="search-submit1" tabindex="-1" type="submit" class="btn orange darken-2"><i class="material-icons">search</i></button>
+        <div class="input-field col s3 l3">
+          <select id="search_transaction_type" name="search_transaction_type" multiple>
+            <option><i class="material-icons">local_atm</i>Basic Transaction</option>
+            <option>Split Transaction</option>
+            <option>Envelope Transfer</option>
+            <option>Account Transfer</option>
+            <option>Income</option>
+            <option>Envelope Fill</option>
+            <option>Envelope Delete</option>
+            <option>Account Delete</option>
+            <option>Account Adjustment</option>
+          </select>
+          <label for="search_transaction_type" class="special-select-label white-text">Type</label>
+          <span class="helper-text red-text left-align"></span>
         </div>
-      </div>
-      <div class="input-field col l1 hide-on-med-and-down">
-        <button id="search-submit2" tabindex="-1" type="submit" class="btn orange darken-2"><i class="material-icons">search</i></button>
+        <div id="search-submit-col" class="input-field col s1 l1">
+          <button id="search-submit" tabindex="-1" type="submit" class="btn orange darken-2"><i class="material-icons">search</i></button>
+        </div>
       </div>
     </div>
   </form>
