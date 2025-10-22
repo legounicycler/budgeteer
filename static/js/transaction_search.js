@@ -167,14 +167,18 @@ $(document).ready(function() {
 function toggleAdvancedSearch() {
   if ($("#dashboard-header").hasClass("collapsed")) {
     // If the header is collapsed, expand it
+    // 1. Save the current dash and bin heights
     var currentDashHeight = $('#dashboard-header').height();
     var currentBinHeight = $("#bin").height();
+    // 2. Temporarily set the new dash and bin heights using auto and save the values
     $('#dashboard-header').css('height', 'auto');
     var newDashHeight = $('#dashboard-header').height();
     $("#bin").css("height", "calc(100% - " + newDashHeight + "px)");
     var newBinHeight = $("#bin").height();
+    // 3. Reset the dash and bin heights to their original values
     $('#dashboard-header').height(currentDashHeight);
     $('#bin').height(currentBinHeight);
+    // 4. Animate the heights to the new values
     $("#dashboard-header").animate({height: newDashHeight}, 200);
     $("#bin").animate({height: newBinHeight}, 200);
     $("#dashboard-header, #advanced-search-button").removeClass("collapsed").addClass("expanded");
