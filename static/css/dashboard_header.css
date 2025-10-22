@@ -33,6 +33,10 @@
   pointer-events: none;
 }
 
+#advanced-search-row {
+  margin-bottom: 6px !important;
+}
+
 #advanced-search-row .select-wrapper {
   background-color: white;
   height: 2rem;
@@ -70,7 +74,7 @@
 }
 
 #advanced-search-row .helper-text:after {
-  margin: 0 0 0 1em;
+  margin: 0 -2em 0 .5em;
   text-decoration: underline;
   font-weight: bold;
   line-height: 10px; /* This allows the text to wrap to a second line without flowing over into column below */
