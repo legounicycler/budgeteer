@@ -51,6 +51,9 @@ $(document).ready(function() {
         Budgeteer.previous_page = Budgeteer.current_page;
         Budgeteer.current_page = "Search results";
       }
+      // TEMP
+      // console.log(o.needs_reload);
+      // if (o.needs_reload) {Budgeteer.data_reload(Budgeteer.current_page, false);}
       if (o.toasts) { o.toasts.forEach((toast) => M.toast({html: toast})); }
     });
 

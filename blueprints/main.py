@@ -89,6 +89,9 @@ def get_envelope_page():
     js_data = request.get_json()
     envelope_id = js_data['envelope_id']
     timestamp = js_data['timestamp']
+    # TEMP
+    # timestamp = (datetime.now() + timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
+    # print("SEARCH TRANSACTIONS TIMESTAMP:", timestamp)
     return jsonify(_build_envelope_page(uuid, envelope_id, timestamp))
   except CustomException:
     return jsonify({"error": "ERROR: Something went wrong and your envelope data could not be loaded!"})
@@ -130,13 +133,16 @@ def search_transactions():
     account_ids = form.search_account_ids.data or [] #list[int]
     transaction_types = form.search_transaction_types.data or [] #list[TType]
     timestamp = request.form['timestamp']
+    # TEMP
+    # timestamp = (datetime.now() + timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
+    # print("SEARCH TRANSACTIONS TIMESTAMP:", timestamp)
 
     # 3. Render the templates and return the response
-    check_pending_transactions(uuid, timestamp)
+    needs_reload = check_pending_transactions(uuid, timestamp)
     (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types)
     (_, envelopes_data, _) = get_user_envelope_dict(uuid)
     (_, accounts_data) = get_user_account_dict(uuid)
-    response = {'current_page': 'Search results'}
+    response = {'current_page': 'Search results', 'needs_reload': needs_reload} # TEMP: Copy this needs_reload to the other get_envelope_page and get_account_page functions if it works well
     if not transactions_data:
       response['transactions_html'] = render_template('transactions.html', current_page='Search results', transactions_data=[], empty_message='No search results found')
     else:
@@ -191,8 +197,11 @@ def data_reload():
     js_data = request.get_json()
     current_page = js_data['current_page']
     timestamp = js_data['timestamp']
+    # TEMP
+    # timestamp = (datetime.now() + timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
+    # print("DATA RELOAD TIMESTAMP:", timestamp)
     should_reload_transactions_bin = js_data['should_reload_transactions_bin']
-    check_pending_transactions(uuid, timestamp) #Apply any pending transactions that need to before rendering the template
+    check_pending_transactions(uuid, timestamp) # Apply any pending transactions that need to before rendering the template
     
     # Fetch the reloaded transactions according to the current_page
     if 'account/' in current_page:
@@ -291,7 +300,7 @@ def load_more():
 
 # ---------------- Helper builders (not routes) ----------------
 def _build_home_page(uuid, timestamp):
-  check_pending_transactions(uuid, timestamp)
+  needs_reload = check_pending_transactions(uuid, timestamp)
   (transactions_data, offset, at_end, total_funds) = get_home_transactions(uuid,0,50)
   (_, envelopes_data, _) = get_user_envelope_dict(uuid)
   (_, accounts_data) = get_user_account_dict(uuid)
@@ -311,7 +320,7 @@ def _build_home_page(uuid, timestamp):
   }
 
 def _build_envelope_page(uuid, envelope_id, timestamp):
-  check_pending_transactions(uuid, timestamp)
+  needs_reload = check_pending_transactions(uuid, timestamp)
   (transactions_data, offset, at_end, envelope) = get_envelope_transactions(uuid,envelope_id,0,50)
   (_, envelopes_data, _) = get_user_envelope_dict(uuid)
   (_, accounts_data) = get_user_account_dict(uuid)
@@ -331,7 +340,7 @@ def _build_envelope_page(uuid, envelope_id, timestamp):
   }
 
 def _build_account_page(uuid, account_id, timestamp):
-  check_pending_transactions(uuid, timestamp)
+  needs_reload = check_pending_transactions(uuid, timestamp)
   (transactions_data, offset, at_end, account) = get_account_transactions(uuid,account_id,0,50)
   (_, envelopes_data, _) = get_user_envelope_dict(uuid)
   (_, accounts_data) = get_user_account_dict(uuid)
