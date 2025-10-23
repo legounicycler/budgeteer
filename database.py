@@ -611,7 +611,7 @@ def get_account_transactions(uuid, account_id, start, amount):
     at_end = (len(tlist) < amount)
     return tlist, offset, at_end, get_account(account_id)
 
-def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None, amt_max=None, date_min=None, date_max=None, envelope_ids=None, account_ids=None):
+def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None, amt_max=None, date_min=None, date_max=None, envelope_ids=None, account_ids=None, transaction_types=None):
     """
     For displaying transactions on the SEARCH PAGE ONLY
     
@@ -626,6 +626,7 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
     * date_max (datetime): Optional maximum date filter
     * envelope_ids (list[int]): Optional list of envelope IDs to filter by
     * account_ids (list[int]): Optional list of account IDs to filter by
+    * transaction_types (list[TType]): Optional list of transaction types to filter by
 
     RETURNS:
     * tlist (list[Transaction]) - A list of Transaction objects for display
@@ -668,7 +669,16 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
             params[key] = aid
         where_clauses.append(f"account_id IN ({', '.join(placeholders)})")
 
-    # 2.4 Combine all WHERE clauses into a single SQL string
+    # 2.4 Create the parameters and WHERE clauses for the given transaction_types
+    if transaction_types:
+        placeholders = []
+        for i, ttype in enumerate(transaction_types):
+            key = f"ttype_{i}"
+            placeholders.append(f":{key}")
+            params[key] = ttype.id
+        where_clauses.append(f"type IN ({', '.join(placeholders)})")
+
+    # 2.5 Combine all WHERE clauses into a single SQL string
     where_sql = " AND ".join(where_clauses)
 
     # 3. Construct the inner SQL query
