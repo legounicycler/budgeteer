@@ -35,7 +35,8 @@
     Budgeteer.current_page = "All Transactions"; //Used to determine which transactions to reload on a data reload (also used in transactions.html to properly color transaction amount)
     Budgeteer.none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
     Budgeteer.transactionsScrollerElement = null; // Store the div for the transactions scroller which is used in the custom scroll behavior function. Updated on data_reload()
-    Budgeteer.showMultiSelectIcons = showMultiSelectIcons;
+    Budgeteer.showMultiSelectIcons = showMultiSelectIcons; // Make the showMultiSelectIcons function globally accessible
+    Budgeteer.data_reload = data_reload; // Make the data_reload function globally accessible
 
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){

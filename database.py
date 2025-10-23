@@ -821,7 +821,7 @@ def delete_transaction(uuid, t_id):
                         # Step 1. Get both the ID's for the ENVELOPE_DELETE transactions of the deleted envelope referenced by the transaction
                         c.execute("""SELECT id FROM transactions WHERE grouping = (
                                         SELECT grouping FROM transactions WHERE (type=? AND envelope_id=?)
-                                    )""", (TType.ENVELOPE_DELETE, t.envelope_id)
+                                    )""", (TType.ENVELOPE_DELETE.id, t.envelope_id)
                                     )
                         e_delete_ids = unpack(c.fetchall())
 
@@ -832,12 +832,12 @@ def delete_transaction(uuid, t_id):
                             # Step 3. Change the amount by which you will adjust the transaction amount depending on whether
                             #         it was filling or draining the envelopes in the ENVELOPE_DELETE transaction.
                             if e_delete_t.envelope_id == u.unallocated_e_id:
-                                amt = t.amt*-1
+                                e_delete_t.amt = e_delete_t.amt - t.amt
                             else:
-                                amt = t.amt
+                                e_delete_t.amt = e_delete_t.amt + t.amt
 
                             # Step 4. Update the ENVELOPE_DELETE transaction amount
-                            c.execute("UPDATE transactions SET amount=? WHERE id=?",(e_delete_t.amt + amt, e_delete_id))
+                            c.execute("UPDATE transactions SET amount=? WHERE id=?",(e_delete_t.amt, e_delete_id))
                             log_write('T UPDATE: ' + str(e_delete_t))
                         
                 if t.account_id is not None:
@@ -900,13 +900,17 @@ def check_pending_transactions(uuid, timestamp):
         uuid (str): User UUID
         timestamp (str): Timestamp passed in from the user's browser with format "yyyy-mm-dd hh:mm:ss"
     RETURNS:
-        None
+        (bool): True if any transactions were applied or unapplied, False otherwise
     """
+    print("Checking pending transactions for user " + str(uuid) + " with timestamp " + str(timestamp))
     with conn:
+        transactions_changed = False
 
         # 1. Fetch all the pending transactions that are from on/before the timestamp and organize them into sublists by their grouping number
         c.execute("SELECT id FROM transactions WHERE pending=1 AND user_id=? AND date(day) <= date(?)",(uuid, timestamp[0:10],)) 
         t_ids = c.fetchall()
+        if len(t_ids) != 0:
+            transactions_changed = True
         grouped_ts = []
         prev_t_grouping = None
         for id in t_ids:
@@ -953,11 +957,12 @@ def check_pending_transactions(uuid, timestamp):
         c.execute("SELECT id,account_id,envelope_id,amount FROM transactions WHERE pending=0 AND user_id=? AND date(day) > date(?)",(uuid, timestamp[0:10],))
         t_data_list = c.fetchall()
         if len(t_data_list) != 0:
+            transactions_changed = True
             for (id, a_id, e_id, amt) in t_data_list:
                 unapply_transaction(a_id, e_id, amt)
                 c.execute("UPDATE transactions SET pending=1 WHERE id=?",(id,))
-    
-    return None
+
+    return transactions_changed
 
 def generate_scheduled_transaction(t, timestamp, should_consider_timestamp):
     """
