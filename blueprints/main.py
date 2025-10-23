@@ -217,7 +217,7 @@ def data_reload():
       log_write(f"LOAD MORE TRANSACTIONS ERROR: Unknown current_page value: {current_page}")
       return jsonify(error="Something went wrong. Please refresh and try again.")
     
-    # Render/return the data needed to reload the page
+    # Return the data needed to render the reloaded info on the page
     (are_active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
     (are_active_accounts, accounts_data) = get_user_account_dict(uuid)
     data = {}
