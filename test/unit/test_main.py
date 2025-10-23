@@ -99,18 +99,7 @@ def test_search_applies_pending_transactions_requires_data_reload(confirmed_user
 
     # 2. Insert a pending INCOME transaction dated in the past so check_pending_transactions will apply it
     past_date = datetime.now() - timedelta(days=1)
-    pending_income = Transaction(
-        TType.INCOME,
-        "Pending Income",
-        -1000,                   # negative amt so applying increases account balance by 1000 cents
-        past_date,
-        None,                    # envelope_id
-        account_id,              # account_id (will be updated)
-        gen_grouping_num(),
-        "", None, False,
-        current_user.id,
-        True                     # pending
-    )
+    pending_income = Transaction(TType.INCOME, "Pending Income", -1000, past_date, None, account_id, gen_grouping_num(), "", None, False, current_user.id, True)
     insert_transaction(pending_income)
 
     # Sanity: balance before applying should be unchanged
