@@ -63,18 +63,18 @@
           <span class="helper-text red-text left-align"></span>
         </div>
         <div class="input-field col s3 l3">
-          <select id="search_transaction_type" name="search_transaction_type" multiple>
-            <option><i class="material-icons">{{TType.BASIC_TRANSACTION.icon}}</i>Basic Transaction</option>
-            <option><i class="material-icons">{{TType.SPLIT_TRANSACTION.icon}}</i>Split Transaction</option>
-            <option><i class="material-icons">{{TType.ENVELOPE_TRANSFER.icon}}</i>Envelope Transfer</option>
-            <option><i class="material-icons">{{TType.ACCOUNT_TRANSFER.icon}}</i>Account Transfer</option>
-            <option><i class="material-icons">{{TType.INCOME.icon}}</i>Income</option>
-            <option><i class="material-icons">{{TType.ENVELOPE_FILL.icon}}</i>Envelope Fill</option>
-            <option><i class="material-icons">{{TType.ENVELOPE_DELETE.icon}}</i>Envelope Delete</option>
-            <option><i class="material-icons">{{TType.ACCOUNT_DELETE.icon}}</i>Account Delete</option>
-            <option><i class="material-icons">{{TType.ACCOUNT_ADJUST.icon}}</i>Account Adjustment</option>
+          <select id="search_transaction_types" name="search_transaction_types" multiple>
+            <option value="{{TType.BASIC_TRANSACTION.id}}"><i class="material-icons">{{TType.BASIC_TRANSACTION.icon}}</i>Basic Transaction</option>
+            <option value="{{TType.SPLIT_TRANSACTION.id}}"><i class="material-icons">{{TType.SPLIT_TRANSACTION.icon}}</i>Split Transaction</option>
+            <option value="{{TType.ENVELOPE_TRANSFER.id}}"><i class="material-icons">{{TType.ENVELOPE_TRANSFER.icon}}</i>Envelope Transfer</option>
+            <option value="{{TType.ACCOUNT_TRANSFER.id}}"><i class="material-icons">{{TType.ACCOUNT_TRANSFER.icon}}</i>Account Transfer</option>
+            <option value="{{TType.INCOME.id}}"><i class="material-icons">{{TType.INCOME.icon}}</i>Income</option>
+            <option value="{{TType.ENVELOPE_FILL.id}}"><i class="material-icons">{{TType.ENVELOPE_FILL.icon}}</i>Envelope Fill</option>
+            <option value="{{TType.ENVELOPE_DELETE.id}}"><i class="material-icons">{{TType.ENVELOPE_DELETE.icon}}</i>Envelope Delete</option>
+            <option value="{{TType.ACCOUNT_DELETE.id}}"><i class="material-icons">{{TType.ACCOUNT_DELETE.icon}}</i>Account Delete</option>
+            <option value="{{TType.ACCOUNT_ADJUST.id}}"><i class="material-icons">{{TType.ACCOUNT_ADJUST.icon}}</i>Account Adjustment</option>
           </select>
-          <label for="search_transaction_type" class="special-select-label white-text">Type</label>
+          <label for="search_transaction_types" class="special-select-label white-text">Type</label>
           <span class="helper-text red-text left-align"></span>
         </div>
         <div id="search-submit-col" class="input-field col s1 l1">

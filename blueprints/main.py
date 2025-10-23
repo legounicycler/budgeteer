@@ -128,11 +128,12 @@ def search_transactions():
     date_max = form.search_date_max.data #datetime
     envelope_ids = form.search_envelope_ids.data or [] #list[int]
     account_ids = form.search_account_ids.data or [] #list[int]
+    transaction_types = form.search_transaction_types.data or [] #list[TType]
     timestamp = request.form['timestamp']
 
     # 3. Render the templates and return the response
     check_pending_transactions(uuid, timestamp)
-    (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids)
+    (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types)
     (_, envelopes_data, _) = get_user_envelope_dict(uuid)
     (_, accounts_data) = get_user_account_dict(uuid)
     response = {'current_page': 'Search results'}
@@ -206,8 +207,8 @@ def data_reload():
       page_total = balanceformat(envelope.balance/100)
     elif 'Search' in current_page:
       cs = js_data.get('current_search') or {}
-      (search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids) = _revalidate_search_params(cs)
-      (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids)
+      (search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types) = _revalidate_search_params(cs)
+      (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types)
       page_total = None
     elif current_page == 'All Transactions':
       (transactions_data, offset, at_end, total_funds) = get_home_transactions(uuid,0,50)
@@ -265,10 +266,10 @@ def load_more():
       (transactions_data, offset, at_end, _) = get_envelope_transactions(uuid,envelope_id,current_offset,50)
     elif 'Search' in current_page:
       current_search = js_data.get('current_search') or {}
-      (search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids) = _revalidate_search_params(current_search)
+      (search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types) = _revalidate_search_params(current_search)
 
       # Fetch the searched transactions
-      (transactions_data, offset, at_end) = get_search_transactions(uuid, current_offset, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids)
+      (transactions_data, offset, at_end) = get_search_transactions(uuid, current_offset, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types)
     elif current_page == 'All Transactions':
       (transactions_data, offset, at_end, _) = get_home_transactions(uuid,current_offset,50)
     else:
@@ -366,6 +367,7 @@ def _revalidate_search_params(cs):
     - searchDateMax
     - searchEnvelopeIds
     - searchAccountIds
+    - searchTransactionTypes
 
   RETURNS:
   * A tuple of the validated/converted search parameters:
@@ -391,6 +393,8 @@ def _revalidate_search_params(cs):
     md_items.append(('search_envelope_ids', id))
   for id in (cs.get('searchAccountIds') or []):
     md_items.append(('search_account_ids', id))
+  for ttype in (cs.get('searchTransactionTypes') or []):
+    md_items.append(('search_transaction_types', ttype))
 
   form = TransactionSearchForm(MultiDict(md_items))
   # If you have CSRF globally enabled and this code runs outside a normal form flow,
@@ -409,8 +413,9 @@ def _revalidate_search_params(cs):
   date_max = form.search_date_max.data
   envelope_ids = form.search_envelope_ids.data or []
   account_ids = form.search_account_ids.data or []
+  transaction_types = form.search_transaction_types or []
 
-  return (search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids)
+  return (search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types)
 
 # Route to create a new BASIC_TRANSACTION
 @main_bp.route('/new_expense', methods=['POST'])
