@@ -1316,35 +1316,40 @@
         // 3. Update the unallocated balance text/data
         $('#unallocated span, #unallocated-balance-envelope-filler').attr('data-amt', o['unallocated']).data('amt', o['unallocated']).text(balance_format(o['unallocated'])).negative_check(o['unallocated']);
 
-        // 4.1 Update selects in expense editor
+        //4.0 Update account/envelope selects in across the site
+        $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['account_select_options_html']);
+        $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['envelope_select_options_html']);
+
+        // 4.1 Update the detached account/envelope selects in expense editor
         expense_editor.appendTo('#editor-row');
-        // TODO: This won't update the selects in the advanced search row?
-        $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_types) select').html(o['account_select_options_html']);
-        $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_types) select').html(o['envelope_select_options_html']);
+        $('#editor-row .select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['account_select_options_html']);
+        $('#editor-row .select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['envelope_select_options_html']);
         expense_editor.detach();
 
-        // 4.2 Update selects in transfer editor
+        // 4.2 Update the detached account/envelope selects in transfer editor
         transfer_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_types) select').html(o['account_select_options_html']);
-        $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_types) select').html(o['envelope_select_options_html']);
+        $('#editor-row .select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['account_select_options_html']);
+        $('#editor-row .select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['envelope_select_options_html']);
         $('#envelope-transfer-edit select').first().attr('name', 'from_envelope');
         $('#envelope-transfer-edit select').last().attr('name', 'to_envelope');
         $('#account-transfer-edit select').first().attr('name', 'from_account');
         $('#account-transfer-edit select').last().attr('name', 'to_account');
         transfer_editor.detach();
 
-        // 4.3 Update selects in the income editor
+        // 4.3 Update the detached account/envelope selects in the income editor
         income_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_types) select').html(o['account_select_options_html']);
-        $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_types) select').html(o['envelope_select_options_html']);
+        $('#editor-row .select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['account_select_options_html']);
+        $('#editor-row .select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['envelope_select_options_html']);
         income_editor.detach();
 
-        //4.4 Update selects in advanced search bar (these don't have a default option value)
+        //4.4 Update the account/envelope selects in advanced search bar (these don't have a default option value)
         $('#search_envelope_ids').html(o['envelope_select_options_special_html']);
         $('#search_account_ids').html(o['account_select_options_special_html']);
 
-        // 4.4 Re-initialize all selects
+        // 4.5 Re-initialize the of the standard envelope/account selects
         $('select:not(#search_envelope_ids, #search_account_ids, #search_transaction_types)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+        
+        // 4.6 Re-initialize the special selects in the advanced search bar
         Budgeteer.initializeSpecialSelects();
 
         // 5. Update the envelope fill editor

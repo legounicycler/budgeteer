@@ -19,7 +19,7 @@
 <body>
 
   <!-- Hidden CSRF token input -->
-  <input id="csrf-token" type="hidden" value="{{csrf_token()}}">
+  <input id="csrf-token" name="csrf_token" type="hidden" value="{{csrf_token()}}">
 
   <!-- Loading spinner overlay -->
   <div id="loading-div">
