@@ -127,7 +127,7 @@
       $('.tabs').tabs();
 
       // Initialize all materialize selects
-      $('select:not(#search_envelope_ids, #search_account_ids)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+      $('select:not(#search_envelope_ids, #search_account_ids, #search_transaction_type)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
       Budgeteer.initializeSpecialSelects();
 
       // Add the class which specially styles the selects in the advanced search bar
@@ -1319,14 +1319,15 @@
 
         // 4.1 Update selects in expense editor
         expense_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['account_select_options_html']);
-        $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['envelope_select_options_html']);
+        // TODO: This won't update the selects in the advanced search row?
+        $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_type) select').html(o['account_select_options_html']);
+        $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_type) select').html(o['envelope_select_options_html']);
         expense_editor.detach();
 
         // 4.2 Update selects in transfer editor
         transfer_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['account_select_options_html']);
-        $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['envelope_select_options_html']);
+        $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_type) select').html(o['account_select_options_html']);
+        $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_type) select').html(o['envelope_select_options_html']);
         $('#envelope-transfer-edit select').first().attr('name', 'from_envelope');
         $('#envelope-transfer-edit select').last().attr('name', 'to_envelope');
         $('#account-transfer-edit select').first().attr('name', 'from_account');
@@ -1335,8 +1336,8 @@
 
         // 4.3 Update selects in the income editor
         income_editor.appendTo('#editor-row');
-        $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['account_select_options_html']);
-        $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['envelope_select_options_html']);
+        $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_type) select').html(o['account_select_options_html']);
+        $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids, #search_transaction_type) select').html(o['envelope_select_options_html']);
         income_editor.detach();
 
         //4.4 Update selects in advanced search bar (these don't have a default option value)
@@ -1344,7 +1345,7 @@
         $('#search_account_ids').html(o['account_select_options_special_html']);
 
         // 4.4 Re-initialize all selects
-        $('select:not(#search_envelope_ids, #search_account_ids)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+        $('select:not(#search_envelope_ids, #search_account_ids, #search_transaction_type)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
         Budgeteer.initializeSpecialSelects();
 
         // 5. Update the envelope fill editor

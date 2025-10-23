@@ -213,6 +213,13 @@
 }
 
 
+/* Vertically center the icons */
+.custom-dropdown-class li > span > label > span > i.material-icons {
+  height: 1.3em;
+  font-size: 1.3em;
+}
+
+
 /* Make the checked checkbox smaller */
 [type="checkbox"]:checked + span:not(.lever):before {
   height: 18px;
@@ -236,6 +243,18 @@
   #search-icon {
     top: calc(50% - 12px);
     left: .5rem;
+  }
+
+  /* Adjust the row spacing */
+  #advanced-search-row {
+    margin-top: 18px !important;
+    margin-bottom: 6px !important;
+  }
+
+  /* Align the submit button on small screens */
+  #search-submit-col {
+    justify-content: left;
+    padding-left: 8px;
   }
 
   #close-search {
