@@ -211,7 +211,7 @@ function toggleAdvancedSearch() {
 Budgeteer.initializeSpecialSelects = function() {
 
   // 1. Initialize the selects (re-init safe)
-  $('#search_envelope_ids, #search_account_ids').formSelect({
+  $('#search_envelope_ids, #search_account_ids, #search_transaction_type').formSelectWithIcon({
     dropdownOptions: {
       container: '#dashboard-column',
       onOpenStart: function(triggerEl) {
