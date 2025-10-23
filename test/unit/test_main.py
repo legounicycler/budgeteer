@@ -136,4 +136,9 @@ def test_search_transactions_success(logged_in_user_client):
 #     assert response.status_code == 302
 #     assert '/unconfirmed' in response.headers['Location']
 
+
+# Test search transactions with invalid transaction type
+# test if the data is a random string
+# test if the data submitted is an integer that does not correspond to any TType
+
 # endregion ROUTE TESTS

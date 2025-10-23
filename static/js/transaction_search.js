@@ -44,7 +44,8 @@ $(document).ready(function() {
         searchDateMin: $("#search_date_min").val().trim(),
         searchDateMax: $("#search_date_max").val().trim(),
         searchEnvelopeIds: $("#search_envelope_ids").val(),
-        searchAccountIds: $("#search_account_ids").val()
+        searchAccountIds: $("#search_account_ids").val(),
+        searchTransactionTypes: $("#search_transaction_types").val()
       };
       if (Budgeteer.current_page != "Search results") { //Update the previous and current page unless you're entering a new search from a search results page,
         Budgeteer.previous_page = Budgeteer.current_page;
@@ -106,7 +107,7 @@ $(document).ready(function() {
     $("#transaction-search-form").trigger("reset");
 
     // Reset all envelope/account select checkboxes in search dropdowns to unchecked
-    $('#search_envelope_ids, #search_account_ids').each(function() {
+    $('#search_envelope_ids, #search_account_ids, #search_transaction_types').each(function() {
       const $select = $(this);
       const $input = $select.siblings('input.select-dropdown');
       const $ul = $('#' + $input.attr('data-target'));
@@ -211,7 +212,7 @@ function toggleAdvancedSearch() {
 Budgeteer.initializeSpecialSelects = function() {
 
   // 1. Initialize the selects (re-init safe)
-  $('#search_envelope_ids, #search_account_ids, #search_transaction_type').formSelectWithIcon({
+  $('#search_envelope_ids, #search_account_ids, #search_transaction_types').formSelectWithIcon({
     dropdownOptions: {
       container: '#dashboard-column',
       onOpenStart: function(triggerEl) {
@@ -300,7 +301,7 @@ Budgeteer.initializeSpecialSelects = function() {
 
   // 2.1 - Add custom style to dropdown to make envelope/account selections thinner/smaller
   // 2.2 - Override the onOpenEnd function for the select dropdown to manually set focus
-  $('#search_envelope_ids, #search_account_ids, #search_transaction_type').each(function() {
+  $('#search_envelope_ids, #search_account_ids, #search_transaction_types').each(function() {
     const $select = $(this);
     const $input = $select.siblings('input.select-dropdown');
     const $ul = $('#' + $input.attr('data-target'));

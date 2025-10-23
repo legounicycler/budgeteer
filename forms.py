@@ -4,6 +4,7 @@ from wtforms.validators import Optional, ValidationError
 from typing import Optional as TypingOptional
 from flask_wtf.file import FileField, FileAllowed
 from datetime import datetime
+from database import TType
 
 # region ---------------CUSTOM FIELDS---------------
 
@@ -233,6 +234,84 @@ class IdSelectMultipleField(SelectMultipleField):
                 raise ValidationError(self.message)
         field.data = out
 
+class TTypeSelectMultipleField(SelectMultipleField):
+    """SelectMultipleField that keeps raw string values for other validators,
+    then converts them to a list[int] as the last validation step.
+
+    Behavior:
+      - No submitted values -> self.data = None
+      - Single submitted value -> self.data = ['raw_string']
+      - Multiple submitted values -> self.data = ['a','b','c']
+    The conversion to ints happens in the _convert_to_ints validator appended
+    last so any other validators (e.g. Optional(), custom validators expecting
+    raw strings) run first.
+    """
+    def __init__(self, label=None, validators=None, message: TypingOptional[str] = None, **kwargs):
+        self.message = message or 'Invalid transaction type; submitted value must be an integer corresponding to a valid transaction type'
+        vlist = list(validators) if validators else []
+        # Detect Optional() presence so empty inputs remain acceptable
+        self._has_optional = any(isinstance(v, Optional) for v in vlist)
+        # Append converter as the LAST validator
+        vlist.append(self._convert_to_ints)
+        super().__init__(label, validators=vlist, **kwargs)
+
+    def pre_validate(self, form):
+        """
+        Skip WTForms' choices validation when choices is not provided server-side.
+        (Which it isn't because materialize is generating the choices dynamically, so we can't pre-supply them in the form definitions)
+        If choices are present, defer to the normal SelectMultipleField behavior.
+        """
+        if getattr(self, 'choices', None) is None:
+            return
+        return super().pre_validate(form)
+
+    def process_formdata(self, valuelist):
+        # Normalize incoming submission into None or a list of raw strings.
+        # Leave conversion to ints to the validator so other validators see raw strings.
+        if not valuelist:
+            self.data = None
+            return
+
+        # Keep all non-empty, stripped string values
+        parts = [str(v).strip() for v in valuelist if v is not None and str(v).strip() != '']
+        if not parts:
+            self.data = None
+            return
+
+        self.data = parts
+
+    def _convert_to_ints(self, form, field):
+        data = field.data
+        # If empty and Optional() present, let Optional short-circuit (data stays None)
+        if data is None:
+            if self._has_optional:
+                field.data = None
+                return
+            raise ValidationError(self.message)
+
+        # Accept a single string (defensive) or a list of strings
+        if isinstance(data, str):
+            tokens = [data.strip()] if data.strip() != '' else []
+        elif isinstance(data, (list, tuple)):
+            tokens = [str(x).strip() for x in data if x is not None and str(x).strip() != '']
+        else:
+            raise ValidationError(self.message)
+
+        if not tokens:
+            if self._has_optional:
+                field.data = None
+                return
+            raise ValidationError(self.message)
+
+        out = []
+        for t in tokens:
+            try:
+                out.append(TType.from_int(int(t)))
+            except (ValueError, TypeError):
+                raise ValidationError(self.message)
+        field.data = out
+
+
 # endregion ---------------CUSTOM FIELDS---------------
 
 # region ---------------FORMS--------------- 
@@ -300,22 +379,26 @@ class TransactionSearchForm(FlaskForm):
         [Optional(), validators.Length(max=300)],
         render_kw={"placeholder": "Search", "autocomplete": "off"}
     )
+
     search_amt_min = AmtStringField(
         "Min. Amt",
         [Optional(), validators.Regexp(r'^\$?\d+(?:\.\d{1,2})?$', message="Invalid number format"), validators.Length(max=19, message="Number too large")],
         render_kw={"placeholder": "$0.00", "tabindex": "-1", "class": "special-input blue-grey-text white t-search-input validate"}
     )
+
     search_amt_max = AmtStringField(
         "Max. Amt",
         [Optional(), validators.Regexp(r'^\$?\d+(?:\.\d{1,2})?$', message="Invalid number format"), validators.Length(max=19, message="Number too large")],
         render_kw={"placeholder": "$0.00", "tabindex": "-1", "class": "special-input blue-grey-text white t-search-input validate"}
     )
+
     search_date_min = DateStringField(
         "Min. Date",
         [Optional(), validators.Regexp(r'^\d{2}/\d{2}/\d{4}$', message="Use MM/DD/YYYY")],
         allow_empty=True,
         render_kw={"placeholder": "MM/DD/YYYY", "tabindex": "-1", "class": "datepicker blue-grey-text white t-search-input validate", "pattern": r"^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$"}
     )
+
     search_date_max = DateStringField(
         "Max. Date",
         [Optional(), validators.Regexp(r'^\d{2}/\d{2}/\d{4}$', message="Use MM/DD/YYYY")],
@@ -329,18 +412,25 @@ class TransactionSearchForm(FlaskForm):
         "Envelope IDs",
         [Optional()]
     )
+
     # NOTE: This field is not placed into the template with jinja, but rather a select element is directly given the id
     search_account_ids = IdSelectMultipleField(
         "Account IDs",
         [Optional()]
     )
 
+    # NOTE: This field is not placed into the template with jinja, but rather a select element is directly given the id
+    search_transaction_types = TTypeSelectMultipleField(
+        "Transaction Types",
+        [Optional()]
+    )
+
+
     def validate(self):
         """Run standard validators then enforce cross-field constraints
         (min <= max for amounts and dates). Attach errors to both fields
         when constraint fails.
         """
-        print("Validating TransactionSearchForm")
         rv = super().validate()
         if not rv:
             return False

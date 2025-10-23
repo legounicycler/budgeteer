@@ -1,12 +1,10 @@
 class FormSelectWithIcon extends M.FormSelect {
   _setValueToInput() {
-    console.log("CUSTOM FUNCTION");
     var values = [];
     var options = this.$el.find('option');
 
     options.each(function (el) {
       if ($(el).prop('selected')) {
-        console.log(el);
         // Clone the option to avoid modifying original DOM
         let $clone = $(el).clone();
 
