@@ -34,7 +34,7 @@ def test_search_transactions_success(confirmed_user_client):
 
     # 2. Post data to the search API
     response = confirmed_user_client.post(
-        '/api/search-transactions',
+        '/api/load-search-transactions',
         data={
             'csrf_token': confirmed_user_client.csrf_token,
             'search_term': '',
@@ -47,7 +47,6 @@ def test_search_transactions_success(confirmed_user_client):
     )
 
     # 3. Verify the response
-    print(response.data)
     assert response.status_code == 200
     json_data = response.get_json()
     assert 'current_page' in json_data
@@ -61,7 +60,7 @@ def test_search_transactions_invalid_form(confirmed_user_client):
 
     # 1. Post invalid data (e.g., invalid date format)
     response = confirmed_user_client.post(
-        '/api/search-transactions',
+        '/api/load-search-transactions',
         data={
             'csrf_token': confirmed_user_client.csrf_token,
             'search_term': '',
@@ -82,7 +81,7 @@ def test_search_transactions_invalid_form(confirmed_user_client):
 def test_search_applies_pending_transactions_requires_data_reload(confirmed_user_client):
     """
     Demonstrate that when check_pending_transactions applies a pending transaction during a search
-    the database balances are updated but the /api/search-transactions response does NOT include
+    the database balances are updated but the /api/load-search-transactions response does NOT include
     the accounts/envelopes HTML (i.e. the page-side data that would reflect the new balances).
     """
 
@@ -109,7 +108,7 @@ def test_search_applies_pending_transactions_requires_data_reload(confirmed_user
     # 3. Call the search endpoint with a timestamp >= the pending transaction date so it gets applied
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     resp = confirmed_user_client.post(
-        '/api/search-transactions',
+        '/api/load-search-transactions',
         data={
             'csrf_token': confirmed_user_client.csrf_token,
             'search_term': '',
