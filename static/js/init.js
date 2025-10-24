@@ -1455,7 +1455,7 @@
         if (o['error']) { M.toast({html: o['error']}); return; }
 
         // 1. Reload the dashboard header HTML
-        if (o.pageTotal) $('#page-total').text(o['page_total']);
+        if (o.page_total) $('#page-total').text(o['page_total']);
         
         // 2. Reload the transactions html and scroller if needed
         if (should_reload_transactions_bin) {
