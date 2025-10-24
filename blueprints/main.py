@@ -67,10 +67,10 @@ def home():
       return jsonify({"error": str(e)})
 
 # Display all transactions on the home dashboard
-@main_bp.route("/get_home_transactions_page", methods=["POST"])
+@main_bp.route("/api/load-home-transactions", methods=["POST"])
 @login_required
 @check_confirmed
-def get_all_transactions_page():
+def load_home_transactions():
   try:
     uuid = get_uuid_from_cookie()
     js_data = request.get_json()
@@ -80,10 +80,10 @@ def get_all_transactions_page():
     return jsonify({"error": "ERROR: Something went wrong and your envelope data could not be loaded!"})
 
 # Display transactions from a specific envelope on the home dashboard
-@main_bp.route("/get_envelope_page", methods=["POST"])
+@main_bp.route("/api/load-envelope-transactions", methods=["POST"])
 @login_required
 @check_confirmed
-def get_envelope_page():
+def load_envelope_transactions():
   try:
     uuid = get_uuid_from_cookie()
     js_data = request.get_json()
@@ -97,10 +97,10 @@ def get_envelope_page():
     return jsonify({"error": "ERROR: Something went wrong and your envelope data could not be loaded!"})
 
 # Display transactions from a specific account on the home dashboard
-@main_bp.route("/get_account_page", methods=["POST"])
+@main_bp.route("/api/load-account-transactions", methods=["POST"])
 @login_required
 @check_confirmed
-def get_account_page():
+def load_account_transactions():
   try:
     uuid = get_uuid_from_cookie()
     js_data = request.get_json()
@@ -111,10 +111,10 @@ def get_account_page():
     return jsonify({"error": "ERROR: Something went wrong and your account data could not be loaded!"})
 
 # Display the transactions from a searrch query on the home dashboard
-@main_bp.route('/api/search-transactions', methods=['POST'])
+@main_bp.route('/api/load-search-transactions', methods=['POST'])
 @login_required
 @check_confirmed
-def search_transactions():
+def load_search_transactions():
 
   # 1. Validate the form fields
   form = TransactionSearchForm()
@@ -134,20 +134,32 @@ def search_transactions():
     transaction_types = form.search_transaction_types.data or [] #list[TType]
     timestamp = request.form['timestamp']
     # TEMP
-    # timestamp = (datetime.now() + timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
-    # print("SEARCH TRANSACTIONS TIMESTAMP:", timestamp)
+    timestamp = (datetime.now() + timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
+    print("SEARCH TRANSACTIONS TIMESTAMP:", timestamp)
 
-    # 3. Render the templates and return the response
+    # a) Set up the response dict
+    response = {}
+    response['current_page'] = 'Search results'
+
+    # b) Check for pending transactions to apply before running the search
     needs_reload = check_pending_transactions(uuid, timestamp)
+    response['needs_reload'] = needs_reload
+    if needs_reload:
+      # If pending transactions were applied, the balances may have changed, so reload the dynamic HTML and add it to the response
+      load_dynamic_html(response, uuid, get_user_by_uuid(uuid))
+
+    # c) Run the search and render the transactions HTML
     (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types)
     (_, envelopes_data, _) = get_user_envelope_dict(uuid)
     (_, accounts_data) = get_user_account_dict(uuid)
-    response = {'current_page': 'Search results', 'needs_reload': needs_reload} # TEMP: Copy this needs_reload to the other get_envelope_page and get_account_page functions if it works well
     if not transactions_data:
       response['transactions_html'] = render_template('transactions.html', current_page='Search results', transactions_data=[], empty_message='No search results found')
     else:
       response['transactions_html'] = render_template('transactions.html', current_page='Search results', transactions_data=transactions_data, envelopes_data=envelopes_data, accounts_data=accounts_data, offset=offset, at_end=at_end, TType=TType)
+    
+    # d) Return the response
     return jsonify(response)
+
   except Exception as e:
     log_write(f"ERROR in get_search_transactions() function: {e}\n{traceback.format_exc()}")
     return jsonify({'error': "Something went wrong!"})
@@ -203,33 +215,49 @@ def data_reload():
     should_reload_transactions_bin = js_data['should_reload_transactions_bin']
     check_pending_transactions(uuid, timestamp) # Apply any pending transactions that need to before rendering the template
     
+    data = {}
+
     # Fetch the reloaded transactions according to the current_page
     if 'account/' in current_page:
       regex = re.compile(r'account/(\d+)')
       account_id = int(regex.findall(current_page)[0])
       (transactions_data, offset, at_end, account) = get_account_transactions(uuid,account_id,0,50)
-      page_total = balanceformat(account.balance/100)
+      data['page_total'] = balanceformat(account.balance/100)
     elif 'envelope/' in current_page:
       regex = re.compile(r'envelope/(\d+)')
       envelope_id = int(regex.findall(current_page)[0])
       (transactions_data, offset, at_end, envelope) = get_envelope_transactions(uuid,envelope_id,0,50)
-      page_total = balanceformat(envelope.balance/100)
+      data['page_total'] = balanceformat(envelope.balance/100)
     elif 'Search' in current_page:
       cs = js_data.get('current_search') or {}
       (search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types) = _revalidate_search_params(cs)
       (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types)
-      page_total = None
+      data['page_total'] = None
     elif current_page == 'All Transactions':
       (transactions_data, offset, at_end, total_funds) = get_home_transactions(uuid,0,50)
-      page_total = balanceformat(total_funds)
+      data['page_total'] = balanceformat(total_funds)
     else:
       log_write(f"LOAD MORE TRANSACTIONS ERROR: Unknown current_page value: {current_page}")
       return jsonify(error="Something went wrong. Please refresh and try again.")
     
-    # Return the data needed to render the reloaded info on the page
+    # Load the dynamic HTML for account/envelope related stuff
+    load_dynamic_html(data, uuid, u)
+    
+    if should_reload_transactions_bin:
+      data['transactions_html'] = render_template('transactions.html',current_page=current_page,transactions_data=transactions_data,envelopes_data=envelopes_data,accounts_data=accounts_data,offset=offset,at_end=at_end,TType=TType)
+    return jsonify(data)
+  except CustomException as e:
+    return jsonify({"error": str(e)})
+  except Exception as e:
+    log_write(f"DATA RELOAD ERROR: {str(e)}")
+    return jsonify({"error": "An unknown error occurred. Please refresh and try again."})
+
+# Helper function to load all the dynamic HTML snippets needed to update the dashboard header and various select options/editors
+# Called from data_reload or whenever check_pending_transactions applies/unapplies transactions that change envelope/account balances
+def load_dynamic_html(data, uuid, u):
+  # Return the data needed to render the reloaded info on the page
     (are_active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
     (are_active_accounts, accounts_data) = get_user_account_dict(uuid)
-    data = {}
     data['total'] = get_total(uuid)
     data['unallocated'] = get_envelope_balance(u.unallocated_e_id)/100
     data['accounts_html'] = render_template('accounts.html', are_active_accounts=are_active_accounts, accounts_data=accounts_data)
@@ -241,15 +269,6 @@ def data_reload():
     data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total,  unallocated_e_id=u.unallocated_e_id)
     data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
     data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', are_active_envelopes=are_active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
-    data['page_total'] = page_total
-    if should_reload_transactions_bin:
-      data['transactions_html'] = render_template('transactions.html',current_page=current_page,transactions_data=transactions_data,envelopes_data=envelopes_data,accounts_data=accounts_data,offset=offset,at_end=at_end,TType=TType)
-    return jsonify(data)
-  except CustomException as e:
-    return jsonify({"error": str(e)})
-  except Exception as e:
-    log_write(f"DATA RELOAD ERROR: {str(e)}")
-    return jsonify({"error": "An unknown error occurred. Please refresh and try again."})
 
 # Loads more transactions for display into the transaction list on the home dashboard
 @main_bp.route('/api/load-more', methods=['POST'])
@@ -304,6 +323,8 @@ def _build_home_page(uuid, timestamp):
   (transactions_data, offset, at_end, total_funds) = get_home_transactions(uuid,0,50)
   (_, envelopes_data, _) = get_user_envelope_dict(uuid)
   (_, accounts_data) = get_user_account_dict(uuid)
+  if (needs_reload):
+    print("HOME PAGE RELOAD DUE TO PENDING TRANSACTIONS APPLIED") # TEMP
   return {
     'page_total': balanceformat(total_funds),
     'current_page': 'All Transactions',

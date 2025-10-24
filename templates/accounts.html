@@ -11,7 +11,7 @@
       <div id="accounts-scroller" class="scroller">
         {% for id, account in accounts_data.items() %}
           {% if account.deleted == false%}
-            <a class="waves-effect collection-item account-link" data-url="{{ url_for('main.get_account_page') }}" data-account-id={{account.id}}>
+            <a class="waves-effect collection-item account-link" data-url="{{ url_for('main.load_account_transactions') }}" data-account-id={{account.id}}>
               <li class="row account-row blue-grey-text text-darken-3">
                 <div class="col s1 valign-wrapper account-icon"><i class="material-icons">account_balance</i></div>
                 <div class="col s8 account-name left-align valign-wrapper">
