@@ -1,5 +1,5 @@
 <div id="dashboard-header" class="orange lighten-1 white-text collapsed">
-  <form id="transaction-search-form" action="{{ url_for('main.search_transactions') }}" method="post" novalidate>
+  <form id="transaction-search-form" action="{{ url_for('main.load_search_transactions') }}" method="post" novalidate>
     {{ search_form.csrf_token }}
     <div id="dashboard-title-and-search-row" class="row collapsed">
       <div id="dashboard-page-title-col" class="col s12 m7 l8 left-align valign-wrapper">
