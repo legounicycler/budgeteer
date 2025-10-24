@@ -316,12 +316,37 @@
           contentType: 'application/json'
         }).done(function( o ) {
           if (o['error']) { M.toast({html: o['error']}); return; }
+
+          // 1. Replace the transactions bin with the new HTML & reset the scroller
           $('#transactions-bin').replaceWith(o['transactions_html']);
           if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
+          
+          // 2. Update the html within the dashboard header
           $('#current-page').text(o['current_page']);
           $("#separator").show();
           $('#page-total').text(o['page_total']).show();
+
+          // 3. If check_pending_transactions applied/unapplied transactions, we must update the html
+          //    related to envelope/account balances and the unallocated/total amounts
+          if (o.needs_reload) {
+            reload_dynamic_html(
+              o['total'],
+              o['unallocated'],
+              o['accounts_html'],
+              o['envelopes_html'],
+              o['account_select_options_html'],
+              o['envelope_select_options_html'],
+              o['account_select_options_special_html'],
+              o['envelope_select_options_special_html'],
+              o['envelope_editor_html'],
+              o['account_editor_html'],
+              o['envelope_fill_editor_rows_html']
+            );
+          }
+
           refresh_reconcile();
+
+          // 4. Update the global variables
           Budgeteer.current_page = "All Transactions";
           Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
           Budgeteer.current_search = {};
@@ -489,6 +514,10 @@
       };
     };
 
+    // TODO: Re-examine this function to see if it can be eliminated from the data_reload function
+    //       My thought is that this existed because I could't figure out subtemplates in Jinja2 at the time
+    //       but if I restructure the HTML so the events are bound to the envelope/account editor modals, and those
+    //       modals are NOT completely reloaded on data_reload, then this function may be unnecessary.
     // Various event binds in the transaction/account/envelope editors
     // This is called upon initialization and re-called on each data_reload
     function envelope_and_account_editor_binds() {
@@ -1277,6 +1306,75 @@
 
     // ----------------- FORM SUBMISSION/FILLING JS ------------------- //
 
+    // This function is called under several conditions
+    //  1. A transaction is created/edited/deleted (which changes the envelope or account balances)
+    //  2. A transaction is applied/unapplied      (which changes the envelope or account balances)
+    //      NOTE: This happens when the check_pending_transaction() function returns true in main.py
+    //  3. An envelope or account is created/edited/deleted (which changes the total/unallocated balances)
+    function reload_dynamic_html(total, unallocated, accounts_html, envelopes_html, account_select_options_html, envelope_select_options_html, account_select_options_special_html, envelope_select_options_special_html, envelope_editor_html, account_editor_html, envelope_fill_editor_rows_html) {
+      // 1. Update the total text
+      $('#total span').text(balance_format(total)).negative_check(total);
+
+      // 2. Update the unallocated balance text/data
+      $('#unallocated span, #unallocated-balance-envelope-filler').attr('data-amt', unallocated).data('amt', unallocated).text(balance_format(unallocated)).negative_check(unallocated);
+
+      // 3. Update the account/envelope bins
+      $('#accounts-bin').replaceWith(accounts_html);
+      $('#envelopes-bin').replaceWith(envelopes_html);
+
+      // 4. Update the account/envelope editor modals
+      $('#envelope-editor-modal').replaceWith(envelope_editor_html);
+      $('#account-editor-modal').replaceWith(account_editor_html);
+      $('#envelope-editor-modal, #account-editor-modal').modal();
+
+      //5 Update account/envelope selects in across the site
+      $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(account_select_options_html);
+      $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(envelope_select_options_html);
+
+      // a) Update the detached account/envelope selects in expense editor
+      expense_editor.appendTo('#editor-row');
+      $('#editor-row .select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(account_select_options_html);
+      $('#editor-row .select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(envelope_select_options_html);
+      expense_editor.detach();
+
+      // b) Update the detached account/envelope selects in transfer editor
+      transfer_editor.appendTo('#editor-row');
+      $('#editor-row .select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(account_select_options_html);
+      $('#editor-row .select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(envelope_select_options_html);
+      $('#envelope-transfer-edit select').first().attr('name', 'from_envelope');
+      $('#envelope-transfer-edit select').last().attr('name', 'to_envelope');
+      $('#account-transfer-edit select').first().attr('name', 'from_account');
+      $('#account-transfer-edit select').last().attr('name', 'to_account');
+      transfer_editor.detach();
+
+      // c) Update the detached account/envelope selects in the income editor
+      income_editor.appendTo('#editor-row');
+      $('#editor-row .select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(account_select_options_html);
+      $('#editor-row .select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(envelope_select_options_html);
+      income_editor.detach();
+
+      // d) Update the account/envelope selects in advanced search bar (these don't have a default option value)
+      $('#search_envelope_ids').html(envelope_select_options_special_html);
+      $('#search_account_ids').html(account_select_options_special_html);
+
+      // e) Re-initialize the of the standard envelope/account selects
+      $('select:not(#search_envelope_ids, #search_account_ids, #search_transaction_types)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
+      
+      // f) Re-initialize the special selects in the advanced search bar
+      Budgeteer.initializeSpecialSelects();
+
+      // 6. Update the detached envelope fill editor rows
+      envelope_fill_editor.appendTo('#editor-row');
+      $('.envelope-fill-editor-bin').replaceWith(envelope_fill_editor_rows_html);
+      $('#fill-total').text("$0.00").removeClass("negative").addClass("neutral");
+      envelope_fill_editor.detach();
+
+      // 7. Other functions
+      budget_bars(); // Update the envelope budget bars
+      envelope_and_account_editor_binds(); // Various event binds for the envelope/account editor modals
+      editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the envelope/account editor
+
+    }
 
     // Retrieves updated data from database and updates the necessary html
     function data_reload(current_page, should_reload_transactions_bin=true) {
@@ -1297,82 +1395,46 @@
         data: JSON.stringify(data),
         contentType: 'application/json'
       }).done(function( o ) {
+
+        // 0. Display errors
         if (o['error']) { M.toast({html: o['error']}); return; }
-        // 1. Reload the HTML
+
+        // 1. Reload the dashboard header HTML
         if (o.pageTotal) $('#page-total').text(o['page_total']);
-        $('#accounts-bin').replaceWith(o['accounts_html']);
-        $('#envelopes-bin').replaceWith(o['envelopes_html']);
-        $('#envelope-editor-modal').replaceWith(o['envelope_editor_html']);
-        $('#account-editor-modal').replaceWith(o['account_editor_html']);
-        $('#envelope-editor-modal, #account-editor-modal').modal();
+        
+        // 2. Reload the transactions html if needed
         if (should_reload_transactions_bin) {
           $('#load-more').remove();
           $('#transactions-bin').replaceWith(o['transactions_html']);
           refresh_reconcile();
         }
 
-        // 2. Update the total text
-        $('#total span').text(balance_format(o['total'])).negative_check(o['total']);
+        // 3. Reload the dynamic html
+        reload_dynamic_html(
+          o['total'],
+          o['unallocated'],
+          o['accounts_html'],
+          o['envelopes_html'],
+          o['account_select_options_html'],
+          o['envelope_select_options_html'],
+          o['account_select_options_special_html'],
+          o['envelope_select_options_special_html'],
+          o['envelope_editor_html'],
+          o['account_editor_html'],
+          o['envelope_fill_editor_rows_html']
+        );
 
-        // 3. Update the unallocated balance text/data
-        $('#unallocated span, #unallocated-balance-envelope-filler').attr('data-amt', o['unallocated']).data('amt', o['unallocated']).text(balance_format(o['unallocated'])).negative_check(o['unallocated']);
-
-        //4.0 Update account/envelope selects in across the site
-        $('.select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['account_select_options_html']);
-        $('.select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['envelope_select_options_html']);
-
-        // 4.1 Update the detached account/envelope selects in expense editor
-        expense_editor.appendTo('#editor-row');
-        $('#editor-row .select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['account_select_options_html']);
-        $('#editor-row .select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['envelope_select_options_html']);
-        expense_editor.detach();
-
-        // 4.2 Update the detached account/envelope selects in transfer editor
-        transfer_editor.appendTo('#editor-row');
-        $('#editor-row .select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['account_select_options_html']);
-        $('#editor-row .select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['envelope_select_options_html']);
-        $('#envelope-transfer-edit select').first().attr('name', 'from_envelope');
-        $('#envelope-transfer-edit select').last().attr('name', 'to_envelope');
-        $('#account-transfer-edit select').first().attr('name', 'from_account');
-        $('#account-transfer-edit select').last().attr('name', 'to_account');
-        transfer_editor.detach();
-
-        // 4.3 Update the detached account/envelope selects in the income editor
-        income_editor.appendTo('#editor-row');
-        $('#editor-row .select-wrapper:has(.account-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['account_select_options_html']);
-        $('#editor-row .select-wrapper:has(.envelope-selector):not(#search_envelope_ids, #search_account_ids) select').html(o['envelope_select_options_html']);
-        income_editor.detach();
-
-        //4.4 Update the account/envelope selects in advanced search bar (these don't have a default option value)
-        $('#search_envelope_ids').html(o['envelope_select_options_special_html']);
-        $('#search_account_ids').html(o['account_select_options_special_html']);
-
-        // 4.5 Re-initialize the of the standard envelope/account selects
-        $('select:not(#search_envelope_ids, #search_account_ids, #search_transaction_types)').formSelect({dropdownOptions: {container: '#fullscreen-wrapper'}});
-        
-        // 4.6 Re-initialize the special selects in the advanced search bar
-        Budgeteer.initializeSpecialSelects();
-
-        // 5. Update the envelope fill editor
-        envelope_fill_editor.appendTo('#editor-row');
-        $('.envelope-fill-editor-bin').replaceWith(o['envelope_fill_editor_rows_html']);
-        $('#fill-total').text("$0.00").removeClass("negative").addClass("neutral");
-        envelope_fill_editor.detach();
-
-        //6. Re-enable the simplebar scrollers
+        // 3. Re-enable the simplebar scrollers
         $('.scroller').each(function(index,el) {
           new SimpleBar(el);
         });
         Budgeteer.transactionsScrollerElement = $('#transactions-scroller .simplebar-content-wrapper')[0];
 
-        // 7. Update the datepickers 
+        // 4. Update the datepickers 
         $('.datepicker').datepicker('setDate', new Date());
         $('input[name="date"]').val((new Date()).toLocaleDateString("en-US", {day: '2-digit', month: '2-digit', year: 'numeric'}));
 
-        // 8. Other functions
-        budget_bars(); // Update the envelope budget bars
-        envelope_and_account_editor_binds(); // Various event binds for the envelope/account editor modals
-        editor_row_check(); //If there are no envelopes or accounts, ensure the message shows in the envelope/account editor
+        // 5. Update text fields
         M.updateTextFields(); //Ensure that text input labels don't overlap with filled text
       });
     };
