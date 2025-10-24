@@ -24,17 +24,22 @@ $(document).ready(function() {
       method: method,
       data: $(this).serialize() + "&timestamp=" + gen_timestamp(),
     }).done(function(o) {
+
+      // 0. Display errors
       if (o.error) {M.toast({html: o.error}); return;}
       if (o.field_errors) {displayFieldErrors(o.field_errors); return;}
       
-      $('#transactions-bin').replaceWith(o.transactions_html);
-      if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]); }
+      // 1. Update the dashboard header elements
       $('#current-page').text(o.current_page);
       $("#page-total").hide();
       $("#separator").hide();
       Budgeteer.showMultiSelectIcons(false);
 
-      //Update the global variables
+      // 2. Update the transactions bin and scroller
+      $('#transactions-bin').replaceWith(o.transactions_html);
+      if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]); }
+
+      // 3. Update the global variables
       Budgeteer.none_checked = true;
       Budgeteer.only_clear_searchfield = false; // Set the behavior of the "X" icon when clicked to return to previous page rather than only clearing the search fields
       Budgeteer.current_search = {
@@ -51,9 +56,23 @@ $(document).ready(function() {
         Budgeteer.previous_page = Budgeteer.current_page;
         Budgeteer.current_page = "Search results";
       }
-      // TEMP
-      // console.log(o.needs_reload);
-      // if (o.needs_reload) {Budgeteer.data_reload(Budgeteer.current_page, false);}
+
+      // 4. If there were any transactions applied/unapplied via check_pending_transactions, reload the dynamic HTML snippets
+      if (o.needs_reload) {
+        Budgeteer.reload_dynamic_html(
+          o['total'],
+          o['unallocated'],
+          o['accounts_html'],
+          o['envelopes_html'],
+          o['account_select_options_html'],
+          o['envelope_select_options_html'],
+          o['account_select_options_special_html'],
+          o['envelope_select_options_special_html'],
+          o['envelope_editor_html'],
+          o['account_editor_html'],
+          o['envelope_fill_editor_rows_html']
+        );
+      }
       if (o.toasts) { o.toasts.forEach((toast) => M.toast({html: toast})); }
     });
 
@@ -133,16 +152,41 @@ $(document).ready(function() {
       data: JSON.stringify({"previous_page": Budgeteer.previous_page, "timestamp": gen_timestamp()}),
       contentType: 'application/json'
     }).done(function(o) {
+
+      // 0. Display errors
       if (o['error']) { M.toast({html: o['error']}); return; }
-      $('#transactions-bin').replaceWith(o['transactions_html']);
-      if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
+
+      // 1. Update the dashboard header elements
       $('#current-page').text(o['current_page']);
       $("#separator").show();
       $('#page-total').text(o['page_total']).show();
+
+      // 2. Update the transactions bin and scroller
+      $('#transactions-bin').replaceWith(o['transactions_html']);
+      if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
       refresh_reconcile();
+
+      // 3. Update the global variables
       Budgeteer.none_checked = true;
       Budgeteer.only_clear_searchfield = true;
       Budgeteer.showMultiSelectIcons(false);
+
+      // 4. If there were any transactions applied/unapplied via check_pending_transactions, reload the dynamic HTML snippets
+      if (o.needs_reload) {
+        Budgeteer.reload_dynamic_html(
+          o['total'],
+          o['unallocated'],
+          o['accounts_html'],
+          o['envelopes_html'],
+          o['account_select_options_html'],
+          o['envelope_select_options_html'],
+          o['account_select_options_special_html'],
+          o['envelope_select_options_special_html'],
+          o['envelope_editor_html'],
+          o['account_editor_html'],
+          o['envelope_fill_editor_rows_html']
+        );
+      }
     });
   }
 
