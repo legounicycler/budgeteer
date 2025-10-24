@@ -36,7 +36,7 @@
     Budgeteer.none_checked = true; // Used to determine whether to show the date or checkbox in the transaction bin
     Budgeteer.transactionsScrollerElement = null; // Store the div for the transactions scroller which is used in the custom scroll behavior function. Updated on data_reload()
     Budgeteer.showMultiSelectIcons = showMultiSelectIcons; // Make the showMultiSelectIcons function globally accessible
-    Budgeteer.data_reload = data_reload; // Make the data_reload function globally accessible
+    Budgeteer.reload_dynamic_html = reload_dynamic_html; // Make the reload_dynamic_html function globally accessible
 
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
@@ -315,6 +315,7 @@
           data: JSON.stringify({"timestamp": gen_timestamp()}),
           contentType: 'application/json'
         }).done(function( o ) {
+          // 0. Display errors
           if (o['error']) { M.toast({html: o['error']}); return; }
 
           // 1. Replace the transactions bin with the new HTML & reset the scroller
@@ -326,8 +327,7 @@
           $("#separator").show();
           $('#page-total').text(o['page_total']).show();
 
-          // 3. If check_pending_transactions applied/unapplied transactions, we must update the html
-          //    related to envelope/account balances and the unallocated/total amounts
+          // 3. If check_pending_transactions applied/unapplied transactions, update the html related to envelope/account balances and the unallocated/total amounts
           if (o.needs_reload) {
             reload_dynamic_html(
               o['total'],
@@ -363,13 +363,38 @@
           data: JSON.stringify({"envelope_id": envelope_id, "timestamp": gen_timestamp()}),
           contentType: 'application/json'
         }).done(function( o ) {
+          // 0. Display errors
           if (o['error']) { M.toast({html: o['error']}); return; }
+
+          // 1. Replace the transactions bin with the new HTML & reset the scroller
           $('#transactions-bin').replaceWith(o['transactions_html']);
           if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the envelope has transactions
+          
+          // 2. Update the html within the dashboard header
           $('#current-page').text(o['current_page']);
           $("#separator").show();
           $('#page-total').text(o['page_total']).show();
+
+          // 3. If check_pending_transactions applied/unapplied transactions, update the html related to envelope/account balances and the unallocated/total amounts
+          if (o.needs_reload) {
+            reload_dynamic_html(
+              o['total'],
+              o['unallocated'],
+              o['accounts_html'],
+              o['envelopes_html'],
+              o['account_select_options_html'],
+              o['envelope_select_options_html'],
+              o['account_select_options_special_html'],
+              o['envelope_select_options_special_html'],
+              o['envelope_editor_html'],
+              o['account_editor_html'],
+              o['envelope_fill_editor_rows_html']
+            );
+          }
+
           refresh_reconcile();
+
+          // 4. Update the global variables
           Budgeteer.current_page = "envelope/".concat(envelope_id);
           Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
           Budgeteer.current_search = {};
@@ -386,13 +411,38 @@
           data: JSON.stringify({"account_id": account_id, "timestamp": gen_timestamp()}),
           contentType: 'application/json'
         }).done(function( o ) {
+          // 0. Display errors
           if (o['error']) { M.toast({html: o['error']}); return; }
+
+          // 1. Replace the transactions bin with the new HTML & reset the scroller
           $('#transactions-bin').replaceWith(o['transactions_html']);
           if ($("#transactions-scroller").length !== 0) { new SimpleBar($("#transactions-scroller")[0]) } //Re-initialize the transactions-scroller if the account has transactions
+
+          // 2. Update the html within the dashboard header
           $('#current-page').text(o['current_page']);
           $("#separator").show();
           $('#page-total').text(o['page_total']).show();
+
+          // 3. If check_pending_transactions applied/unapplied transactions, update the html related to envelope/account balances and the unallocated/total amounts
+          if (o.needs_reload) {
+            reload_dynamic_html(
+              o['total'],
+              o['unallocated'],
+              o['accounts_html'],
+              o['envelopes_html'],
+              o['account_select_options_html'],
+              o['envelope_select_options_html'],
+              o['account_select_options_special_html'],
+              o['envelope_select_options_special_html'],
+              o['envelope_editor_html'],
+              o['account_editor_html'],
+              o['envelope_fill_editor_rows_html']
+            );
+          }
+
           refresh_reconcile();
+
+          // 4. Update the global variables
           Budgeteer.current_page = "account/".concat(account_id);
           Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
           Budgeteer.current_search = {};
@@ -1369,6 +1419,11 @@
       $('#fill-total').text("$0.00").removeClass("negative").addClass("neutral");
       envelope_fill_editor.detach();
 
+      // 3. Re-enable the simplebar scrollers for #accounts-bin and #envelopes-bin
+      $('#accounts-bin .scroller, #envelopes-bin .scroller').each(function(index,el) {
+        new SimpleBar(el);
+      });
+
       // 7. Other functions
       budget_bars(); // Update the envelope budget bars
       envelope_and_account_editor_binds(); // Various event binds for the envelope/account editor modals
@@ -1402,11 +1457,13 @@
         // 1. Reload the dashboard header HTML
         if (o.pageTotal) $('#page-total').text(o['page_total']);
         
-        // 2. Reload the transactions html if needed
+        // 2. Reload the transactions html and scroller if needed
         if (should_reload_transactions_bin) {
           $('#load-more').remove();
           $('#transactions-bin').replaceWith(o['transactions_html']);
           refresh_reconcile();
+          new SimpleBar($('#transactions-scroller')[0]);
+          Budgeteer.transactionsScrollerElement = $('#transactions-scroller .simplebar-content-wrapper')[0];
         }
 
         // 3. Reload the dynamic html
@@ -1423,12 +1480,6 @@
           o['account_editor_html'],
           o['envelope_fill_editor_rows_html']
         );
-
-        // 3. Re-enable the simplebar scrollers
-        $('.scroller').each(function(index,el) {
-          new SimpleBar(el);
-        });
-        Budgeteer.transactionsScrollerElement = $('#transactions-scroller .simplebar-content-wrapper')[0];
 
         // 4. Update the datepickers 
         $('.datepicker').datepicker('setDate', new Date());

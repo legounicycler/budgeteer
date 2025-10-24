@@ -89,9 +89,6 @@ def load_envelope_transactions():
     js_data = request.get_json()
     envelope_id = js_data['envelope_id']
     timestamp = js_data['timestamp']
-    # TEMP
-    # timestamp = (datetime.now() + timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
-    # print("SEARCH TRANSACTIONS TIMESTAMP:", timestamp)
     return jsonify(_build_envelope_page(uuid, envelope_id, timestamp))
   except CustomException:
     return jsonify({"error": "ERROR: Something went wrong and your envelope data could not be loaded!"})
@@ -133,9 +130,6 @@ def load_search_transactions():
     account_ids = form.search_account_ids.data or [] #list[int]
     transaction_types = form.search_transaction_types.data or [] #list[TType]
     timestamp = request.form['timestamp']
-    # TEMP
-    timestamp = (datetime.now() + timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
-    print("SEARCH TRANSACTIONS TIMESTAMP:", timestamp)
 
     # a) Set up the response dict
     response = {}
@@ -146,7 +140,7 @@ def load_search_transactions():
     response['needs_reload'] = needs_reload
     if needs_reload:
       # If pending transactions were applied, the balances may have changed, so reload the dynamic HTML and add it to the response
-      load_dynamic_html(response, uuid, get_user_by_uuid(uuid))
+      load_dynamic_html(response, uuid)
 
     # c) Run the search and render the transactions HTML
     (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types)
@@ -205,13 +199,9 @@ def reset_search():
 def data_reload():
   try:
     uuid = get_uuid_from_cookie()
-    u = get_user_by_uuid(uuid)
     js_data = request.get_json()
     current_page = js_data['current_page']
     timestamp = js_data['timestamp']
-    # TEMP
-    # timestamp = (datetime.now() + timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
-    # print("DATA RELOAD TIMESTAMP:", timestamp)
     should_reload_transactions_bin = js_data['should_reload_transactions_bin']
     check_pending_transactions(uuid, timestamp) # Apply any pending transactions that need to before rendering the template
     
@@ -241,34 +231,39 @@ def data_reload():
       return jsonify(error="Something went wrong. Please refresh and try again.")
     
     # Load the dynamic HTML for account/envelope related stuff
-    load_dynamic_html(data, uuid, u)
-    
+    (are_active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+    (are_active_accounts, accounts_data) = get_user_account_dict(uuid)
+    load_dynamic_html(data, uuid, are_active_envelopes, envelopes_data, budget_total, are_active_accounts, accounts_data)
+
     if should_reload_transactions_bin:
       data['transactions_html'] = render_template('transactions.html',current_page=current_page,transactions_data=transactions_data,envelopes_data=envelopes_data,accounts_data=accounts_data,offset=offset,at_end=at_end,TType=TType)
     return jsonify(data)
   except CustomException as e:
     return jsonify({"error": str(e)})
   except Exception as e:
-    log_write(f"DATA RELOAD ERROR: {str(e)}")
+    log_write(f"DATA RELOAD ERROR: {e}\n{traceback.format_exc()}")
     return jsonify({"error": "An unknown error occurred. Please refresh and try again."})
 
 # Helper function to load all the dynamic HTML snippets needed to update the dashboard header and various select options/editors
 # Called from data_reload or whenever check_pending_transactions applies/unapplies transactions that change envelope/account balances
-def load_dynamic_html(data, uuid, u):
+def load_dynamic_html(data, uuid, are_active_envelopes=None, envelopes_data=None, budget_total=None, are_active_accounts=None, accounts_data=None):
   # Return the data needed to render the reloaded info on the page
+  u = get_user_by_uuid(uuid)
+  if are_active_envelopes is None or envelopes_data is None or budget_total is None:
     (are_active_envelopes, envelopes_data, budget_total) = get_user_envelope_dict(uuid)
+  if are_active_accounts is None or accounts_data is None:
     (are_active_accounts, accounts_data) = get_user_account_dict(uuid)
-    data['total'] = get_total(uuid)
-    data['unallocated'] = get_envelope_balance(u.unallocated_e_id)/100
-    data['accounts_html'] = render_template('accounts.html', are_active_accounts=are_active_accounts, accounts_data=accounts_data)
-    data['envelopes_html'] = render_template('envelopes.html', are_active_envelopes=are_active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
-    data['account_select_options_html'] = render_template('account_select_options.html', accounts_data=accounts_data)
-    data['account_select_options_special_html'] = render_template('account_select_options.html', accounts_data=accounts_data, special=True)
-    data['envelope_select_options_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
-    data['envelope_select_options_special_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id, special=True)
-    data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total,  unallocated_e_id=u.unallocated_e_id)
-    data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
-    data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', are_active_envelopes=are_active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
+  data['total'] = get_total(uuid)
+  data['unallocated'] = get_envelope_balance(u.unallocated_e_id)/100
+  data['accounts_html'] = render_template('accounts.html', are_active_accounts=are_active_accounts, accounts_data=accounts_data)
+  data['envelopes_html'] = render_template('envelopes.html', are_active_envelopes=are_active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
+  data['account_select_options_html'] = render_template('account_select_options.html', accounts_data=accounts_data)
+  data['account_select_options_special_html'] = render_template('account_select_options.html', accounts_data=accounts_data, special=True)
+  data['envelope_select_options_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
+  data['envelope_select_options_special_html'] = render_template('envelope_select_options.html', envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id, special=True)
+  data['envelope_editor_html'] = render_template('envelope_editor.html', envelopes_data=envelopes_data, budget_total=budget_total, unallocated_e_id=u.unallocated_e_id)
+  data['account_editor_html'] = render_template('account_editor.html', accounts_data=accounts_data)
+  data['envelope_fill_editor_rows_html'] = render_template('envelope_fill_editor_rows.html', are_active_envelopes=are_active_envelopes, envelopes_data=envelopes_data, unallocated_e_id=u.unallocated_e_id)
 
 # Loads more transactions for display into the transaction list on the home dashboard
 @main_bp.route('/api/load-more', methods=['POST'])
@@ -319,66 +314,58 @@ def load_more():
 
 # ---------------- Helper builders (not routes) ----------------
 def _build_home_page(uuid, timestamp):
+  response = {}
+
   needs_reload = check_pending_transactions(uuid, timestamp)
   (transactions_data, offset, at_end, total_funds) = get_home_transactions(uuid,0,50)
   (_, envelopes_data, _) = get_user_envelope_dict(uuid)
   (_, accounts_data) = get_user_account_dict(uuid)
+  
   if (needs_reload):
-    print("HOME PAGE RELOAD DUE TO PENDING TRANSACTIONS APPLIED") # TEMP
-  return {
-    'page_total': balanceformat(total_funds),
-    'current_page': 'All Transactions',
-    'transactions_html': render_template(
-      'transactions.html',
-      current_page='All Transactions',
-      transactions_data=transactions_data,
-      envelopes_data=envelopes_data,
-      accounts_data=accounts_data,
-      offset=offset,
-      at_end=at_end,
-      TType=TType
-    )
-  }
+    response['needs_reload'] = True
+    load_dynamic_html(response, uuid)
+
+  response['page_total'] = balanceformat(total_funds)
+  response['current_page'] = 'All Transactions'
+  response['transactions_html'] = render_template('transactions.html',current_page='All Transactions',transactions_data=transactions_data,envelopes_data=envelopes_data,accounts_data=accounts_data,offset=offset,at_end=at_end,TType=TType)
+  
+  return response
 
 def _build_envelope_page(uuid, envelope_id, timestamp):
+  response = {}
+
   needs_reload = check_pending_transactions(uuid, timestamp)
   (transactions_data, offset, at_end, envelope) = get_envelope_transactions(uuid,envelope_id,0,50)
   (_, envelopes_data, _) = get_user_envelope_dict(uuid)
   (_, accounts_data) = get_user_account_dict(uuid)
-  return {
-    'page_total': balanceformat(envelope.balance/100),
-    'current_page': envelope.name,
-    'transactions_html': render_template(
-      'transactions.html',
-      current_page=f'envelope/{envelope_id}',
-      transactions_data=transactions_data,
-      envelopes_data=envelopes_data,
-      accounts_data=accounts_data,
-      offset=offset,
-      at_end=at_end,
-      TType=TType
-    )
-  }
+  
+  if (needs_reload):
+    response['needs_reload'] = True
+    load_dynamic_html(response, uuid)
+  
+  response['page_total'] = balanceformat(envelope.balance/100)
+  response['current_page'] = envelope.name
+  response['transactions_html'] = render_template('transactions.html',current_page=f'envelope/{envelope_id}',transactions_data=transactions_data,envelopes_data=envelopes_data,accounts_data=accounts_data,offset=offset,at_end=at_end,TType=TType)
+
+  return response
 
 def _build_account_page(uuid, account_id, timestamp):
+  response = {}
+
   needs_reload = check_pending_transactions(uuid, timestamp)
   (transactions_data, offset, at_end, account) = get_account_transactions(uuid,account_id,0,50)
   (_, envelopes_data, _) = get_user_envelope_dict(uuid)
   (_, accounts_data) = get_user_account_dict(uuid)
-  return {
-    'page_total': balanceformat(account.balance/100),
-    'current_page': account.name,
-    'transactions_html': render_template(
-      'transactions.html',
-      current_page=f'account/{account_id}',
-      transactions_data=transactions_data,
-      envelopes_data=envelopes_data,
-      accounts_data=accounts_data,
-      offset=offset,
-      at_end=at_end,
-      TType=TType
-    )
-  }
+
+  if (needs_reload):
+    response['needs_reload'] = True
+    load_dynamic_html(response, uuid)
+
+  response['page_total'] = balanceformat(account.balance/100)
+  response['current_page'] = account.name
+  response['transactions_html'] = render_template('transactions.html',current_page=f'account/{account_id}',transactions_data=transactions_data,envelopes_data=envelopes_data,accounts_data=accounts_data,offset=offset,at_end=at_end,TType=TType)
+
+  return response
 
 def _revalidate_search_params(cs):
   """
