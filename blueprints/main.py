@@ -131,18 +131,18 @@ def load_search_transactions():
     transaction_types = form.search_transaction_types.data or [] #list[TType]
     timestamp = request.form['timestamp']
 
-    # a) Set up the response dict
+    # a. Set up the response dict
     response = {}
     response['current_page'] = 'Search results'
 
-    # b) Check for pending transactions to apply before running the search
+    # b. Check for pending transactions to apply before running the search
     needs_reload = check_pending_transactions(uuid, timestamp)
     response['needs_reload'] = needs_reload
     if needs_reload:
       # If pending transactions were applied, the balances may have changed, so reload the dynamic HTML and add it to the response
       load_dynamic_html(response, uuid)
 
-    # c) Run the search and render the transactions HTML
+    # c. Run the search and render the transactions HTML
     (transactions_data, offset, at_end) = get_search_transactions(uuid, 0, 50, search_term, amt_min, amt_max, date_min, date_max, envelope_ids, account_ids, transaction_types)
     (_, envelopes_data, _) = get_user_envelope_dict(uuid)
     (_, accounts_data) = get_user_account_dict(uuid)
@@ -151,7 +151,7 @@ def load_search_transactions():
     else:
       response['transactions_html'] = render_template('transactions.html', current_page='Search results', transactions_data=transactions_data, envelopes_data=envelopes_data, accounts_data=accounts_data, offset=offset, at_end=at_end, TType=TType)
     
-    # d) Return the response
+    # d. Return the response
     return jsonify(response)
 
   except Exception as e:
