@@ -902,7 +902,6 @@ def check_pending_transactions(uuid, timestamp):
     RETURNS:
         (bool): True if any transactions were applied or unapplied, False otherwise
     """
-    print("Checking pending transactions for user " + str(uuid) + " with timestamp " + str(timestamp))
     with conn:
         transactions_changed = False
 
@@ -1443,6 +1442,10 @@ def insert_user(u):
 
         # 2. Insert the new user into the database referencing the ID of the newly created unallocated envelope
         c.execute("INSERT INTO users (uuid, email, password_hash, password_salt, first_name, last_name, registered_on, unallocated_e_id) VALUES (?,?,?,?,?,?,?, (SELECT id FROM envelopes WHERE user_id=? LIMIT 1))", (u.id, u.email, u.password_hash, u.password_salt, u.first_name, u.last_name, u.registered_on, u.id))
+
+        # 3. Update the user object to reflect the database changes
+        c.execute("SELECT unallocated_e_id FROM users WHERE uuid=?", (u.id,))
+        u.unallocated_e_id = c.fetchone()[0]
 
 def confirm_user(u):
     """

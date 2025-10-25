@@ -4,7 +4,7 @@ from time import time
 from flask import url_for
 from flask_login import current_user
 
-from test.unit.conftest import get_login_csrf_token
+from test.unit.conftest import get_csrf_token
 from blueprints.auth import *
 from database import User
 from secret import RECAPTCHA_SITE_KEY
@@ -126,7 +126,7 @@ def test_api_login_nonexistent_user(client, mock_verify_recaptcha):
     The user should be redirected to the login page.
     """
     # 0. Get the CSRF token from the hidden input on the login page
-    csrf_token = get_login_csrf_token(client)
+    csrf_token = get_csrf_token(client)
 
     # 1. Post data to the login form with an email for a user that doesn't exist
     response = client.post(
@@ -149,7 +149,7 @@ def test_api_login_unconfirmed_user(logged_in_user_client, mock_verify_recaptcha
     The site should return confirmed:false, which should redirect the user to the confirm page on the front end.
     """
     # 0. Get the CSRF token from the hidden input on the login page
-    csrf_token = get_login_csrf_token(logged_in_user_client)
+    csrf_token = get_csrf_token(logged_in_user_client)
 
     # 1. Post data to the login form with an email for a user that doesn't exist
     response = logged_in_user_client.post(
@@ -172,7 +172,7 @@ def test_api_login_confirmed_user(logged_in_user_client, mock_verify_recaptcha):
     The user should be redirected to the home page.
     """
     # 0. Get the CSRF token from the hidden input on the login page
-    csrf_token = get_login_csrf_token(logged_in_user_client)
+    csrf_token = get_csrf_token(logged_in_user_client)
 
     # 1. Manually confirm the user
     confirm_user(current_user)
@@ -198,7 +198,7 @@ def test_api_login_malformed_data(client, mock_verify_recaptcha):
     Various different field errors should display.
     """
     # 0. Get the CSRF token from the hidden input on the login page
-    csrf_token = get_login_csrf_token(client)
+    csrf_token = get_csrf_token(client)
 
     # 1. Post data to the login form with a malformed email address
     response = client.post('/api/login', data={'email': "email@example", 'password': 'password', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
@@ -231,7 +231,7 @@ def test_api_login_incorrect_password(client, mock_verify_recaptcha):
     The page should display an error.
     """
     # 0. Get the CSRF token from the hidden input on the login page
-    csrf_token = get_login_csrf_token(client)
+    csrf_token = get_csrf_token(client)
 
     # 1. Insert a new user to the database
     uuid = generate_uuid()
@@ -260,7 +260,7 @@ def test_api_login_bad_recaptcha(client):
     You should receive an unknown error (but a RecaptchaError is logged in the background)
     """
     # 0. Get the CSRF token from the hidden input on the login page
-    csrf_token = get_login_csrf_token(client)
+    csrf_token = get_csrf_token(client)
 
     # 1. Post data to the login form with an email for a user that doesn't exist
     response = client.post(
@@ -287,7 +287,7 @@ def test_create_account_form_success(client, mail_instance, mock_verify_recaptch
     with mail_instance.record_messages() as outbox:
 
         # 0. Get the CSRF token from the hidden input on the login page 
-        csrf_token = get_login_csrf_token(client)
+        csrf_token = get_csrf_token(client)
 
         # 1. Post data to the login form with an email for a user that doesn't exist
         response = client.post(
@@ -318,7 +318,7 @@ def test_create_account_email_already_exists(client, mock_verify_recaptcha):
     The site should display an error that a user with that email already exists.
     """
     # 0. Get the CSRF token from the hidden input on the login page
-    csrf_token = get_login_csrf_token(client)
+    csrf_token = get_csrf_token(client)
 
     # 1. Post data to the login form with an email for a user that doesn't exist yet
     response = client.post(
@@ -358,7 +358,7 @@ def test_create_account_malformed_data(client, mock_verify_recaptcha):
     The site should display various field errors
     """
     # 0. Get the CSRF token from the hidden input on the login page
-    csrf_token = get_login_csrf_token(client)
+    csrf_token = get_csrf_token(client)
 
     # Establish default data that will be modified in each test
     post_data = {
@@ -567,7 +567,7 @@ def test_forgot_password_route_missing_email(client, mock_verify_recaptcha):
     The site should return success:false and display the field error message
     """
     # 0. Get the CSRF token
-    csrf_token = get_login_csrf_token(client)
+    csrf_token = get_csrf_token(client)
 
     # 1. POST with missing email
     response = client.post('/forgot-password',data={'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
@@ -583,7 +583,7 @@ def test_forgot_password_route_malformed_email(client):
     """
 
     # 0. Get the CSRF token
-    csrf_token = get_login_csrf_token(client)
+    csrf_token = get_csrf_token(client)
 
     # 1. POST with malformed email
     response = client.post('/forgot-password', data={'reset_email': 'email@example', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
@@ -598,7 +598,7 @@ def test_forgot_password_route_non_exisent_user(client, mock_verify_recaptcha):
     The site should return success:false and display the field error message
     """
     # 0. Get the CSRF token
-    csrf_token = get_login_csrf_token(client)
+    csrf_token = get_csrf_token(client)
 
     # 1. POST with non-existent email
     response = client.post('/forgot-password', data={'reset_email': 'email@example.com', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
@@ -615,7 +615,7 @@ def test_forgot_password_route_valid_user(logged_in_user_client, mail_instance, 
     with mail_instance.record_messages() as outbox:
 
         # 0. Get the CSRF token
-        csrf_token = get_login_csrf_token(logged_in_user_client)
+        csrf_token = get_csrf_token(logged_in_user_client)
 
         # 1. POST with valid email
         response = logged_in_user_client.post('/forgot-password', data={'reset_email': 'email@example.com', 'csrf_token': csrf_token,'g-recaptcha-response': 'dummy-response'})
@@ -681,7 +681,7 @@ def test_reset_password_post_malformed_data(logged_in_user_client, mock_verify_r
     The site should display the field errors and return success:false
     """
     #0. Get csrf token
-    csrf_token = get_login_csrf_token(logged_in_user_client)
+    csrf_token = get_csrf_token(logged_in_user_client)
 
     #1. Generate a reset password token
     token = generate_token(current_user.email)
@@ -717,7 +717,7 @@ def test_reset_password_post_valid_data(logged_in_user_client, mock_verify_recap
     The site should return success:true, which redirects to the login page in the frontend javascript, and the password should be changed
     """
     #0. Get csrf token
-    csrf_token = get_login_csrf_token(logged_in_user_client)
+    csrf_token = get_csrf_token(logged_in_user_client)
 
     #1. Generate a reset password token
     token = generate_token(current_user.email)

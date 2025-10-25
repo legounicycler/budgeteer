@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import validators, StringField, PasswordField, EmailField, SelectField, SelectMultipleField, TextAreaField, SearchField, HiddenField, SubmitField
 from wtforms.validators import Optional, ValidationError
+import wtforms.validators as wt_validators
 from typing import Optional as TypingOptional
 from flask_wtf.file import FileField, FileAllowed
 from datetime import datetime
@@ -17,16 +18,32 @@ class AmtStringField(StringField):
     - If allow_empty=True, empty input becomes None.
     """
     def __init__(self, label=None, validators=None, allow_empty: TypingOptional[bool]=None, message: TypingOptional[str]=None, **kwargs):
-        self.message = message or 'Field must be a number'
-        # Preserve user validators order; append internal converter last
-        vlist = list(validators) if validators else []
+        
+        # 1. Set the error message
+        self.message = message or 'Error'
+
+        # 2. Add the default validators for amount fields
+        vlist = [
+            wt_validators.Regexp(r'^\$?\d+(?:\.\d{1,2})?$', message="Invalid number format"),
+            wt_validators.Length(max=19, message="Number too large")
+        ]
+
+        # 3. Preserve any user validators
+        if validators:
+            vlist.extend(list(validators))
+
+        # 4. Set allow_empty based on presence of Optional() if not explicitly provided
         self._has_optional = any(isinstance(v, Optional) for v in vlist)
         # If allow_empty not explicitly provided, infer from presence of Optional()
         if allow_empty is None:
             self.allow_empty = self._has_optional
         else:
             self.allow_empty = allow_empty
+
+        # 5. Append the internal converter as the LAST validator
         vlist.append(self._convert_to_int)
+
+        # 6. Initialize the parent StringField with the complete validator list
         super().__init__(label, validators=vlist, **kwargs)
 
     def process_formdata(self, valuelist):
@@ -64,16 +81,30 @@ class DateStringField(StringField):
     - On valid input, field.data is set to datetime.
     """
     def __init__(self, label=None, validators=None, allow_empty: TypingOptional[bool]=None, message: TypingOptional[str]=None, **kwargs):
-        self.message = message or 'Field must be a valid date'
-        # Preserve user validators order; append internal converter last
-        vlist = list(validators) if validators else []
+        
+        # 1. Set the error message
+        self.message = message or 'Error'
+        
+        # 2. Add the default date format validator
+        vlist = [
+           wt_validators.Regexp(r'^\d{2}/\d{2}/\d{4}$', message="Use MM/DD/YYYY")
+        ]
+
+        # 3. Preserve any user validators
+        if validators:
+            vlist.extend(list(validators))
+
+        # 4. Set allow_empty based on presence of Optional() if not explicitly provided
         self._has_optional = any(isinstance(v, Optional) for v in vlist)
-        # If allow_empty not explicitly provided, infer from presence of Optional()
         if allow_empty is None:
             self.allow_empty = self._has_optional
         else:
             self.allow_empty = allow_empty
-        vlist.append(self._convert_to_date)
+        
+        # 5. Append the internal date converter as the LAST validator
+        vlist.append(self._convert_to_date) # type: ignore[assignment]
+
+        # 6. Initialize the parent StringField with the complete validator list
         super().__init__(label, validators=vlist, **kwargs)
 
     def process_formdata(self, valuelist):
@@ -382,44 +413,46 @@ class TransactionSearchForm(FlaskForm):
 
     search_amt_min = AmtStringField(
         "Min. Amt",
-        [Optional(), validators.Regexp(r'^\$?\d+(?:\.\d{1,2})?$', message="Invalid number format"), validators.Length(max=19, message="Number too large")],
+        [Optional()],
         render_kw={"placeholder": "$0.00", "tabindex": "-1", "class": "special-input blue-grey-text white t-search-input validate"}
     )
 
     search_amt_max = AmtStringField(
         "Max. Amt",
-        [Optional(), validators.Regexp(r'^\$?\d+(?:\.\d{1,2})?$', message="Invalid number format"), validators.Length(max=19, message="Number too large")],
+        [Optional()],
         render_kw={"placeholder": "$0.00", "tabindex": "-1", "class": "special-input blue-grey-text white t-search-input validate"}
     )
 
     search_date_min = DateStringField(
         "Min. Date",
-        [Optional(), validators.Regexp(r'^\d{2}/\d{2}/\d{4}$', message="Use MM/DD/YYYY")],
+        [Optional()],
         allow_empty=True,
         render_kw={"placeholder": "MM/DD/YYYY", "tabindex": "-1", "class": "datepicker blue-grey-text white t-search-input validate", "pattern": r"^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$"}
     )
 
     search_date_max = DateStringField(
         "Max. Date",
-        [Optional(), validators.Regexp(r'^\d{2}/\d{2}/\d{4}$', message="Use MM/DD/YYYY")],
+        [Optional()],
         allow_empty=True,
         render_kw={"placeholder": "MM/DD/YYYY", "tabindex": "-1", "class": "datepicker blue-grey-text white t-search-input validate", "pattern": r"^((0|1)\d{1})/((0|1|2|3)\d{1})/((19|20)\d{2})$"}
     )
 
     # NOTE: This field is not placed into the template with jinja, but rather a select element is directly given the id
-    # This is because materialize generates 
+    # This is because materialize generates new input elements for selects 
     search_envelope_ids = IdSelectMultipleField(
         "Envelope IDs",
         [Optional()]
     )
 
     # NOTE: This field is not placed into the template with jinja, but rather a select element is directly given the id
+    # This is because materialize generates new input elements for selects 
     search_account_ids = IdSelectMultipleField(
         "Account IDs",
         [Optional()]
     )
 
     # NOTE: This field is not placed into the template with jinja, but rather a select element is directly given the id
+    # This is because materialize generates new input elements for selects 
     search_transaction_types = TTypeSelectMultipleField(
         "Transaction Types",
         [Optional()]
