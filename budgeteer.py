@@ -12,7 +12,6 @@ from flask_wtf.csrf import CSRFProtect
 
 # Library imports
 from itsdangerous import URLSafeTimedSerializer, URLSafeSerializer
-import platform
 
 # Custom imports
 from database import *
@@ -20,26 +19,23 @@ from filters import balanceformat, datetimeformat, datetimeformatshort, inputfor
 from blueprints.auth import auth_bp, login_manager
 from blueprints.main import main_bp
 from blueprints.error_handling import error_handling_bp
+from secret import IS_PRODUCTION_MACHINE
 
 def create_app(config_object="config.DevelopmentConfig"):
   app = Flask(__name__)
   app.config.from_object(config_object)
 
   # Initilze csrf extension (TODO: May not need this if all forms are Flask WTForms)
-  csrf = CSRFProtect(app)
-  app.extensions['csrf'] = csrf
+  app.extensions['csrf'] = CSRFProtect(app)
 
   # Initialize mail extension
-  mail = Mail(app)
-  app.extensions['mail'] = mail
+  app.extensions['mail'] = Mail(app)
 
   # Initialize URLSafeTimedSerializer
-  timed_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-  app.extensions['timed_serializer'] = timed_serializer
+  app.extensions['timed_serializer'] = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
   # Initialize URLSafeSerializer
-  serializer = URLSafeSerializer(app.config['SECRET_KEY'])
-  app.extensions['serializer'] = serializer
+  app.extensions['serializer'] = URLSafeSerializer(app.config['SECRET_KEY'])
 
   # Initalize the LoginManager extension
   login_manager.init_app(app)
@@ -61,12 +57,12 @@ def create_app(config_object="config.DevelopmentConfig"):
   return app
 
 if __name__ == '__main__':
-  app_platform = platform.system()
-  if app_platform == 'Windows':
-    app = create_app("config.DevelopmentConfig")
-  else:
+
+  if IS_PRODUCTION_MACHINE:
     app = create_app("config.ProductionConfig")
-  
+  else:
+    app = create_app("config.DevelopmentConfig")
+
   db = Database(app.config['DATABASE_URI'])
   db.get_conn()
   app.run()

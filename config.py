@@ -1,4 +1,4 @@
-from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME, SECURITY_PASSWORD_SALT, WINDOWS_DATABASE_PATH, LINUX_DATABASE_PATH, LOCAL_UPLOAD_FOLDER
+from secret import SECRET_KEY, MAIL_PASSWORD, MAIL_USERNAME, SECURITY_PASSWORD_SALT, PRODUCTION_DATABASE_PATH, LOCAL_DATABASE_PATH, LOCAL_UPLOAD_FOLDER
 
 class Config:
     """Base configuration class with default settings."""
@@ -25,7 +25,7 @@ class DevelopmentConfig(Config):
     """Configuration for development environment."""
     DEBUG = True  # Comment this out if you want to see custom http error pages
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
-    DATABASE_URI = WINDOWS_DATABASE_PATH
+    DATABASE_URI = LOCAL_DATABASE_PATH
 
 class TestingConfig(Config):
     """Configuration for testing environment."""
@@ -39,7 +39,7 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     """Configuration for production environment."""
     FLASK_ENV = 'production'
-    DATABASE_URI = LINUX_DATABASE_PATH
+    DATABASE_URI = PRODUCTION_DATABASE_PATH
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
 
 # Configuration dictionary mapping names to classes

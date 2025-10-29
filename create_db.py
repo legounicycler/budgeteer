@@ -1,6 +1,6 @@
 from database import *
-from secret import WINDOWS_DATABASE_PATH, LINUX_DATABASE_PATH
-import platform, sys
+from secret import LOCAL_DATABASE_PATH
+import sys
 from blueprints.auth import generate_uuid
 from database import User, insert_user, confirm_user
 
@@ -14,11 +14,7 @@ if __name__ == "__main__":
                  # If so, create a default user to avoid having to manually create one and sending a confirmation email
                 create_default_user = True
                 
-    platform = platform.system()
-    if platform == 'Windows':
-        database = WINDOWS_DATABASE_PATH
-    else:
-        database = LINUX_DATABASE_PATH
+    database = LOCAL_DATABASE_PATH
 
     try:
         with open(database, "x") as f:

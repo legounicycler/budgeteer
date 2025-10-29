@@ -1,12 +1,7 @@
-from database import *
-from config import *
-import platform
+from database import Database, health_check
+from config import LOCAL_DATABASE_PATH
 
-app_platform = platform.system()
-if app_platform == 'Windows':
-    db = Database(config['development'].DATABASE_URI)
-else:
-    db = Database(config['production'].DATABASE_URI)
+db = Database(LOCAL_DATABASE_PATH)
 
 db.get_conn()
 health_check([],True)
