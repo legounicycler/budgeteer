@@ -44,7 +44,7 @@
           {{ search_form.search_date_max() }}
           <span class="helper-text red-text left-align" data-error="MM/DD/YYYY"></span>
         </div>
-        <div class="input-field col s4 l4">
+        <div class="input-field col s6 m4">
           <select id="search_envelope_ids" class="envelope-selector" name="search_envelope_ids" multiple>
             {% with special=true %}
               {% include 'envelope_select_options.html' %}
@@ -53,7 +53,7 @@
           <label for="search_envelope_ids" class="special-select-label white-text">Envelope(s)</label>
           <span class="helper-text red-text left-align"></span>
         </div>
-        <div class="input-field col s4 l4">
+        <div class="input-field col s6 m4">
           <select id="search_account_ids" class="account-selector" name="search_account_ids" multiple>
             {% with  special=true %}
               {% include 'account_select_options.html' %}
@@ -62,7 +62,7 @@
           <label for="search_account_ids" class="special-select-label white-text">Account(s)</label>
           <span class="helper-text red-text left-align"></span>
         </div>
-        <div class="input-field col s3 l3">
+        <div class="input-field col s6 m3">
           <select id="search_transaction_types" name="search_transaction_types" multiple>
             <option value="{{TType.BASIC_TRANSACTION.id}}"><i class="material-icons">{{TType.BASIC_TRANSACTION.icon}}</i>Basic Transaction</option>
             <option value="{{TType.SPLIT_TRANSACTION.id}}"><i class="material-icons">{{TType.SPLIT_TRANSACTION.icon}}</i>Split Transaction</option>
@@ -77,7 +77,7 @@
           <label for="search_transaction_types" class="special-select-label white-text">Type</label>
           <span class="helper-text red-text left-align"></span>
         </div>
-        <div id="search-submit-col" class="input-field col s1 l1">
+        <div id="search-submit-col" class="input-field col s1 offset-s5 offset-m0 offset-l2">
           <button id="search-submit" tabindex="-1" type="submit" class="btn orange darken-2"><i class="material-icons">search</i></button>
         </div>
       </div>

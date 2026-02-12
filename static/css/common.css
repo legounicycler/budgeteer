@@ -13,13 +13,20 @@
   z-index: 10000000;
 }
 
+:root{
+  --navbar-height: 64px;
+}
+
 .navbar-fixed {
-  height: 64px;
+  height: var(--navbar-height);
+  width: 100%;
+  position: fixed;
+  top: 0;
 }
 
 nav {
-  height: 64px;
-  line-height: 64px;
+  height: var(--navbar-height);
+  line-height: var(--navbar-height);
 }
 
 #logo {
@@ -27,12 +34,10 @@ nav {
   margin-top: 7px;
 }
 
-html, body {
-  height: 100vh;
-}
-
 main {
-  height: calc(100vh - 64px);
+  height: calc(100dvh - var(--navbar-height));
+  top: var(--navbar-height);
+  position: relative;
 }
 
 .tiny {
@@ -42,4 +47,10 @@ main {
 
 body {
   overscroll-behavior: none;
+}
+
+@media only screen and (max-width: 992px) {
+  main {
+    height: auto;
+  }
 }
