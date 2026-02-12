@@ -1,3 +1,12 @@
+:root{
+  --dashboard-header-height: 90px;
+}
+
+#dashboard-header {
+  position: sticky;
+  top: var(--navbar-height);
+}
+
 #dashboard-title-and-search-row  {
   height: 90px;
   display: flex;
@@ -106,7 +115,7 @@
 
 /* Position the labels above the envelope/account dropdowns */
 #dashboard-header .input-field.col label.special-select-label {
-  top: -28px;
+  top: -30px;
   left: 1rem;
   color: white;
 }
@@ -176,6 +185,7 @@
 #search-submit-col {
   display: flex;
   justify-content: right;
+  padding-right: 0px;
 }
 
 /* SET THE SIZE OF THE DROPDOWN ROW */
@@ -287,5 +297,12 @@
   #multi-select-delete {
     margin-left: 5px;
     margin-top: 0px;
+  }
+}
+
+@media only screen and (max-width: 475px) {
+  /* Keep transaction search button from flowing off the right side of the screen  */
+  #search-submit-col {
+    justify-content: right;
   }
 }

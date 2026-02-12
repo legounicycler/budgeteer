@@ -119,3 +119,15 @@ textarea.invalid ~ .helper-text[data-server-error]::after,
 .select-wrapper.invalid ~ .helper-text[data-server-error]::after {
   content: attr(data-server-error) !important;
 }
+
+/* Adds media queries for 0 offests */
+@media only screen and (min-width: 601px) {
+  .row .col.offset-m0 {
+    margin-left: 0;
+  }
+}
+@media only screen and (min-width: 993px) {
+  .row .col.offset-l0 {
+    margin-left: 0;
+  }
+}
