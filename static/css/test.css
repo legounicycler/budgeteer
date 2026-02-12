@@ -1,0 +1,133 @@
+:root {
+    --navbar-height: 64px;
+    --dashboard-header-height: 90px;
+}
+
+body {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh; /* Use dynamic viewport height */
+    overflow: hidden; /* Prevent body-level bounce */
+}
+
+nav {
+    position: static; /* No longer needs to be fixed if parent is flex */
+    flex: 0 0 var(--navbar-height);
+    z-index: 100;
+    background-color: #f57f17;
+    width: 100%;
+    text-align: center;
+}
+
+h1 {
+    color: white;
+    margin: 0px;
+    line-height: var(--navbar-height);
+}
+
+main {
+    flex: 1;
+    overflow-y: auto;
+}
+
+#column1 {
+    background-color: #607d8b;
+    height: 100%;
+    width: 30%;
+    float: left;
+    height: calc(100dvh - var(--navbar-height));
+}
+
+#left-content {
+    margin: 10px;
+    max-height: 95%;
+    background-color: lightgray;
+    overflow-y: scroll;
+    border: 1px solid gray;
+}
+
+.envelope {
+    height: 40px;
+    background-color: white;
+    border: 1px solid gray;
+    text-align: center;
+    line-height: 40px;
+}
+
+#column2 {
+    height: 100%;
+    width: 70%;
+    float: left;
+}
+
+#bin {
+    padding: 5px;
+    height: calc(100dvh - var(--dashboard-header-height) - var(--navbar-height) - 10px);
+}
+
+#transactions-bin {
+    height: 100%;
+    width: 100%;
+    background-color: lightblue;
+    border: 1px solid gray;
+    max-height: 100%;
+}
+
+#tableheader {
+    width: calc(100% - 2px);
+    height: 10px;
+    background-color: lightgray;
+    border: 1px solid gray;
+    text-align: center;
+    line-height: 10px;
+    font-size: 8px;
+}
+
+#transactions-scroller {
+    max-height: calc(100% - 12px);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.transaction {
+    width: calc(100% - 2px);
+    height: 40px;
+    background-color: white;
+    border: 1px solid gray;
+    text-align: center;
+    line-height: 40px;
+}
+
+#dashboard-header {
+    position: sticky;
+    will-change: transform;
+    top: 0;
+    background-color: orange;
+    height: var(--dashboard-header-height);
+    width: 100%;
+    text-align: center;
+    line-height: var(--dashboard-header-height);
+}
+
+.light-gray {
+    background-color:#f3f3f3;
+}
+
+@media only screen and (max-width: 992px) {
+    #column1 {
+        width: 100%;
+        height: auto;
+    }
+
+    #column2 {
+        width: 100%;
+        height: auto;
+    }
+
+    /* #right-content {
+        overflow: auto;
+        max-height: unset;
+    } */
+}
