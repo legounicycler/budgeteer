@@ -22,6 +22,10 @@ from blueprints.auth import check_confirmed, get_uuid_from_cookie
 
 main_bp = Blueprint('main', __name__)
 
+@main_bp.route("/test", methods=['GET'])
+def test():
+  return render_template('test.html')
+
 @main_bp.route("/home", methods=['GET'])
 @login_required
 @check_confirmed
