@@ -395,7 +395,7 @@ h5.no-margin {
 
 
 /* makes the leftside content reach the bottom of the page*/
-.content, .left-content {
+.content, #left-content {
   height: 100vh;
 }
 
@@ -404,7 +404,7 @@ h5.no-margin {
   width: 100%;
 }
 
-.left-content {
+#left-content {
   padding: 0 !important;
   font-size: .8em;
 }
@@ -489,18 +489,14 @@ h5 {
   height: 1.1em;
 }
 
-@media only screen and (max-width: 992px) {
+@media only screen and (max-width: 992px) {  
   #total-container {
     width: fit-content;
     min-width: 75%;
   }
   
-  .left-content {
+  #left-content {
     height: auto;
-  }
-
-  main {
-    height: 100%;
   }
 
   .content {
