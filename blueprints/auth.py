@@ -330,7 +330,8 @@ def set_secure_cookie(response, key, value):
   response: Flask response object with the secure cookie added
   """
   encrypted_value = current_app.extensions['serializer'].dumps(value)
-  response.set_cookie(key, encrypted_value, httponly=True, secure=True, max_age=30*24*60*60) #Make age is 30 days
+  secure_flag = (current_app.config.get('FLASK_ENV') == 'production') # Enable setting cookie on non-secure connections in development
+  response.set_cookie(key, encrypted_value, httponly=True, secure=secure_flag, max_age=30*24*60*60) #Make age is 30 days
   return response
 
 def get_uuid_from_cookie():

@@ -26,6 +26,7 @@ class DevelopmentConfig(Config):
     DEBUG = True  # Comment this out if you want to see custom http error pages
     WTF_CSRF_ENABLED = False #TODO: When all forms are flask-wtforms, remove this so it's always true
     DATABASE_URI = LOCAL_DATABASE_PATH
+    SERVER_NAME = '0.0.0.0:5000'
 
 class TestingConfig(Config):
     """Configuration for testing environment."""
