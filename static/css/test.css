@@ -3,131 +3,210 @@
     --dashboard-header-height: 90px;
 }
 
+/* GAP FIX: We set the body background to the header color.
+   If the browser address bar causes a layout jump, the gap 
+   reveals this color instead of white, hiding the glitch.
+*/
 body {
     margin: 0;
-    display: flex;
-    flex-direction: column;
-    height: 100dvh; /* Use dynamic viewport height */
-    overflow: hidden; /* Prevent body-level bounce */
-}
-
-nav {
-    position: static; /* No longer needs to be fixed if parent is flex */
-    flex: 0 0 var(--navbar-height);
-    z-index: 100;
-    background-color: #f57f17;
-    width: 100%;
-    text-align: center;
 }
 
 h1 {
     color: white;
-    margin: 0px;
-    line-height: var(--navbar-height);
+    margin: 0;
 }
 
-main {
-    flex: 1;
-    overflow-y: auto;
+/* =========================================
+   DESKTOP LAYOUT (App Shell / No Body Scroll)
+   ========================================= */
+@media only screen and (min-width: 993px) {
+    html, body {
+        height: 100vh; /* Strict lock */
+        overflow: hidden; /* No body scroll */
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    nav {
+        flex: 0 0 var(--navbar-height);
+        background-color: #f57f17;
+        text-align: center;
+        z-index: 100;
+        width: 100%;
+        line-height: var(--navbar-height);
+    }
+
+    main {
+        flex: 1; /* Takes remaining height */
+        display: flex;
+        overflow: hidden; /* Forces scroll to happen INSIDE columns */
+        background-color: white; 
+    }
+
+    #column1 {
+        width: 30%;
+        height: 100%;
+        background-color: #607d8b;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #left-content {
+        /* flex: 1; */
+        margin: 10px;
+        background-color: lightgray;
+        border: 1px solid gray;
+        overflow-y: auto; /* Independent Scroll */
+    }
+
+    #column2 {
+        width: 70%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #dashboard-header {
+        flex: 0 0 var(--dashboard-header-height);
+        background-color: orange;
+        text-align: center;
+        line-height: var(--dashboard-header-height);
+    }
+
+    #bin {
+        /* flex: 1; */
+        padding: 5px;
+        overflow: hidden; /* Locking container */
+        display: flex;
+        flex-direction: column;
+    }
+
+    #transactions-bin {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background-color: lightblue;
+        border: 1px solid gray;
+        overflow: hidden;
+    }
+
+    #tableheader {
+        flex: 0 0 10px; /* Fixed header inside the bin */
+        background-color: lightgray;
+        border-bottom: 1px solid gray;
+        text-align: center;
+        line-height: 10px;
+        font-size: 8px;
+        z-index: 10;
+    }
+
+    #transactions-scroller {
+        flex: 1;
+        overflow-y: auto; /* Independent Scroll */
+    }
 }
 
-#column1 {
-    background-color: #607d8b;
-    height: 100%;
-    width: 30%;
-    float: left;
-    height: calc(100dvh - var(--navbar-height));
-}
-
-#left-content {
-    margin: 10px;
-    max-height: 95%;
-    background-color: lightgray;
-    overflow-y: scroll;
-    border: 1px solid gray;
-}
-
-.envelope {
-    height: 40px;
-    background-color: white;
-    border: 1px solid gray;
-    text-align: center;
-    line-height: 40px;
-}
-
-#column2 {
-    height: 100%;
-    width: 70%;
-    float: left;
-}
-
-#bin {
-    padding: 5px;
-    height: calc(100dvh - var(--dashboard-header-height) - var(--navbar-height) - 10px);
-}
-
-#transactions-bin {
-    height: 100%;
-    width: 100%;
-    background-color: lightblue;
-    border: 1px solid gray;
-    max-height: 100%;
-}
-
-#tableheader {
-    width: calc(100% - 2px);
-    height: 10px;
-    background-color: lightgray;
-    border: 1px solid gray;
-    text-align: center;
-    line-height: 10px;
-    font-size: 8px;
-}
-
-#transactions-scroller {
-    max-height: calc(100% - 12px);
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
-}
-
-.transaction {
-    width: calc(100% - 2px);
-    height: 40px;
-    background-color: white;
-    border: 1px solid gray;
-    text-align: center;
-    line-height: 40px;
-}
-
-#dashboard-header {
-    position: sticky;
-    will-change: transform;
-    top: 0;
-    background-color: orange;
-    height: var(--dashboard-header-height);
-    width: 100%;
-    text-align: center;
-    line-height: var(--dashboard-header-height);
-}
-
-.light-gray {
-    background-color:#f3f3f3;
-}
-
+/* =========================================
+   MOBILE LAYOUT (Native Body Scroll)
+   ========================================= */
 @media only screen and (max-width: 992px) {
+    body {
+        display: block;
+        height: auto;
+        overflow-y: auto; /* Restores Bounce & Pull-to-Refresh */
+    }
+
+    nav {
+        position: fixed;
+        width: 100%;
+        top: 0;
+        height: var(--navbar-height);
+        z-index: 1000;
+        background-color: #f57f17;
+        text-align: center;
+        line-height: var(--navbar-height);
+    }
+
+    main {
+        display: block;
+        top: var(--navbar-height); /* Pushes content below Nav */
+        background-color: white; 
+        min-height: 100vh;
+    }
+
     #column1 {
         width: 100%;
-        height: auto;
+        padding: 10px;
+        background-color: #607d8b;
+        box-sizing: border-box;
+        margin-top: var(--navbar-height); /* Pushes content below Nav */
+    }
+    
+    #left-content {
+        border: 1px solid gray;
+        background-color: lightgray;
     }
 
     #column2 {
         width: 100%;
-        height: auto;
+        min-height: calc(100vh - var(--navbar-height)); /* Ensures it fills the screen */
     }
 
-    /* #right-content {
-        overflow: auto;
-        max-height: unset;
-    } */
+    #dashboard-header {
+        position: sticky;
+        /* Sticks exactly below the Nav */
+        top: var(--navbar-height); 
+        height: var(--dashboard-header-height);
+        background-color: orange;
+        text-align: center;
+        line-height: var(--dashboard-header-height);
+        z-index: 900;
+    }
+
+    #bin {
+        padding: 5px;
+    }
+
+    #transactions-bin {
+        background-color: lightblue;
+        border: 1px solid gray;
+    }
+
+    #tableheader {
+        /* Sticky Logic:
+           Nav (64px) + Dashboard Header (90px) = 154px
+           We stick this header 154px from the top so it stays visible
+           under the dashboard header.
+        */
+        position: sticky;
+        top: calc(var(--navbar-height) + var(--dashboard-header-height) + 5px); /* 5px is the padding from #bin */
+        height: 10px;
+        background-color: lightgray;
+        text-align: center;
+        line-height: 10px;
+        font-size: 8px;
+        z-index: 800;
+        border-bottom: 1px solid gray;
+    }
+
+    #transactions-scroller {
+        /* Standard flow */
+        overflow: visible; 
+    }
+}
+
+/* Shared Item Styles */
+.envelope, .transaction {
+    height: 40px;
+    background-color: white;
+    border: 1px solid gray;
+    text-align: center;
+    line-height: 40px;
+}
+
+.light-gray {
+    background-color: #f3f3f3;
 }
