@@ -8,6 +8,10 @@
   overflow: hidden;
 }
 
+#transactions-scroller, #scroller, #bin, #main, #column1 {
+    box-sizing: content-box;
+}
+
 #bin {
   padding: 5px;
   height: calc(100% - 90px);

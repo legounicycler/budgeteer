@@ -17,13 +17,6 @@
   --navbar-height: 64px;
 }
 
-.navbar-fixed {
-  height: var(--navbar-height);
-  width: 100%;
-  position: fixed;
-  top: 0;
-}
-
 nav {
   height: var(--navbar-height);
   line-height: var(--navbar-height);
