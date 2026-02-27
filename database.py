@@ -1309,6 +1309,7 @@ def get_envelope_balance(id):
     """
     Returns envelope balance given envelope id
     """
+    # TODO: Make sure the ID type is an int
     c.execute("SELECT balance FROM envelopes WHERE id=?", (id,))
     balance = c.fetchone()
     if balance is not None:
