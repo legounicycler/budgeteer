@@ -2,6 +2,10 @@
     --bin-padding: 5px;
 }
 
+#transactions-scroller, #scroller, #bin, #main, #column1 {
+    box-sizing: content-box;
+}
+
 body {
     display: flex;
     flex-direction: column;
@@ -16,6 +20,7 @@ nav {
     text-align: center;
     z-index: 1000;
     width: 100%;
+    height: var(--navbar-height);
     line-height: var(--navbar-height);
 }
 
@@ -54,6 +59,7 @@ main {
     text-align: center;
     line-height: var(--dashboard-header-height);
     height: var(--dashboard-header-height);
+    overflow: hidden;
 }
 
 #bin {
