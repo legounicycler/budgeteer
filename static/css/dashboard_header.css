@@ -2,10 +2,10 @@
   --dashboard-header-height: 90px;
 }
 
-#dashboard-header {
+/* #dashboard-header {
   position: sticky;
   top: var(--navbar-height);
-}
+} */
 
 #dashboard-title-and-search-row  {
   height: 90px;

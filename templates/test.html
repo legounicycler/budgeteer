@@ -4,14 +4,24 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
   <title>Budgeteer</title>
+  <link href="{{url_for('static', filename='css/materialize.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/common.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/main.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link href="../static/css/test.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="{{url_for('static', filename='css/dashboard_header.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link rel="stylesheet" href="https://unpkg.com/simplebar@latest/dist/simplebar.css"/>
 </head>
 
 <body>
 	
-    <!-- Main Nav -->
-	<nav>
-	  <h1>Budgeteer</h1>
+  <!-- Main Nav -->
+	<nav class="yellow darken-4">
+		<div class="nav-wrapper">
+      <ul class="left">
+			<li><a href="#" data-target="slide-out" class="sidenav-trigger"><i class="material-icons">menu</i></a></li>
+		  </ul>
+			<div id="logo-container" class="brand-logo center"><img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo"></div>
+		</div>
   </nav>
 
   <!-- Content -->
