@@ -10,7 +10,7 @@ secret.py
 static/node_modules/
 Exported_Transactions/
 .venv/
-test/unit/_pycache_/
+test/unit/__pycache__/
 
 #Ignore any files in these directories except the .gitkeep files (which are used to keep the directories in version control)
 uploads/*
