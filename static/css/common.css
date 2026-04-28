@@ -17,6 +17,10 @@
   --navbar-height: 64px;
 }
 
+.navbar-fixed {
+  height: var(--navbar-height);
+}
+
 nav {
   height: var(--navbar-height);
   line-height: var(--navbar-height);
@@ -27,23 +31,13 @@ nav {
   margin-top: 7px;
 }
 
-/* main {
-  height: calc(100dvh - var(--navbar-height));
-  top: var(--navbar-height);
-  position: relative;
-} */
-
 .tiny {
   font-size: .75em;
   color: gray;
 }
 
-/* body {
-  overscroll-behavior: none;
-} */
-
 @media only screen and (max-width: 992px) {
   main {
-    height: auto;
+    height: calc(100vh - var(--navbar-height) - var(--footer-height));
   }
 }

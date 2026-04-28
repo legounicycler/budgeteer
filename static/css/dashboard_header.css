@@ -2,11 +2,6 @@
   --dashboard-header-height: 90px;
 }
 
-/* #dashboard-header {
-  position: sticky;
-  top: var(--navbar-height);
-} */
-
 #dashboard-title-and-search-row  {
   height: 90px;
   display: flex;
@@ -235,7 +230,14 @@
   height: 18px;
 }
 
+
+
 @media only screen and (max-width: 600px) {
+
+  #dashboard-header {
+    position: relative;
+    top: 0px;
+  }
 
   /* Stack the title and search columns */
   #dashboard-page-title-col, #search-col  {
