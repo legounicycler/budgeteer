@@ -1,9 +1,16 @@
+/* CSS Variables */
+:root{
+  --dashboard-header-height: 90px;
+  --navbar-height: 64px;
+  --footer-height: 50px;
+}
+
 #fullscreen-wrapper {
-  height: calc(100% - 20px);
+  height: 100%;
   width: 100%;
   position: fixed;
   z-index: 10000;
-  top: 10px;
+  top: 0px;
   pointer-events: none;
   overflow: hidden;
 }
@@ -12,9 +19,17 @@
     box-sizing: content-box;
 }
 
+#footer {
+  background: orange;
+  height: 50px;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+}
+
 #bin {
   padding: 5px;
-  height: calc(100% - 90px);
+  height: calc(100% - var(--dashboard-header-height));
 }
 
 #left-header {
@@ -81,7 +96,7 @@
 
 #dashboard-column {
   padding: 0 !important;
-  height: calc(100% - 64px);
+  height: calc(100% - var(--dashboard-header-height));
 }
 
 #transactions-list {
@@ -89,7 +104,7 @@
 }
 
 #left-header, #dashboard-header {
-  height: 90px;
+  height: var(--dashboard-header-height);
   overflow: hidden;
 }
 
@@ -311,7 +326,7 @@ input[type="text"]:not(.special-fill-input, .special-input-envelope-editor, .spe
 }
 
 #envelopes, #accounts {
-  height: calc(100% - 64px - 90px - 48px);
+  height: calc(100% - var(--navbar-height) - var(--dashboard-header-height) - 48px);
 }
 
 .transaction-name .row {
@@ -398,7 +413,7 @@ h5.no-margin {
 }
 
 
-/* makes the leftside content reach the bottom of the page*/
+/* Makes the leftside content reach the bottom of the page on large screens*/
 .content, #left-content {
   height: 100vh;
 }
@@ -494,13 +509,21 @@ h5 {
 }
 
 @media only screen and (max-width: 992px) {  
+  #main {
+    height: calc(100vh - var(--navbar-height) - var(--footer-height)) !important;
+  }
+
+  #dashboard-column {
+    height: 100%;
+}
+  
   #total-container {
     width: fit-content;
     min-width: 75%;
   }
   
-  #left-content {
-    height: auto;
+  .content, #left-content {
+    height: calc(100vh - var(--navbar-height) - var(--footer-height));
   }
 
   .content {

@@ -73,7 +73,7 @@
   <main>
 
     <!--Transaction Buttons-->
-    <div class="fixed-action-btn">
+    <div class="fixed-action-btn hide-on-med-and-down">
       <a class="btn-floating btn-large waves-effect waves-light orange darken-3 floater"><i class="material-icons">add</i></a>
       <ul>
         <li><a class="btn-floating red modal-trigger tooltipped" id="new-transaction-button" href="#transaction-modal" data-position="top" data-tooltip="Create transaction"><i class="material-icons">edit</i></a></li>
@@ -84,7 +84,7 @@
     <div class="row content">
 
       <!--LEFT CONTENT-->
-      <div id="left-content" class="col m12 l4 s12 blue-grey">
+      <div id="left-content" class="col m12 l4 s12 blue-grey hide-on-med-and-down">
         <div class="row" id="left-header">
           <div id="total-container" class="collection">
             <a id="total" class="row collection-item waves-effect" data-url="{{ url_for('main.load_home_transactions') }}">
@@ -135,6 +135,7 @@
       </div>
     </div>
 
+
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <ul id="flash-toasts" class="hidden">
@@ -146,6 +147,12 @@
     {% endwith %}
 
   </main>
+
+  <footer id="footer" class="row hide-on-large-only">
+    <div class="col s4"><a>Envelopes</a></div>
+    <div class="col s4"><a>Home</a></div>
+    <div class="col s4"><a>Accounts</a></div>
+  </footer>
 
   <div id="fullscreen-wrapper"></div>
 
