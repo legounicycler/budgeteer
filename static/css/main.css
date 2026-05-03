@@ -20,16 +20,28 @@
 }
 
 #footer {
-  background: orange;
-  height: 50px;
+  height: var(--footer-height);
   position: fixed;
   bottom: 0;
   width: 100%;
 }
 
+.footer-button {
+  display: block;
+}
+
+.footer-button:hover {
+  background-color: #0000001a !important;
+}
+
+.footer-icon {
+  line-height: var(--footer-height);
+  font-size: 30px;
+}
+
 #bin {
   padding: 5px;
-  height: calc(100% - var(--dashboard-header-height));
+  height: calc(100% - var(--dashboard-header-height) - 10px);
 }
 
 #left-header {
