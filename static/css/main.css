@@ -525,6 +525,15 @@ h5 {
     height: calc(100vh - var(--navbar-height) - var(--footer-height)) !important;
   }
 
+  /* State classes for sliding */
+  .show-left {
+    transform: translateX(0%);
+  }
+
+  .show-right {
+    transform: translateX(-50%);
+  }
+
   #dashboard-column {
     height: 100%;
 }
@@ -533,13 +542,28 @@ h5 {
     width: fit-content;
     min-width: 75%;
   }
+
+  #viewport {
+    height: calc(100vh - var(--navbar-height) - var(--footer-height));
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+  }
   
   .content, #left-content {
-    height: calc(100vh - var(--navbar-height) - var(--footer-height));
+    height: 100%;
+    width: 200%; /* Two main panels side-by-side */
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .content {
     position: relative;
+    display: flex;
+  }
+
+  #left-content, #dashboard-column {
+    width: 50% !important; /* Each takes up one full screen width */
+    flex-shrink: 0;
   }
 
   #delete-modal {
@@ -548,6 +572,7 @@ h5 {
 
   #envelopes, #accounts {
     padding-bottom: 1em;
+    height: calc(100% - var(--dashboard-header-height));
   }
 
   .s6 .helper-text, .s4 .helper-text, .s3 .helper-text, .m2 .helper-text {

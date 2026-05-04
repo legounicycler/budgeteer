@@ -81,10 +81,11 @@
       </ul>
     </div>
 
-    <div class="row content">
+    <div id="viewport">
+    <div class="row content show-right">
 
       <!--LEFT CONTENT-->
-      <div id="left-content" class="col m12 l4 s12 blue-grey hide-on-med-and-down">
+      <div id="left-content" class="col m12 l4 s12 blue-grey">
         <div class="row" id="left-header">
           <div id="total-container" class="collection">
             <a id="total" class="row collection-item waves-effect" data-url="{{ url_for('main.load_home_transactions') }}">
@@ -106,10 +107,10 @@
           </div>
         </div>
 
-        <div class="row">
+        <div class="row hide-on-med-and-down">
           <ul class="tabs blue-grey lighten-5">
             <li class="tab col s6"><a class="active" href="#envelopes">Envelopes</a></li>
-            <li class="tab col s6"><a href="#accounts">Accounts</a></li>
+            <li sclass="tab col s6"><a href="#accounts">Accounts</a></li>
           </ul>
         </div>
         <div id="envelopes" class="col s12 hide">
@@ -134,6 +135,7 @@
         </div>
       </div>
     </div>
+    </div>
 
 
     {% with messages = get_flashed_messages() %}
@@ -149,9 +151,9 @@
   </main>
 
   <footer id="footer" class="row hide-on-large-only yellow darken-4">
-    <a href="#!" class="footer-button col s4"><i class="footer-icon material-icons non-selectable white-text">mail_outline</i></a>
-    <a href="#!" class="footer-button col s4"><i class="footer-icon material-icons non-selectable white-text">home</i></a>
-    <a href="#!" class="footer-button col s4"><i class="footer-icon material-icons non-selectable white-text">account_balance</i></a>
+    <a id="footer-envelopes" href="#!" class="footer-button col s4"><i class="footer-icon material-icons non-selectable white-text">mail_outline</i></a>
+    <a id="footer-home" href="#!" class="footer-button col s4"><i class="footer-icon material-icons non-selectable white-text">home</i></a>
+    <a id="footer-accounts" href="#!" class="footer-button col s4"><i class="footer-icon material-icons non-selectable white-text">account_balance</i></a>
   </footer>
 
   <div id="fullscreen-wrapper"></div>

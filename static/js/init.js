@@ -41,6 +41,22 @@
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
 
+      $('#footer-home').on('click', function() {
+        $(".content").removeClass('show-left').addClass('show-right');
+      });
+
+      // Slide to Envelopes (Left side + switch tab)
+      $('#footer-envelopes').on('click', function() {
+        $(".content").removeClass('show-right').addClass('show-left');
+        $("#envelope-tab").click();
+      });
+
+      // Slide to Accounts (Left side + switch tab)
+      $('#footer-accounts').on('click', function() {
+        $(".content").removeClass('show-right').addClass('show-left');
+        $("#account-tab").click();
+      });
+
       //Set up the simplebar scroll bars
       $('.scroller').each(function(index,el) {
         new SimpleBar(el);
