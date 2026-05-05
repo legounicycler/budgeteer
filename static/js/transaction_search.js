@@ -218,11 +218,14 @@ function toggleAdvancedSearch() {
     // 1. Save the current dash and bin heights
     var currentDashHeight = $('#dashboard-header').height();
     var currentBinHeight = $("#bin").height();
+    var currentBinPadding = parseInt($("#bin").css("padding-top")) + parseInt($("#bin").css("padding-bottom"));
     // 2. Temporarily set the new dash and bin heights using auto and save the values
     $('#dashboard-header').css('height', 'auto');
     var newDashHeight = $('#dashboard-header').height();
-    $("#bin").css("height", "calc(100% - " + newDashHeight + "px)");
+    $("#bin").css("height", "calc(100% - " + newDashHeight + "px + " + currentBinPadding + "px)");
     var newBinHeight = $("#bin").height();
+    console.log("New dash height: " + newDashHeight);
+    console.log("New bin height: " + newBinHeight);
     // 3. Reset the dash and bin heights to their original values
     $('#dashboard-header').height(currentDashHeight);
     $('#bin').height(currentBinHeight);
@@ -239,7 +242,8 @@ function toggleAdvancedSearch() {
   } else {
     // If the header is expanded, collapse it
     var currentBinHeight = $("#bin").height();
-    $("#bin").css("height", "calc(100% - 90px)");
+    var currentBinPadding = parseInt($("#bin").css("padding-top")) + parseInt($("#bin").css("padding-bottom"));
+    $("#bin").css("height", "calc(100% - 90px + " + currentBinPadding + "px)");
     var newBinHeight = $("#bin").height();
     $('#bin').height(currentBinHeight);
     $("#dashboard-header").animate({height: '90px'}, 200);
