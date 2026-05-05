@@ -7,6 +7,7 @@
 
   <!-- CSS  -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet" />
   <link href="{{url_for('static', filename='css/materialize.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link href="{{url_for('static', filename='css/style.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link href="{{url_for('static', filename='css/common.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
@@ -81,60 +82,65 @@
       </ul>
     </div>
 
-    <div id="viewport">
-    <div class="row content show-right">
+    <div id="viewport" class="row">
 
-      <!--LEFT CONTENT-->
-      <div id="left-content" class="col m12 l4 s12 blue-grey">
-        <div class="row" id="left-header">
-          <div id="total-container" class="collection">
-            <a id="total" class="row collection-item waves-effect" data-url="{{ url_for('main.load_home_transactions') }}">
-              <div class="col s4 valign-wrapper">
-                <h4 class="blue-gray-text text-darken-4 bold">Total:</h4>
-              </div>
-              <div class="col s8 valign-wrapper">
-                <h4><span class="{{'negative ' if total_funds < 0}}{{'neutral ' if (total_funds == 0)}}balance">{{total_funds|balanceformat}}</span></h4>
-              </div>
-            </a>
-            <div id="unallocated" class="row collection-item">
-              <div class="col s4 valign-wrapper">
-                <h6 class="blue-gray-text text-darken-4 bold">Unallocated:</h6>
-              </div>
-              <div class="col s8 valign-wrapper">
-                <h6><span id="unallocated-balance" class="{{'negative ' if unallocated_balance < 0}}{{'neutral ' if (unallocated_balance == 0)}}balance" data-amt="{{unallocated_balance}}">{{unallocated_balance|balanceformat}}</span></h6>
+        <!--LEFT CONTENT-->
+        <div id="left-content" class="col m12 l4 s12 blue-grey slide-wrapper">
+
+          <div id="left-header" class="row hide-on-med-and-down">
+            <div id="total-container" class="collection">
+              <a id="total" class="row collection-item waves-effect" data-url="{{ url_for('main.load_home_transactions') }}">
+                <div class="col s4 valign-wrapper">
+                  <h4 class="blue-gray-text text-darken-4 bold">Total:</h4>
+                </div>
+                <div class="col s8 valign-wrapper">
+                  <h4><span class="{{'negative ' if total_funds < 0}}{{'neutral ' if (total_funds == 0)}}balance">{{total_funds|balanceformat}}</span></h4>
+                </div>
+              </a>
+              <div id="unallocated" class="row collection-item">
+                <div class="col s4 valign-wrapper">
+                  <h6 class="blue-gray-text text-darken-4 bold">Unallocated:</h6>
+                </div>
+                <div class="col s8 valign-wrapper">
+                  <h6><span id="unallocated-balance" class="{{'negative ' if unallocated_balance < 0}}{{'neutral ' if (unallocated_balance == 0)}}balance" data-amt="{{unallocated_balance}}">{{unallocated_balance|balanceformat}}</span></h6>
+                </div>
               </div>
             </div>
           </div>
+
+          <div id="account-envelope-tab-slider" class="row hide-on-med-and-down">
+            <ul class="tabs blue-grey lighten-5">
+              <li class="tab col s6"><a class="active" href="#envelopes">Envelopes</a></li>
+              <li sclass="tab col s6"><a href="#accounts">Accounts</a></li>
+            </ul>
+          </div>
+
+          <div id="envelopes" class="col s12 hide mobile-slide next-slide">
+            <a href="#envelope-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-envelopes">Edit Envelopes</a>
+              {% include 'envelopes.html'%}
+          </div>
+
+          <div id="accounts" class="col s12 hide mobile-slide next-slide">
+            <a href="#account-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-accounts">Edit Accounts</a>
+              {% include 'accounts.html'%}
+          </div>
+
         </div>
 
-        <div class="row hide-on-med-and-down">
-          <ul class="tabs blue-grey lighten-5">
-            <li class="tab col s6"><a class="active" href="#envelopes">Envelopes</a></li>
-            <li sclass="tab col s6"><a href="#accounts">Accounts</a></li>
-          </ul>
-        </div>
-        <div id="envelopes" class="col s12 hide">
-          <a href="#envelope-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-envelopes">Edit Envelopes</a>
-            {% include 'envelopes.html'%}
-        </div>
-        <div id="accounts" class="col s12 hide">
-          <a href="#account-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-accounts">Edit Accounts</a>
-            {% include 'accounts.html'%}
-        </div>
-      </div>
 
-
-      <!-- RIGHT CONTENT -->
-      <div class="col s12 m12 l8" id="dashboard-column">
-        {% include 'dashboard_header.html' %}
-
-        <div id="bin" class="hide">
-          <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
-            {% include 'transactions.html' %}
-          </form> <!-- This may have to move within transactions.html when graph views are added later -->
+        <!-- RIGHT CONTENT -->
+        <div id="dashboard-column" class="col s12 m12 l8 mobile-slide active-slide">
+          {% include 'dashboard_header.html' %}
+          <div id="bin" class="hide">
+            <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
+              {% include 'transactions.html' %}
+            </form> <!-- This may have to move within transactions.html when graph views are added later -->
+          </div>
+          <!-- <div id="graph-view" class="hide mobile-slide next-slide">
+            <h2>Coming soon...</h2>
+          </div> -->
         </div>
-      </div>
-    </div>
+
     </div>
 
 
@@ -151,9 +157,10 @@
   </main>
 
   <footer id="footer" class="row hide-on-large-only yellow darken-4">
-    <a id="footer-envelopes" href="#!" class="footer-button col s4"><i class="footer-icon material-icons non-selectable white-text">mail_outline</i></a>
-    <a id="footer-home" href="#!" class="footer-button col s4"><i class="footer-icon material-icons non-selectable white-text">home</i></a>
-    <a id="footer-accounts" href="#!" class="footer-button col s4"><i class="footer-icon material-icons non-selectable white-text">account_balance</i></a>
+    <a id="footer-btn-dashboard" data-view="dashboard-column" href="#!" class="footer-button active col s4"><i class="footer-icon material-icons non-selectable white-text">home</i></a>
+    <a id="footer-btn-envelopes" data-view="envelopes" href="#!" class="footer-button col s4"><i class="footer-icon material-icons non-selectable white-text">mail_outline</i></a>
+    <a id="footer-btn-accounts" data-view="accounts" href="#!" class="footer-button col s4"><i class="footer-icon material-icons non-selectable white-text">account_balance</i></a>
+    <!-- <a id="footer-graphs" href="#!" class="footer-button col s3"><i class="footer-icon material-symbols-sharp non-selectable white-text">finance_mode</i></a> -->
   </footer>
 
   <div id="fullscreen-wrapper"></div>
