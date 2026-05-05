@@ -41,21 +41,58 @@
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
 
-      $('#footer-home').on('click', function() {
-        $(".content").removeClass('show-left').addClass('show-right');
-      });
+        // Determine the logical order based on the DOM order of buttons
+        function getViewOrder() {
+          // Prefer explicit data-view attributes on footer buttons which should
+          // match the ids of the slide elements (e.g. data-view="dashboard-column").
+          return $('.footer-button').map(function() {
+            return $(this).data('view') || $(this).attr('id').replace('footer-','').replace('btn-','');
+          }).get();
+        }
 
-      // Slide to Envelopes (Left side + switch tab)
-      $('#footer-envelopes').on('click', function() {
-        $(".content").removeClass('show-right').addClass('show-left');
-        $("#envelope-tab").click();
-      });
+        function navigateTo(targetId) {
+          const viewOrder = getViewOrder();
+          const targetIdx = viewOrder.indexOf(targetId);
+          if (targetIdx === -1) return;
 
-      // Slide to Accounts (Left side + switch tab)
-      $('#footer-accounts').on('click', function() {
-        $(".content").removeClass('show-right').addClass('show-left');
-        $("#account-tab").click();
-      });
+          // 1. Update Footer UI
+          $('.footer-button').removeClass('active');
+          $(`.footer-button[data-view="${targetId}"]`).addClass('active');
+
+          // 2. Shift all slides (slides are elements whose ids equal the view names returned by getViewOrder)
+          viewOrder.forEach((id, index) => {
+            const $slide = $('#' + id);
+            if (!$slide.length) return;
+
+            if (index < targetIdx) {
+              $slide.removeClass('active-slide next-slide').addClass('prev-slide');
+            } else if (index > targetIdx) {
+              $slide.removeClass('active-slide prev-slide').addClass('next-slide');
+            } else {
+              $slide.removeClass('prev-slide next-slide').addClass('active-slide');
+            }
+          });
+        }
+
+        // Attach click events to footer buttons. Buttons should have a `data-view` attribute
+        // that equals the id of the slide element to show (e.g. data-view="envelopes").
+        $('.footer-button').on('click', function(e) {
+          e.preventDefault();
+          const targetId = $(this).data('view') || $(this).attr('id').replace('footer-','').replace('btn-','');
+          navigateTo(targetId);
+        });
+
+        // Auto-return to dashboard when clicking an envelope or account (Mobile only)
+        $(document).on('click', '.envelope-row, .account-row', function() {
+          if (window.innerWidth <= 992) {
+            navigateTo('dashboard-column');
+          }
+        });
+
+        // Set initial state for dashboard view on mobile
+        if (window.innerWidth <= 992) {
+          navigateTo('dashboard-column');
+        }
 
       //Set up the simplebar scroll bars
       $('.scroller').each(function(index,el) {

@@ -5,6 +5,7 @@
   --footer-height: 50px;
 }
 
+/* Used to display the dropdowns over all the other content and for proper functionality of the escape key within dropdowns */
 #fullscreen-wrapper {
   height: 100%;
   width: 100%;
@@ -15,7 +16,17 @@
   overflow: hidden;
 }
 
-#transactions-scroller, #scroller, #bin, #main, #column1 {
+main {
+  height: calc(100vh - var(--navbar-height));
+}
+
+#viewport {
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+#transactions-scroller, #scroller {
     box-sizing: content-box;
 }
 
@@ -30,8 +41,12 @@
   display: block;
 }
 
+.footer-button.active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
 .footer-button:hover {
-  background-color: #0000001a !important;
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 .footer-icon {
@@ -41,7 +56,7 @@
 
 #bin {
   padding: 5px;
-  height: calc(100% - var(--dashboard-header-height) - 10px);
+  height: calc(100% - var(--dashboard-header-height));
 }
 
 #left-header {
@@ -102,13 +117,9 @@
   pointer-events: none !important;
 }
 
-.table-header {
-  margin: 0;
-}
-
 #dashboard-column {
   padding: 0 !important;
-  height: calc(100% - var(--dashboard-header-height));
+  height: 100%;
 }
 
 #transactions-list {
@@ -124,9 +135,17 @@
   height: 100%;
 }
 
+.table-header {
+  margin: 0;
+  border-radius: 2px 2px 0px 0px;
+}
+
 #transactions-scroller {
   margin: 0;
-  max-height: calc(100% - 22.5px);
+  max-height: calc(100% - 25px);
+  background-color: white;
+  text-align: center;
+  border-radius: 0px 0px 2px 2px;
 }
 
 #envelopes-scroller, #account-scroller {
@@ -424,19 +443,9 @@ h5.no-margin {
   padding: 0px;
 }
 
-
-/* Makes the leftside content reach the bottom of the page on large screens*/
-.content, #left-content {
-  height: 100vh;
-}
-
-.content {
-  position: fixed;
-  width: 100%;
-}
-
 #left-content {
   padding: 0 !important;
+  height: 100vh; /* Makes the leftside content reach the bottom of the page on large screens*/
   font-size: .8em;
 }
 
@@ -521,49 +530,27 @@ h5 {
 }
 
 @media only screen and (max-width: 992px) {  
-  #main {
-    height: calc(100vh - var(--navbar-height) - var(--footer-height)) !important;
+  main, #left-content, #dashboard-column {
+    height: calc(100vh - var(--navbar-height) - var(--footer-height));
   }
 
-  /* State classes for sliding */
-  .show-left {
-    transform: translateX(0%);
-  }
-
-  .show-right {
-    transform: translateX(-50%);
-  }
-
-  #dashboard-column {
+  .mobile-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
     height: 100%;
-}
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Transition States */
+  .prev-slide { transform: translateX(-100%); }
+  .active-slide { transform: translateX(0%); }
+  .next-slide { transform: translateX(100%); }
   
   #total-container {
     width: fit-content;
     min-width: 75%;
-  }
-
-  #viewport {
-    height: calc(100vh - var(--navbar-height) - var(--footer-height));
-    width: 100%;
-    overflow: hidden;
-    position: relative;
-  }
-  
-  .content, #left-content {
-    height: 100%;
-    width: 200%; /* Two main panels side-by-side */
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .content {
-    position: relative;
-    display: flex;
-  }
-
-  #left-content, #dashboard-column {
-    width: 50% !important; /* Each takes up one full screen width */
-    flex-shrink: 0;
   }
 
   #delete-modal {
@@ -597,6 +584,10 @@ h5 {
 }
 
 @media only screen and (max-width: 600px) {
+
+  #bin {
+    padding: 0px;
+  }
 
   .modal .amount-span {
     font-size: .85em;
@@ -724,11 +715,6 @@ h5 {
     
   .modal .amount-span {
     font-size: .8em;
-  }
-    
-  /* Extends transactions to edge of screen*/
-  #bin {
-    padding: 0px
   }
 
   .long-date {
