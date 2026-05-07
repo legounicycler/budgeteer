@@ -21,7 +21,7 @@ main {
 }
 
 #viewport {
-  height: 100%;
+  height: calc(100vh - var(--navbar-height));
   width: 100%;
   position: relative;
   overflow-x: hidden; /* Prevents horizontal scrollbars during mobile view transitions */
@@ -119,7 +119,7 @@ main {
 }
 
 #dashboard-column {
-  padding: 0 !important;
+  padding: 0;
   height: 100%;
 }
 
@@ -358,7 +358,7 @@ input[type="text"]:not(.special-fill-input, .special-input-envelope-editor, .spe
 }
 
 #envelopes, #accounts {
-  height: calc(100% - var(--navbar-height) - var(--dashboard-header-height) - 48px);
+  height: calc(100% - var(--dashboard-header-height) - 48px);
 }
 
 .transaction-name .row {
@@ -445,8 +445,8 @@ h5.no-margin {
 }
 
 #left-content {
-  padding: 0 !important;
-  height: 100vh; /* Makes the leftside content reach the bottom of the page on large screens*/
+  padding: 0;
+  height: 100%;
   font-size: .8em;
 }
 
