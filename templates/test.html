@@ -5,41 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Widget Layout</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/test.css') }}">
+    
 </head>
 <body>
 
     <div class="app-container">
-        <header class="main-header">DASHBOARD</header>
+        <nav class="main-header yellow darken-4">
+            <a href="#" data-target="view-out" class="sidenav-trigger">
+                <i class="material-icons white-text">menu</i>
+            </a>
+            <img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo">
+            <div class="right-spacer"></div> 
+        </nav>
 
-        <div class="search-header">
-            <input type="text" class="search-bar" placeholder="Search records...">
-        </div>
-
-        <!-- The Outlined Unit -->
-        <div class="table-widget">
-            <div class="table-header">
-                <div>ID</div>
-                <div>RECORD</div>
-                <div style="text-align: right;">STATUS</div>
-            </div>
-
-            <main class="data-table">
-                {% for i in items %}
-                <div class="table-row">
-                    <div style="color: #999;">#{{ i }}</div>
-                    <div>Data Point {{ i }}</div>
-                    <div style="text-align: right; color: var(--brand-orange); font-size: 0.7rem; font-weight: bold;">
-                        LIVE
+        <main>
+            <div id="viewport" class="row">
+                
+                <div id="left-content" class="col l4 hide-on-med-and-down">
+                    <div class="side-widget">
+                        <h6>Quick Stats</h6>
+                        <p>This stays in view on desktop but hides on mobile Pixel.</p>
                     </div>
                 </div>
-                {% endfor %}
-            </main>
-        </div>
 
-        <footer class="footer-nav">
-            <div class="nav-icon"></div>
-            <div class="nav-icon"></div>
-            <div class="nav-icon"></div>
+                <div id="dashboard-column" class="col s12 m12 l8">
+                    
+                    <div id="dashboard-header">
+                        <div class="total-display">
+                            <h5>Total: <span class="balance">$1,234.56</span></h5>
+                        </div>
+                    </div>
+
+                    <div id="dashboard-viewport">
+                        <div class="table-header">
+                            <div>DATE</div>
+                            <div>ITEM</div>
+                            <div style="text-align: right;">AMOUNT</div>
+                        </div>
+
+                        <div id="transactions-scroller">
+                            {% for i in range(50) %}
+                            <div class="transaction-row">
+                                <div class="date-col">05/07</div>
+                                <div class="name-col">Transaction Item {{ i }}</div>
+                                <div class="amt-col">$42.00</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+
+        <footer id="footer" class="yellow darken-4">
+            <i class="material-icons white-text">home</i>
+            <i class="material-icons white-text">mail_outline</i>
+            <i class="material-icons white-text">account_balance</i>
         </footer>
     </div>
 

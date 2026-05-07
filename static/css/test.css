@@ -1,138 +1,136 @@
+/* CSS Variables */
 :root {
-    --brand-orange: #ff8500;
-    --border-color: #e0e0e0;
-    --bg-color: #f4f4f4;
-    --header-height: 60px;
-    --search-height: 50px;
-    --table-header-height: 45px;
-    --widget-offset: 5px;
+  --brand-yellow: #f57f17;          /* yellow darken-4 */
+  --navbar-height: 64px;
+  --dashboard-header-height: 90px;
+  --footer-height: 50px;
+  --widget-offset: 5px;             /* 5px gap around table */
+  --border-style: 1px solid #e0e0e0;
 }
 
+/* GLOBAL LAYOUT */
 body, html {
-    margin: 0;
-    padding: 0;
-    background-color: var(--bg-color);
-    font-family: -apple-system, sans-serif;
-    /* Ensure the body is the scroll container for the address bar to hide */
+  margin: 0;
+  padding: 0;
+  height: auto;                     /* Essential: Allows body to scroll */
+  overflow-y: visible; 
+  background-color: #f4f4f4;        /* Visible in the 5px gaps */
+  font-family: -apple-system, system-ui, sans-serif;
 }
 
 .app-container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100dvh;
-    max-width: 500px;
-    margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;               /* Tracks address bar height changes */
 }
 
-/* Orange Headers */
+/* STICKY NAV BAR */
 .main-header {
-    position: sticky;
-    top: 0;
-    height: var(--header-height);
-    background: var(--brand-orange);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    z-index: 100;
+  position: sticky;
+  top: 0;
+  height: var(--navbar-height);
+  background-color: var(--brand-yellow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 15px;
+  z-index: 1000;
 }
 
-.search-header {
-    position: sticky;
-    top: var(--header-height);
-    height: var(--search-height);
-    background: white;
-    padding: 0 15px;
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-    z-index: 95;
+#logo {
+  height: 32px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-/* THE FIX: Remove 'overflow: hidden' and 'border' from the parent wrapper */
-.table-widget {
-    margin: var(--widget-offset);
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    /* We add the side borders here instead of the wrapper if needed, 
-       but for a cohesive look, we apply them to the children. */
+/* STICKY DASHBOARD HEADER */
+#dashboard-header {
+  position: sticky;
+  top: var(--navbar-height);
+  height: var(--dashboard-header-height);
+  background: white;
+  border-bottom: var(--border-style);
+  z-index: 990;
 }
 
+/* THE TABLE WIDGET (The Outlined Box) */
+#dashboard-viewport {
+  margin: var(--widget-offset);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sticky Table Heading */
 .table-header {
-    position: sticky;
-    /* This remains the same */
-    top: calc(var(--header-height) + var(--search-height) + var(--widget-offset));
-    height: var(--table-header-height);
-    background: #fdfdfd;
-    display: grid;
-    grid-template-columns: 60px 1fr 80px;
-    align-items: center;
-    padding: 0 15px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--brand-orange);
-    border-top: 1px solid var(--border-color);
-    border-left: 1px solid var(--border-color);
-    border-right: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    z-index: 90;
+  position: sticky;
+  /* Nav + Dashboard Header + the 5px gap */
+  top: calc(var(--navbar-height) + var(--dashboard-header-height) + var(--widget-offset));
+  background: #fdfdfd;
+  display: grid;
+  grid-template-columns: 80px 1fr 100px;
+  padding: 12px 15px;
+  font-weight: bold;
+  color: var(--brand-yellow);
+  z-index: 980;
+
+  /* Top half of the frame */
+  border-top: var(--border-style);
+  border-left: var(--border-style);
+  border-right: var(--border-style);
+  border-bottom: var(--border-style);
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
 }
 
-/* THE FIX: The Curtain Mask */
+/* TOP CURTAIN MASK 
+   Hides rows passing through the 5px gap above the table.
+   Matches the body background color. */
 .table-header::before {
-    content: "";
-    position: absolute;
-    /* Move it 5px up into the gap */
-    top: -6px; /* -5px for the gap + 1px for the border overlap */
-    left: -1px; /* Align with the table border */
-    right: -1px;
-    height: 6px;
-    
-    /* Match this to your PAGE background color (--bg-color) */
-    background-color: var(--bg-color); 
-    
-    /* Ensure it stays above the scrolling rows but below the search bar */
-    z-index: 91;
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: -1px;
+  right: -1px;
+  height: 6px;
+  background-color: #f4f4f4;
+  z-index: 981;
 }
 
-/* ... keep the rest of your data-table and footer styles ... */
-
-.data-table {
-    background: white;
-    /* Apply side and bottom borders to the table body */
-    border-left: 1px solid var(--border-color);
-    border-right: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
+/* DATA TABLE CONTENT */
+#transactions-scroller {
+  background: white;
+  border-left: var(--border-style);
+  border-right: var(--border-style);
+  border-bottom: var(--border-style);
+  /* Rounded bottom corners */
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
-.table-row {
-    display: grid;
-    grid-template-columns: 60px 1fr 80px;
-    padding: 14px 15px;
-    border-bottom: 1px solid #f0f0f0;
-    align-items: center;
+.transaction-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px;
+  padding: 15px;
+  border-bottom: 1px solid #f0f0f0;
+  align-items: center;
 }
 
-.table-row:last-child {
-    border-bottom: none;
+.transaction-row:last-child {
+  border-bottom: none; /* Prevents double border at bottom of card */
 }
 
-.footer-nav {
-    position: sticky;
-    bottom: 0;
-    height: 65px;
-    background: var(--brand-orange);
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding-bottom: env(safe-area-inset-bottom);
-    z-index: 100;
-    /* Adds the 5px gap between the table and the footer */
-    margin-top: var(--widget-offset); 
+/* STICKY FOOTER */
+#footer {
+  position: sticky;
+  bottom: 0;
+  height: calc(var(--footer-height) + env(safe-area-inset-bottom));
+  background-color: var(--brand-yellow);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 1000;
+  /* 5px gap between table and footer */
+  margin-top: var(--widget-offset); 
 }
