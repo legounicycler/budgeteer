@@ -66,6 +66,16 @@
         $('.footer-button').removeClass('active');
         $(`.footer-button[data-view="${targetId}"]`).addClass('active');
 
+        // 4.5 Toggle FAB visibility: show only when navigating to dashboard
+        // If on mobile, animate the FAB in/out by toggling the `fab-hidden` class
+        if ($('#fab').length) {
+          if (targetId === 'dashboard-column') {
+            $('#fab').removeClass('fab-hidden');
+          } else {
+            $('#fab').addClass('fab-hidden');
+          }
+        }
+
         // 5. Move the absolute positions of the views to prepare for the animation
         //      a. Any views that are not the current or the target view get hidden
         //      b. Ensure the target view is positioned offscreen either to the left or right of the current view depending on the direction of the animation
@@ -598,6 +608,28 @@
         return;
       }
     });
+
+      // Initialize FAB visibility based on current view and window size
+      function updateFabInitial() {
+        if ($('#fab').length === 0) return;
+        if (window.innerWidth > MOBILE_BREAKPOINT) {
+          $('#fab').removeClass('fab-hidden');
+        } else {
+          const $active = $('.mobile-view.active-mobile-view');
+          const activeId = $active.attr('id') || MOBILE_VIEW_ORDER[0];
+          if (activeId === 'dashboard-column') {
+            $('#fab').removeClass('fab-hidden');
+          } else {
+            $('#fab').addClass('fab-hidden');
+          }
+        }
+      }
+      updateFabInitial();
+
+      // Keep FAB state correct on resize
+      $(window).on('resize', function() {
+        updateFabInitial();
+      });
 
     }); // end of document ready
 

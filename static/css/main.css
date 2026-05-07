@@ -226,6 +226,18 @@ main {
   z-index: 1000;
 }
 
+/* FAB animation and hidden state */
+.fixed-action-btn {
+  transition: transform 300ms cubic-bezier(0.2,0.8,0.2,1), opacity 300ms cubic-bezier(0.2,0.8,0.2,1);
+  will-change: transform, opacity;
+}
+
+.fab-hidden {
+  transform: translateY(20px) scale(0.98);
+  opacity: 0;
+  pointer-events: none;
+}
+
 .active-drag {
   background-color: #fff3e0 !important;
   border-top: 1px solid #e0e0e0;
@@ -568,14 +580,19 @@ h5 {
     pointer-events: auto;
   }
 
-  .hidden-mobile-view {
-    display: none !important;
-  }
-
   .offscreen-left-mobile { transform: translate3d(-100%, 0, 0); }
   .active-mobile-view { transform: translate3d(0, 0, 0); }
   .offscreen-right-mobile { transform: translate3d(100%, 0, 0); }
   
+  .hidden-mobile-view {
+    display: none !important;
+  }
+  
+  #fab {
+    bottom: 60px;
+    right: 40px;
+  }
+
   #total-container {
     width: fit-content;
     min-width: 75%;
