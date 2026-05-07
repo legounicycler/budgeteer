@@ -11,11 +11,6 @@ body {
   height: 100%;
 }
 
-/* This darker box shadow specifically makes the login page look nicer because of the diagonal orange div */
-nav {
-    box-shadow: 0px 0px 3px 2px #333 !important;
-}
-
 #orange-div:after {
     content: '';
     position: absolute;

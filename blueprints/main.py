@@ -24,7 +24,8 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route("/test", methods=['GET'])
 def test():
-  return render_template('test.html')
+  items = range(1, 101) 
+  return render_template('test.html', items=items)
 
 @main_bp.route("/home", methods=['GET'])
 @login_required

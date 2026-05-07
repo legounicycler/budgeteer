@@ -1,7 +1,6 @@
 /* CSS Variables */
 :root{
   --dashboard-header-height: 90px;
-  --navbar-height: 64px;
   --footer-height: 50px;
 }
 
@@ -16,12 +15,19 @@
   overflow: hidden;
 }
 
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  margin: 0 auto;
+}
+
 main {
-  height: calc(100vh - var(--navbar-height));
+  height: calc(100svh - var(--navbar-height));
 }
 
 #viewport {
-  height: calc(100vh - var(--navbar-height));
+  height: calc(100svh - var(--navbar-height));
   width: 100%;
   position: relative;
   overflow-x: hidden; /* Prevents horizontal scrollbars during mobile view transitions */
@@ -32,10 +38,12 @@ main {
 }
 
 #footer {
-  height: var(--footer-height);
-  position: fixed;
+  position: sticky;
   bottom: 0;
+  height: var(--footer-height);
   width: 100%;
+  padding-bottom: env(safe-area-inset-bottom);   /* This adds padding specifically for the system's safe area */
+  z-index: 100;
 }
 
 .footer-button {
@@ -548,8 +556,21 @@ h5 {
 }
 
 @media only screen and (max-width: 992px) {  
-  main, #left-content, #dashboard-column {
-    height: calc(100vh - var(--navbar-height) - var(--footer-height));
+  main, #viewport {
+    height: calc(100svh - var(--navbar-height) - var(--footer-height));
+  }
+
+  #dashboard-column {
+    height: auto;
+  }
+
+  #dashboard-viewport {
+    height: calc(100% - var(--dashboard-header-height) - var(--footer-height));
+  }
+
+  #transactions-bin .table-header {
+    position: sticky;
+    top: 0px;
   }
 
   #envelopes, #accounts {
@@ -600,7 +621,9 @@ h5 {
   
   #fab {
     bottom: 60px;
-    right: 40px;
+    width: 56px;
+    height: 56px;
+    padding: 0px;
   }
 
   #total-container {

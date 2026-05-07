@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Widget Layout</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/test.css') }}">
+</head>
+<body>
+
+    <div class="app-container">
+        <header class="main-header">DASHBOARD</header>
+
+        <div class="search-header">
+            <input type="text" class="search-bar" placeholder="Search records...">
+        </div>
+
+        <!-- The Outlined Unit -->
+        <div class="table-widget">
+            <div class="table-header">
+                <div>ID</div>
+                <div>RECORD</div>
+                <div style="text-align: right;">STATUS</div>
+            </div>
+
+            <main class="data-table">
+                {% for i in items %}
+                <div class="table-row">
+                    <div style="color: #999;">#{{ i }}</div>
+                    <div>Data Point {{ i }}</div>
+                    <div style="text-align: right; color: var(--brand-orange); font-size: 0.7rem; font-weight: bold;">
+                        LIVE
+                    </div>
+                </div>
+                {% endfor %}
+            </main>
+        </div>
+
+        <footer class="footer-nav">
+            <div class="nav-icon"></div>
+            <div class="nav-icon"></div>
+            <div class="nav-icon"></div>
+        </footer>
+    </div>
+
+</body>
+</html>

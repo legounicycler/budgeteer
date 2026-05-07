@@ -1,0 +1,138 @@
+:root {
+    --brand-orange: #ff8500;
+    --border-color: #e0e0e0;
+    --bg-color: #f4f4f4;
+    --header-height: 60px;
+    --search-height: 50px;
+    --table-header-height: 45px;
+    --widget-offset: 5px;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    font-family: -apple-system, sans-serif;
+    /* Ensure the body is the scroll container for the address bar to hide */
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* Orange Headers */
+.main-header {
+    position: sticky;
+    top: 0;
+    height: var(--header-height);
+    background: var(--brand-orange);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    z-index: 100;
+}
+
+.search-header {
+    position: sticky;
+    top: var(--header-height);
+    height: var(--search-height);
+    background: white;
+    padding: 0 15px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    z-index: 95;
+}
+
+/* THE FIX: Remove 'overflow: hidden' and 'border' from the parent wrapper */
+.table-widget {
+    margin: var(--widget-offset);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    /* We add the side borders here instead of the wrapper if needed, 
+       but for a cohesive look, we apply them to the children. */
+}
+
+.table-header {
+    position: sticky;
+    /* This remains the same */
+    top: calc(var(--header-height) + var(--search-height) + var(--widget-offset));
+    height: var(--table-header-height);
+    background: #fdfdfd;
+    display: grid;
+    grid-template-columns: 60px 1fr 80px;
+    align-items: center;
+    padding: 0 15px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--brand-orange);
+    border-top: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    z-index: 90;
+}
+
+/* THE FIX: The Curtain Mask */
+.table-header::before {
+    content: "";
+    position: absolute;
+    /* Move it 5px up into the gap */
+    top: -6px; /* -5px for the gap + 1px for the border overlap */
+    left: -1px; /* Align with the table border */
+    right: -1px;
+    height: 6px;
+    
+    /* Match this to your PAGE background color (--bg-color) */
+    background-color: var(--bg-color); 
+    
+    /* Ensure it stays above the scrolling rows but below the search bar */
+    z-index: 91;
+}
+
+/* ... keep the rest of your data-table and footer styles ... */
+
+.data-table {
+    background: white;
+    /* Apply side and bottom borders to the table body */
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.table-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 80px;
+    padding: 14px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    align-items: center;
+}
+
+.table-row:last-child {
+    border-bottom: none;
+}
+
+.footer-nav {
+    position: sticky;
+    bottom: 0;
+    height: 65px;
+    background: var(--brand-orange);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 100;
+    /* Adds the 5px gap between the table and the footer */
+    margin-top: var(--widget-offset); 
+}
