@@ -557,11 +557,10 @@ h5 {
   }
 
   .mobile-view {
-    position: absolute;
-    top: 0;
-    left: 0;
+    /* Participate in document flow on mobile to allow address-bar hiding and pull-to-refresh */
+    position: relative;
     width: 100%;
-    height: 100%;
+    /* min-height: calc(var(--vh, 1vh) * 100 - var(--navbar-height) - var(--footer-height)); */
     /* GPU-accelerated transform for smooth animations */
     transition: transform 300ms ease;
     will-change: transform;
@@ -586,6 +585,17 @@ h5 {
   
   .hidden-mobile-view {
     display: none !important;
+  }
+
+  /* On mobile allow the page root to scroll; make internal scrollers flow into the document instead of creating nested scroll containers */
+  .scroller {
+    overflow-y: visible;
+    overflow-x: hidden;
+    display: block;
+  }
+
+  #transactions-scroller, #accounts-scroller {
+    max-height: none;
   }
   
   #fab {

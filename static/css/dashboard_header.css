@@ -230,14 +230,22 @@
   height: 18px;
 }
 
+@media only screen and (max-width: 992px) {
+  #dashboard-header {
+    position: sticky;
+    top: 0px;
+    z-index: 100;
+  }
+}
+
 
 
 @media only screen and (max-width: 600px) {
 
-  #dashboard-header {
+  /* #dashboard-header {
     position: relative;
     top: 0px;
-  }
+  } */
 
   /* Stack the title and search columns */
   #dashboard-page-title-col, #search-col  {

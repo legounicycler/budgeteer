@@ -129,13 +129,17 @@
         navigateToMobileView($(this).data('view'));
       });
 
-      //Set up the simplebar scroll bars
-      $('.scroller').each(function(index,el) {
-        new SimpleBar(el);
-      });
-
-      // Define the global variable for the transactions scroller used in custom scroll behavior (updated on data_reloads)
-      Budgeteer.transactionsScrollerElement = $('#transactions-scroller .simplebar-content-wrapper')[0];
+      //Set up the simplebar scroll bars (desktop only). On mobile we avoid nested scroll containers
+      if (window.innerWidth > MOBILE_BREAKPOINT) {
+        $('.scroller').each(function(index,el) {
+          new SimpleBar(el);
+        });
+        // Define the global variable for the transactions scroller used in custom scroll behavior (updated on data_reloads)
+        Budgeteer.transactionsScrollerElement = $('#transactions-scroller .simplebar-content-wrapper')[0];
+      } else {
+        // On mobile use the root scrolling element so pull-to-refresh and address-bar hiding work
+        Budgeteer.transactionsScrollerElement = document.scrollingElement || document.documentElement || document.body;
+      }
 
       // Initialize unified custom scroll behavior (moved to scrolling.js)
       if (typeof Budgeteer.initScrollingBehavior === 'function') {
