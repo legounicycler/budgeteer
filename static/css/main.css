@@ -535,6 +535,10 @@ h5 {
     height: calc(100vh - var(--navbar-height) - var(--footer-height));
   }
 
+  #envelopes, #accounts {
+    height: 100%;
+  }
+
   .mobile-view {
     position: absolute;
     top: 0;
@@ -574,11 +578,6 @@ h5 {
 
   #delete-modal {
     max-width: 50%;
-  }
-
-  #envelopes, #accounts {
-    padding-bottom: 1em;
-    height: calc(100% - var(--dashboard-header-height));
   }
 
   .s6 .helper-text, .s4 .helper-text, .s3 .helper-text, .m2 .helper-text {

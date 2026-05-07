@@ -119,13 +119,6 @@
         navigateToMobileView($(this).data('view'));
       });
 
-      // Auto-return to dashboard when clicking an envelope or account (Mobile only)
-      $(document).on('click', '.envelope-row, .account-row', function() {
-        if (window.innerWidth <= MOBILE_BREAKPOINT) {
-          navigateToMobileView('dashboard-column');
-        }
-      });
-
       //Set up the simplebar scroll bars
       $('.scroller').each(function(index,el) {
         new SimpleBar(el);
@@ -483,6 +476,11 @@
           Budgeteer.current_page = "envelope/".concat(envelope_id);
           Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
           Budgeteer.current_search = {};
+
+          // 5. If on mobile, navigate to the transactions view
+          if (window.innerWidth <= MOBILE_BREAKPOINT) {
+            navigateToMobileView('dashboard-column');
+          }
         });
       });
 
@@ -531,6 +529,11 @@
           Budgeteer.current_page = "account/".concat(account_id);
           Budgeteer.only_clear_searchfield = true; // Sets behavior of searchbox "X" icon
           Budgeteer.current_search = {};
+
+          // 5. If on mobile, navigate to the transactions view
+          if (window.innerWidth <= MOBILE_BREAKPOINT) {
+            navigateToMobileView('dashboard-column');
+          }
         });
       });
 
