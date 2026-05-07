@@ -215,23 +215,21 @@ $(document).ready(function() {
 function toggleAdvancedSearch() {
   if ($("#dashboard-header").hasClass("collapsed")) {
     // If the header is collapsed, expand it
-    // 1. Save the current dash and bin heights
-    var currentDashHeight = $('#dashboard-header').height();
-    var currentBinHeight = $("#bin").height();
-    var currentBinPadding = parseInt($("#bin").css("padding-top")) + parseInt($("#bin").css("padding-bottom"));
-    // 2. Temporarily set the new dash and bin heights using auto and save the values
+    // 1. Save the current header and viewport heights
+    var currentDashHeaderHeight = $('#dashboard-header').height();
+    var currentDashViewportHeight = $("#dashboard-viewport").height();
+    var currentDashViewportPadding = parseInt($("#dashboard-viewport").css("padding-top")) + parseInt($("#dashboard-viewport").css("padding-bottom"));
+    // 2. Temporarily set the new header and viewport heights using auto and save the values
     $('#dashboard-header').css('height', 'auto');
-    var newDashHeight = $('#dashboard-header').height();
-    $("#bin").css("height", "calc(100% - " + newDashHeight + "px + " + currentBinPadding + "px)");
-    var newBinHeight = $("#bin").height();
-    console.log("New dash height: " + newDashHeight);
-    console.log("New bin height: " + newBinHeight);
-    // 3. Reset the dash and bin heights to their original values
-    $('#dashboard-header').height(currentDashHeight);
-    $('#bin').height(currentBinHeight);
+    var newDashHeaderHeight = $('#dashboard-header').height();
+    $("#dashboard-viewport").css("height", "calc(100% - " + newDashHeaderHeight + "px + " + currentDashViewportPadding + "px)");
+    var newDashViewportHeight = $("#dashboard-viewport").height();
+    // 3. Reset the header and viewport heights to their original values
+    $('#dashboard-header').height(currentDashHeaderHeight);
+    $('#dashboard-viewport').height(currentDashViewportHeight);
     // 4. Animate the heights to the new values
-    $("#dashboard-header").animate({height: newDashHeight}, 200);
-    $("#bin").animate({height: newBinHeight}, 200);
+    $("#dashboard-header").animate({height: newDashHeaderHeight}, 200);
+    $("#dashboard-viewport").animate({height: newDashViewportHeight}, 200);
     $("#dashboard-header, #advanced-search-button").removeClass("collapsed").addClass("expanded");
 
     // Adjust the tabselect attribute for all the inputs to make them selectable
@@ -241,13 +239,13 @@ function toggleAdvancedSearch() {
 
   } else {
     // If the header is expanded, collapse it
-    var currentBinHeight = $("#bin").height();
-    var currentBinPadding = parseInt($("#bin").css("padding-top")) + parseInt($("#bin").css("padding-bottom"));
-    $("#bin").css("height", "calc(100% - 90px + " + currentBinPadding + "px)");
-    var newBinHeight = $("#bin").height();
-    $('#bin').height(currentBinHeight);
+    var currentDashViewportHeight = $("#dashboard-viewport").height();
+    var currentDashViewportPadding = parseInt($("#dashboard-viewport").css("padding-top")) + parseInt($("#dashboard-viewport").css("padding-bottom"));
+    $("#dashboard-viewport").css("height", "calc(100% - 90px + " + currentDashViewportPadding + "px)");
+    var newDashViewportHeight = $("#dashboard-viewport").height();
+    $('#dashboard-viewport').height(currentDashViewportHeight);
     $("#dashboard-header").animate({height: '90px'}, 200);
-    $("#bin").animate({height: newBinHeight}, 200);
+    $("#dashboard-viewport").animate({height: newDashViewportHeight}, 200);
     $("#dashboard-header, #advanced-search-button").removeClass("expanded").addClass("collapsed");
   
     // Adjust the tabselect attribute for all the inputs to make them non-selectable

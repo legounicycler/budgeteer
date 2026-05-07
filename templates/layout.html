@@ -131,7 +131,7 @@
         <!-- RIGHT CONTENT -->
         <div id="dashboard-column" class="col s12 m12 l8 mobile-view active-mobile-view">
           {% include 'dashboard_header.html' %}
-          <div id="bin" class="hide">
+          <div id="dashboard-viewport" class="hide">
             <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
               {% include 'transactions.html' %}
             </form> <!-- This may have to move within transactions.html when graph views are added later -->

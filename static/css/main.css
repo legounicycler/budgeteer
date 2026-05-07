@@ -27,7 +27,7 @@ main {
   overflow-x: hidden; /* Prevents horizontal scrollbars during mobile view transitions */
 }
 
-#transactions-scroller, #scroller {
+#transactions-scroller, #scroller, #account-scroller {
     box-sizing: content-box;
 }
 
@@ -55,7 +55,7 @@ main {
   font-size: 30px;
 }
 
-#bin {
+#dashboard-viewport {
   padding: 5px;
   height: calc(100% - var(--dashboard-header-height));
 }
@@ -139,9 +139,10 @@ main {
 .table-header {
   margin: 0;
   border-radius: 2px 2px 0px 0px;
+  border-bottom: none;
 }
 
-#transactions-scroller {
+#transactions-scroller, #accounts-scroller {
   margin: 0;
   max-height: calc(100% - 25px);
   background-color: white;
@@ -149,8 +150,12 @@ main {
   border-radius: 0px 0px 2px 2px;
 }
 
-#envelopes-scroller, #account-scroller {
+#envelopes-scroller{
   margin: 0;
+  border: none;
+}
+
+#envelopes-scroller {
   max-height: 100%;
 }
 
@@ -536,7 +541,7 @@ h5 {
   }
 
   #envelopes, #accounts {
-    height: 100%;
+    height: calc(100% - 48px);
   }
 
   .mobile-view {
@@ -603,7 +608,7 @@ h5 {
 
 @media only screen and (max-width: 600px) {
 
-  #bin {
+  #dashboard-viewport {
     padding: 0px;
   }
 

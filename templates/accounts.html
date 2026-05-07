@@ -3,28 +3,28 @@
     <img class="empty-img" src="{{url_for('static', filename='img/Budgeteer_White_And_Red.png')}}">
     <h5 class="empty-text white-text">You don't have any accounts yet!</h5>
   {% else %}
-    <ul class="collection">
+    <ul class="collection table-header">
       <li class="row valign-wrapper collection-item left-align grey lighten-3">
         <div class="col s8 header offset-s1 left-align">Name</div>
         <div class="col s3 header account-balance">Balance</div>
       </li>
-      <div id="accounts-scroller" class="scroller">
-        {% for id, account in accounts_data.items() %}
-          {% if account.deleted == false%}
-            <a class="waves-effect collection-item account-link" data-url="{{ url_for('main.load_account_transactions') }}" data-account-id={{account.id}}>
-              <li class="row account-row blue-grey-text text-darken-3">
-                <div class="col s1 valign-wrapper account-icon"><i class="material-icons">account_balance</i></div>
-                <div class="col s8 account-name left-align valign-wrapper">
-                  <h5 class="truncate no-margin"><b>{{account.name}}</b></h5>
-                </div>
-                <div class="col s3 valign-wrapper account-balance">
-                  <span class="{{'negative ' if account.balance < 0}}{{'neutral ' if (account.balance == 0)}}balance">{{account.balance|balanceformat}}</span>
-                </div>
-              </li>
-            </a>
-          {% endif %}
-        {% endfor %}
-      </div>
+    </ul>
+    <ul id="accounts-scroller" class="collection scroller">
+      {% for id, account in accounts_data.items() %}
+        {% if account.deleted == false%}
+          <a class="waves-effect collection-item account-link" data-url="{{ url_for('main.load_account_transactions') }}" data-account-id={{account.id}}>
+            <li class="row account-row blue-grey-text text-darken-3">
+              <div class="col s1 valign-wrapper account-icon"><i class="material-icons">account_balance</i></div>
+              <div class="col s8 account-name left-align valign-wrapper">
+                <h5 class="truncate no-margin"><b>{{account.name}}</b></h5>
+              </div>
+              <div class="col s3 valign-wrapper account-balance">
+                <span class="{{'negative ' if account.balance < 0}}{{'neutral ' if (account.balance == 0)}}balance">{{account.balance|balanceformat}}</span>
+              </div>
+            </li>
+          </a>
+        {% endif %}
+      {% endfor %}
     </ul>
   {% endif %}
 </div>

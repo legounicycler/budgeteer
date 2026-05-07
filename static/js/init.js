@@ -133,7 +133,7 @@
       }
 
       // Prevent content from flashing content for a second on document load
-      $('#envelopes, #accounts, #bin').removeClass('hide');
+      $('#envelopes, #accounts, #dashboard-viewport').removeClass('hide');
       
       $('#envelope-editor-modal, #account-editor-modal, #editor-modal, #envelope-fill-modal').modal();
 
@@ -943,7 +943,7 @@
     // When clicking on a transaction, open the transaction editor modal
     // When hovering over the date, show the multidelete buttons
     var lastChecked = null; // Used for shift selection
-    $('#bin').on('click', '.transaction', function(e) {
+    $('#dashboard-viewport').on('click', '.transaction', function(e) {
       if ($(".dropdown-content.select-dropdown").is(":visible")) {
         //Don't open if you're clicking while a select dropdown is open (the advanced search envelope/account selector)
         //Instead, let the normal click event close the dropdown
@@ -1007,7 +1007,7 @@
       clearInterval(intBottomHandler);
     }
 
-    $("#bin").on('touchstart', '.transaction-row', function(e) {
+    $("#dashboard-viewport").on('touchstart', '.transaction-row', function(e) {
       // Set up variables for touch events
       originalStates = [];
       $allTRows = $('.transaction-row'); 
@@ -1342,7 +1342,7 @@
     });
 
     // Load more transactions button
-    $('#bin').on('click', '#load-more', function() {
+    $('#dashboard-viewport').on('click', '#load-more', function() {
       data = {}
       data['offset'] = parseInt($(this).attr('data-offset'));
       data['current_page'] = Budgeteer.current_page;
