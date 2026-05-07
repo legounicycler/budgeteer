@@ -37,62 +37,94 @@
     Budgeteer.transactionsScrollerElement = null; // Store the div for the transactions scroller which is used in the custom scroll behavior function. Updated on data_reload()
     Budgeteer.showMultiSelectIcons = showMultiSelectIcons; // Make the showMultiSelectIcons function globally accessible
     Budgeteer.reload_dynamic_html = reload_dynamic_html; // Make the reload_dynamic_html function globally accessible
+    const MOBILE_BREAKPOINT = 992; // The breakpoint at which the app switches to mobile view (used in various places in the JS to determine whether to apply mobile-specific behavior) 
 
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
 
-        // Determine the logical order based on the DOM order of buttons
-        function getViewOrder() {
-          // Prefer explicit data-view attributes on footer buttons which should
-          // match the ids of the slide elements (e.g. data-view="dashboard-column").
-          return $('.footer-button').map(function() {
-            return $(this).data('view') || $(this).attr('id').replace('footer-','').replace('btn-','');
-          }).get();
-        }
+      // Define the mobile view order based off the order of the footer buttons
+      const MOBILE_VIEW_ORDER = $('.footer-button').map(function() { return $(this).data('view'); }).get();
 
-        function navigateTo(targetId) {
-          const viewOrder = getViewOrder();
-          const targetIdx = viewOrder.indexOf(targetId);
-          if (targetIdx === -1) return;
+      function navigateToMobileView(targetId) {
 
-          // 1. Update Footer UI
-          $('.footer-button').removeClass('active');
-          $(`.footer-button[data-view="${targetId}"]`).addClass('active');
+        // 1. Get the index of the mobile view you're navigating to
+        const targetIndex = MOBILE_VIEW_ORDER.indexOf(targetId);
+        if (targetIndex === -1) return;
 
-          // 2. Shift all slides (slides are elements whose ids equal the view names returned by getViewOrder)
-          viewOrder.forEach((id, index) => {
-            const $slide = $('#' + id);
-            if (!$slide.length) return;
+        // 2. Get the index of the current mobile view
+        const $current = $('.mobile-view.active-mobile-view');
+        const currentId = $current.attr('id') || MOBILE_VIEW_ORDER[0];
+        const currentIndex = MOBILE_VIEW_ORDER.indexOf(currentId);
+        if (currentId === targetId || currentIndex === -1) return; // If you're already on the target view (or there is no current view, which would be a glitch)do nothing
 
-            if (index < targetIdx) {
-              $slide.removeClass('active-slide next-slide').addClass('prev-slide');
-            } else if (index > targetIdx) {
-              $slide.removeClass('active-slide prev-slide').addClass('next-slide');
-            } else {
-              $slide.removeClass('prev-slide next-slide').addClass('active-slide');
+        // 3. Determine which direction to animate the view transition
+        //        Direction of 1 means transition to view on the right
+        //        Direction of -1 means transition to view on the left
+        const direction = targetIndex > currentIndex ? 1 : -1;
+
+        // 4. Update the active state of the footer buttons
+        $('.footer-button').removeClass('active');
+        $(`.footer-button[data-view="${targetId}"]`).addClass('active');
+
+        // 5. Move the absolute positions of the views to prepare for the animation
+        //      a. Any views that are not the current or the target view get hidden
+        //      b. Ensure the target view is positioned offscreen either to the left or right of the current view depending on the direction of the animation
+        MOBILE_VIEW_ORDER.forEach((id, index) => {
+          // Get the mobile view element to adjust
+          const $mobileView = $('#' + id);
+          if (!$mobileView.length) return; //Return if the element doesn't exist
+
+          $mobileView.css("display", ""); //Reset any style properties that might interfere with the animation (coming from materialize tabs)
+          if (id === currentId) { // Set the current view to be active and in the normal position so that it can animate out
+            $mobileView.removeClass('offscreen-left-mobile offscreen-right-mobile').addClass('active-mobile-view');
+          } else if (id === targetId) {
+            if (direction > 0) { // If the target view is to the right of the current view, position it offscreen to the right.
+              $mobileView.removeClass('offscreen-left-mobile active-mobile-view hidden-mobile-view').addClass('offscreen-right-mobile');
+            } else { // If the target view is to the left of the current view, position it offscreen to the left.
+              $mobileView.removeClass('offscreen-right-mobile active-mobile-view hidden-mobile-view').addClass('offscreen-left-mobile');
             }
-          });
-        }
-
-        // Attach click events to footer buttons. Buttons should have a `data-view` attribute
-        // that equals the id of the slide element to show (e.g. data-view="envelopes").
-        $('.footer-button').on('click', function(e) {
-          e.preventDefault();
-          const targetId = $(this).data('view') || $(this).attr('id').replace('footer-','').replace('btn-','');
-          navigateTo(targetId);
-        });
-
-        // Auto-return to dashboard when clicking an envelope or account (Mobile only)
-        $(document).on('click', '.envelope-row, .account-row', function() {
-          if (window.innerWidth <= 992) {
-            navigateTo('dashboard-column');
+          } else { // For any non-current, non-target views, ensure they're hidden and offscreen to avoid showing them during the transition
+            $mobileView.removeClass('active-mobile-view').addClass("hidden-mobile-view");
+            if (index < currentIndex) {
+              $mobileView.removeClass('offscreen-right-mobile').addClass('offscreen-left-mobile');
+            } else if (index > currentIndex) {
+              $mobileView.removeClass('offscreen-left-mobile').addClass('offscreen-right-mobile');
+            }
           }
         });
 
-        // Set initial state for dashboard view on mobile
-        if (window.innerWidth <= 992) {
-          navigateTo('dashboard-column');
+        // 6. Force reflow so the browser applies the starting positions
+        void document.body.offsetWidth;
+
+        // 7. Move the current view offscreen
+        if (direction > 0) {
+          $('#' + currentId).removeClass('active-mobile-view').addClass('offscreen-left-mobile');
+        } else {
+          $('#' + currentId).removeClass('active-mobile-view').addClass('offscreen-right-mobile');
         }
+
+        // 8. Move the target view onscreen
+        $('#' + targetId).removeClass('offscreen-left-mobile offscreen-right-mobile').addClass('active-mobile-view');
+
+        // 9. After transition completes, hide the previous view
+        const transitionMs = 300; // must match CSS transition-duration
+        setTimeout(function() {
+          $('#' + currentId).removeClass('active-mobile-view').addClass('hidden-mobile-view');
+        }, transitionMs + 20);
+      }
+
+      // Attach click events to footer buttons. Buttons should have a `data-view` attribute
+      // that equals the id of the view element to show (e.g. data-view="envelopes").
+      $('.footer-button').on('click', function(e) {
+        navigateToMobileView($(this).data('view'));
+      });
+
+      // Auto-return to dashboard when clicking an envelope or account (Mobile only)
+      $(document).on('click', '.envelope-row, .account-row', function() {
+        if (window.innerWidth <= MOBILE_BREAKPOINT) {
+          navigateToMobileView('dashboard-column');
+        }
+      });
 
       //Set up the simplebar scroll bars
       $('.scroller').each(function(index,el) {

@@ -38,7 +38,7 @@
   </div>
 
   <!-- Side Nav -->
-  <ul id="slide-out" class="sidenav">
+  <ul id="view-out" class="sidenav">
     <li>
       <div class="user-view">
         <div class="background">
@@ -60,7 +60,7 @@
 	  <nav class="yellow darken-4">
 		<div class="nav-wrapper">
       <ul class="left">
-			<li><a href="#" data-target="slide-out" class="sidenav-trigger"><i class="material-icons">menu</i></a></li>
+			<li><a href="#" data-target="view-out" class="sidenav-trigger"><i class="material-icons">menu</i></a></li>
 		  </ul>
 			<div id="logo-container" class="brand-logo center"><img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo"></div>
       <!-- <ul class="right">
@@ -85,7 +85,7 @@
     <div id="viewport" class="row">
 
         <!--LEFT CONTENT-->
-        <div id="left-content" class="col m12 l4 s12 blue-grey slide-wrapper">
+        <div id="left-content" class="col m12 l4 s12 blue-grey view-wrapper">
 
           <div id="left-header" class="row hide-on-med-and-down">
             <div id="total-container" class="collection">
@@ -108,19 +108,19 @@
             </div>
           </div>
 
-          <div id="account-envelope-tab-slider" class="row hide-on-med-and-down">
+          <div id="account-envelope-tab-viewr" class="row hide-on-med-and-down">
             <ul class="tabs blue-grey lighten-5">
               <li class="tab col s6"><a class="active" href="#envelopes">Envelopes</a></li>
-              <li sclass="tab col s6"><a href="#accounts">Accounts</a></li>
+              <li class="tab col s6"><a href="#accounts">Accounts</a></li>
             </ul>
           </div>
 
-          <div id="envelopes" class="col s12 hide mobile-slide next-slide">
+          <div id="envelopes" class="col s12 hide mobile-view offscreen-right-mobile hidden-mobile-view">
             <a href="#envelope-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-envelopes">Edit Envelopes</a>
               {% include 'envelopes.html'%}
           </div>
 
-          <div id="accounts" class="col s12 hide mobile-slide next-slide">
+          <div id="accounts" class="col s12 hide mobile-view offscreen-right-mobile hidden-mobile-view">
             <a href="#account-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-accounts">Edit Accounts</a>
               {% include 'accounts.html'%}
           </div>
@@ -129,14 +129,14 @@
 
 
         <!-- RIGHT CONTENT -->
-        <div id="dashboard-column" class="col s12 m12 l8 mobile-slide active-slide">
+        <div id="dashboard-column" class="col s12 m12 l8 mobile-view active-mobile-view">
           {% include 'dashboard_header.html' %}
           <div id="bin" class="hide">
             <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
               {% include 'transactions.html' %}
             </form> <!-- This may have to move within transactions.html when graph views are added later -->
           </div>
-          <!-- <div id="graph-view" class="hide mobile-slide next-slide">
+          <!-- <div id="graph-view" class="hide mobile-view">
             <h2>Coming soon...</h2>
           </div> -->
         </div>
