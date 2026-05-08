@@ -1,6 +1,5 @@
 /* CSS Variables */
 :root{
-  --dashboard-header-height: 90px;
   --footer-height: 50px;
 }
 
@@ -22,16 +21,16 @@
   margin: 0 auto;
 }
 
-main {
+/* main {
   height: calc(100svh - var(--navbar-height));
-}
+} */
 
-#viewport {
+/* #viewport {
   height: calc(100svh - var(--navbar-height));
   width: 100%;
   position: relative;
-  overflow-x: hidden; /* Prevents horizontal scrollbars during mobile view transitions */
-}
+  overflow-x: hidden;
+} */
 
 #transactions-scroller, #scroller, #account-scroller {
     box-sizing: content-box;
@@ -556,21 +555,52 @@ h5 {
 }
 
 @media only screen and (max-width: 992px) {  
-  main, #viewport {
+  /* main, #viewport {
     height: calc(100svh - var(--navbar-height) - var(--footer-height));
+  } */
+
+  /* #dashboard-column {
+    height: auto;
+  } */
+
+  #dashboard-viewport {
+    margin: 5px;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    padding: 0px;
   }
 
-  #dashboard-column {
+  #dashboard-header {
+    touch-action: none; /* Prevents mobile browsers from scrolling when swiping on the header */
+    z-index: 990; /* Higher than table-header (980) */
+  }
+
+  #multi-delete-form {
     height: auto;
   }
 
-  #dashboard-viewport {
-    height: calc(100% - var(--dashboard-header-height) - var(--footer-height));
+  #transactions-bin {
+    position: relative;
+    height: auto;
+    z-index: 1;
   }
 
   #transactions-bin .table-header {
     position: sticky;
-    top: 0px;
+    top: calc(var(--navbar-height) + var(--dashboard-header-height) + 5px);
+    z-index: 980;
+  }
+
+  #transactions-bin .table-header::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: -1px;
+    right: -1px;
+    height: 6px;
+    background-color: #f4f4f4;
+    z-index: 999;
   }
 
   #envelopes, #accounts {
@@ -661,10 +691,6 @@ h5 {
 }
 
 @media only screen and (max-width: 600px) {
-
-  #dashboard-viewport {
-    padding: 0px;
-  }
 
   .modal .amount-span {
     font-size: .85em;

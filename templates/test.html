@@ -4,66 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Widget Layout</title>
+    <link href="{{url_for('static', filename='css/materialize.css')}}" type="text/css" rel="stylesheet" media="screen,projection"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/test.css') }}">
-    
 </head>
 <body>
 
     <div class="app-container">
-        <nav class="main-header yellow darken-4">
-            <a href="#" data-target="view-out" class="sidenav-trigger">
-                <i class="material-icons white-text">menu</i>
-            </a>
-            <img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo">
-            <div class="right-spacer"></div> 
-        </nav>
+    <nav class="main-header yellow darken-4">
+        <a href="#" data-target="view-out" class="sidenav-trigger">
+            <i class="material-icons white-text">menu</i>
+        </a>
+        <img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo">
+        <div style="width: 24px;"></div> </nav>
 
-        <main>
-            <div id="viewport" class="row">
-                
-                <div id="left-content" class="col l4 hide-on-med-and-down">
-                    <div class="side-widget">
-                        <h6>Quick Stats</h6>
-                        <p>This stays in view on desktop but hides on mobile Pixel.</p>
+    <main>
+        <div id="viewport" class="row">
+            <div id="dashboard-column" class="col s12 m12 l8">
+
+                <div id="dashboard-header">
+                    <div id="total-container" style="padding: 10px;">
+                        <h5 class="center">Total: <span class="balance">$1,234.56</span></h5>
                     </div>
                 </div>
 
-                <div id="dashboard-column" class="col s12 m12 l8">
-                    
-                    <div id="dashboard-header">
-                        <div class="total-display">
-                            <h5>Total: <span class="balance">$1,234.56</span></h5>
-                        </div>
-                    </div>
-
-                    <div id="dashboard-viewport">
-                        <div class="table-header">
-                            <div>DATE</div>
-                            <div>ITEM</div>
-                            <div style="text-align: right;">AMOUNT</div>
-                        </div>
-
-                        <div id="transactions-scroller">
-                            {% for i in range(50) %}
-                            <div class="transaction-row">
-                                <div class="date-col">05/07</div>
-                                <div class="name-col">Transaction Item {{ i }}</div>
-                                <div class="amt-col">$42.00</div>
+                <form id="multi-delete-form">
+                    <div id="transactions-bin">
+                        <div id="dashboard-viewport">
+                            <div class="table-header">
+                                <div>DATE</div>
+                                <div>ITEM</div>
+                                <div style="text-align: right;">AMOUNT</div>
                             </div>
-                            {% endfor %}
+                            <div id="transactions-scroller">
+                                {% for i in range(50) %}
+                                <div class="transaction-row">
+                                    <div style="color: #999;">05/07</div>
+                                    <div style="font-weight: 500;">Transaction {{ i }}</div>
+                                    <div style="text-align: right; font-weight: bold;">$50.00</div>
+                                </div>
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
+                </form>
 
-                </div>
             </div>
-        </main>
+        </div>
+    </main>
 
-        <footer id="footer" class="yellow darken-4">
-            <i class="material-icons white-text">home</i>
-            <i class="material-icons white-text">mail_outline</i>
-            <i class="material-icons white-text">account_balance</i>
-        </footer>
-    </div>
+    <footer id="footer" class="yellow darken-4">
+        <i class="material-icons white-text">home</i>
+        <i class="material-icons white-text">mail_outline</i>
+        <i class="material-icons white-text">account_balance</i>
+    </footer>
+</div>
 
 </body>
 </html>
