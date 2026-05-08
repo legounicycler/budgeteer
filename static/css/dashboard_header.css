@@ -234,7 +234,7 @@
   #dashboard-header {
     position: sticky;
     top: var(--navbar-height);
-    z-index: 100;
+    z-index: 901;
   }
 }
 

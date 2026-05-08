@@ -3,6 +3,19 @@
   --footer-height: 50px;
 }
 
+/* html { */
+  /* Makes the top and bottom of page same color as footers on bouncy scroll */
+  /* background-color: #f57f17; yellow darken-4 */
+/* } */
+
+body {
+  background-color: white;
+}
+
+main, #viewport {
+  height: calc(100vh - var(--navbar-height));
+}
+
 /* Used to display the dropdowns over all the other content and for proper functionality of the escape key within dropdowns */
 #fullscreen-wrapper {
   height: 100%;
@@ -12,6 +25,10 @@
   top: 0px;
   pointer-events: none;
   overflow: hidden;
+}
+
+body {
+  height: 100dvh;
 }
 
 .app-container {
@@ -38,11 +55,16 @@
 
 #footer {
   position: sticky;
-  bottom: 0;
-  height: var(--footer-height);
+  /* Move the footer up by the device safe-area inset (fallback to 0) */
+  bottom: 0px;
+  /* Include the safe-area inset in the footer's height so internal content is positioned above the inset */
+  height: calc(var(--footer-height) + env(safe-area-inset-bottom, 0px));
   width: 100%;
-  padding-bottom: env(safe-area-inset-bottom);   /* This adds padding specifically for the system's safe area */
-  z-index: 100;
+  /* Provide older WebKit fallback and sensible default */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: constant(safe-area-inset-bottom);
+  z-index: 901;
+  box-sizing: border-box;
 }
 
 .footer-button {
@@ -64,7 +86,7 @@
 
 #dashboard-viewport {
   padding: 5px;
-  height: calc(100% - var(--dashboard-header-height));
+  height: calc(100vh - var(--dashboard-header-height) - var(--navbar-height));
 }
 
 #left-header {
@@ -221,6 +243,12 @@
 .amount-span {
   font-size: 1.5em;
   max-width: 170%;
+}
+
+#fab {
+  width: 56px;
+  height: 56px;
+  padding: 0px;
 }
 
 /* fixes transaction button to bottom-right of page*/
@@ -555,13 +583,10 @@ h5 {
 }
 
 @media only screen and (max-width: 992px) {  
-  /* main, #viewport {
-    height: calc(100svh - var(--navbar-height) - var(--footer-height));
-  } */
 
-  /* #dashboard-column {
+  body, main, #viewport {
     height: auto;
-  } */
+  }
 
   #dashboard-viewport {
     margin: 0px 5px 5px 5px;
@@ -650,9 +675,7 @@ h5 {
   
   #fab {
     bottom: 60px;
-    width: 56px;
-    height: 56px;
-    padding: 0px;
+    right: 15px;
   }
 
   #total-container {

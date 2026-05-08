@@ -68,7 +68,7 @@
       <img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo">
 
       <!-- Right: Spacer (Keeps logo centered) -->
-      <div class="right-section-spacer"></div>
+      <div id="right-section-spacer"></div>
     </nav>
 
     <!-- Content -->
@@ -130,15 +130,9 @@
 
 
           <!-- RIGHT CONTENT -->
-          <div id="dashboard-column" class="col s12 m12 l8 mobile-view active-mobile-view">
+          <div id="dashboard-column" class="col s12 m12 l8 mobile-view active-mobile-view" style="height: 100vh;">
             {% include 'dashboard_header.html' %}
-            <div id="sticky-curtain" style="
-              height: 5px;
-              position: sticky;
-              background: white;
-              z-index: 100000;
-              top: calc(var(--dashboard-header-height) + var(--navbar-height));
-          "></div>
+            <div id="sticky-curtain"></div>
             <div id="dashboard-viewport" class="hide">
               <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
                 {% include 'transactions.html' %}
