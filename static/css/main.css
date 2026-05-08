@@ -674,7 +674,7 @@ h5 {
   }
   
   #fab {
-    bottom: 60px;
+    bottom: calc(var(--footer-height) + 10px + env(safe-area-inset-bottom, 0px)); /* Ensure FAB is above the footer*/
     right: 15px;
   }
 
