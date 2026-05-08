@@ -132,6 +132,13 @@
           <!-- RIGHT CONTENT -->
           <div id="dashboard-column" class="col s12 m12 l8 mobile-view active-mobile-view">
             {% include 'dashboard_header.html' %}
+            <div id="sticky-curtain" style="
+              height: 5px;
+              position: sticky;
+              background: white;
+              z-index: 100000;
+              top: calc(var(--dashboard-header-height) + var(--navbar-height));
+          "></div>
             <div id="dashboard-viewport" class="hide">
               <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
                 {% include 'transactions.html' %}

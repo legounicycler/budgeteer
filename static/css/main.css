@@ -564,7 +564,7 @@ h5 {
   } */
 
   #dashboard-viewport {
-    margin: 5px;
+    margin: 0px 5px 5px 5px;
     display: flex;
     flex-direction: column;
     height: auto;
@@ -573,34 +573,33 @@ h5 {
 
   #dashboard-header {
     touch-action: none; /* Prevents mobile browsers from scrolling when swiping on the header */
-    z-index: 990; /* Higher than table-header (980) */
+  }
+
+  #sticky-curtain {
+    height: 5px;
+    position: sticky;
+    background: white;
+    z-index: 900;
+    top: calc(var(--dashboard-header-height) + var(--navbar-height));
   }
 
   #multi-delete-form {
     height: auto;
   }
 
+  /* FIXED: Creating stacking context for the curtain */
   #transactions-bin {
-    position: relative;
     height: auto;
+    position: relative;
     z-index: 1;
   }
 
+  /* FIXED: Added relative positioning to parent to allow pseudo-element to render */
   #transactions-bin .table-header {
     position: sticky;
     top: calc(var(--navbar-height) + var(--dashboard-header-height) + 5px);
     z-index: 980;
-  }
-
-  #transactions-bin .table-header::before {
-    content: "";
-    position: absolute;
-    top: -6px;
-    left: -1px;
-    right: -1px;
-    height: 6px;
-    background-color: #f4f4f4;
-    z-index: 999;
+    background-color: white;
   }
 
   #envelopes, #accounts {
