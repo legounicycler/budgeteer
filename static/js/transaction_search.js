@@ -216,6 +216,8 @@ function toggleAdvancedSearch() {
   if ($("#dashboard-header").hasClass("collapsed")) {
     // If the header is collapsed, expand it
     // 1. Save the current header and viewport heights
+    $("#dashboard-header").addClass("expanded").removeClass("collapsed");
+    $("#dashboard-header").addClass("expanded").removeClass("collapsed");
     var currentDashHeaderHeight = $('#dashboard-header').height();
     var currentDashViewportHeight = $("#dashboard-viewport").height();
     var currentDashViewportPadding = parseInt($("#dashboard-viewport").css("padding-top")) + parseInt($("#dashboard-viewport").css("padding-bottom"));
@@ -228,8 +230,11 @@ function toggleAdvancedSearch() {
     $('#dashboard-header').height(currentDashHeaderHeight);
     $('#dashboard-viewport').height(currentDashViewportHeight);
     // 4. Animate the heights to the new values
+    $(":root").css("--dashboard-header-height", newDashHeaderHeight + "px"); // Update the CSS variable for the dashboard header height so that any elements using it will adjust accordingly
     $("#dashboard-header").animate({height: newDashHeaderHeight}, 200);
     $("#dashboard-viewport").animate({height: newDashViewportHeight}, 200);
+    // $("#sticky-curtain").animate({"top": "calc(var(--navbar-height) + " + newDashHeaderHeight + "px)"}, 200);
+    // $("#transactions-bin .collection.table-header").animate({"top": "calc(var(--navbar-height) + " + newDashHeaderHeight + "px + 5px)"}, 200);
     $("#dashboard-header, #advanced-search-button").removeClass("collapsed").addClass("expanded");
 
     // Adjust the tabselect attribute for all the inputs to make them selectable
@@ -239,10 +244,12 @@ function toggleAdvancedSearch() {
 
   } else {
     // If the header is expanded, collapse it
+    $("#dashboard-header").removeClass("expanded").addClass("collapsed");
     var currentDashViewportHeight = $("#dashboard-viewport").height();
     var currentDashViewportPadding = parseInt($("#dashboard-viewport").css("padding-top")) + parseInt($("#dashboard-viewport").css("padding-bottom"));
     $("#dashboard-viewport").css("height", "calc(100% - 90px + " + currentDashViewportPadding + "px)");
     var newDashViewportHeight = $("#dashboard-viewport").height();
+    $(":root").css("--dashboard-header-height", '90px'); // Update the CSS variable for the dashboard header height so that any elements using it will adjust accordingly
     $('#dashboard-viewport').height(currentDashViewportHeight);
     $("#dashboard-header").animate({height: '90px'}, 200);
     $("#dashboard-viewport").animate({height: newDashViewportHeight}, 200);

@@ -59,15 +59,8 @@
 
     <!-- Main Nav -->
     <nav class="yellow darken-4">
-      <!-- Left: Sidenav Trigger -->
-      <a href="#" data-target="view-out" class="sidenav-trigger">
-          <i class="material-icons white-text">menu</i>
-      </a>
-
-      <!-- Center: Logo -->
+      <a href="#" data-target="view-out" class="sidenav-trigger"><i class="material-icons white-text">menu</i></a>
       <img src="{{url_for('static', filename='img/Budgeteer_Text_Shadow.png')}}" id="logo">
-
-      <!-- Right: Spacer (Keeps logo centered) -->
       <div id="right-section-spacer"></div>
     </nav>
 
@@ -86,9 +79,9 @@
       <div id="viewport" class="row">
 
           <!--LEFT CONTENT-->
-          <div id="left-content" class="col m12 l4 s12 blue-grey view-wrapper hide-on-med-and-down">
+          <div id="left-content" class="col m12 l4 s12 blue-grey view-wrapper">
 
-            <div id="left-header" class="row hide-on-med-and-down">
+            <div id="left-header" class="row">
               <div id="total-container" class="collection">
                 <a id="total" class="row collection-item waves-effect" data-url="{{ url_for('main.load_home_transactions') }}">
                   <div class="col s4 valign-wrapper">
@@ -109,19 +102,19 @@
               </div>
             </div>
 
-            <div id="account-envelope-tab-viewr" class="row hide-on-med-and-down">
+            <div id="account-envelope-tab-viewr" class="">
               <ul class="tabs blue-grey lighten-5">
                 <li class="tab col s6"><a class="active" href="#envelopes">Envelopes</a></li>
                 <li class="tab col s6"><a href="#accounts">Accounts</a></li>
               </ul>
             </div>
 
-            <div id="envelopes" class="col s12 hide mobile-view offscreen-right-mobile hidden-mobile-view">
+            <div id="envelopes" class="col s12 hide">
               <a href="#envelope-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-envelopes">Edit Envelopes</a>
                 {% include 'envelopes.html'%}
             </div>
 
-            <div id="accounts" class="col s12 hide mobile-view offscreen-right-mobile hidden-mobile-view">
+            <div id="accounts" class="col s12 hide">
               <a href="#account-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-accounts">Edit Accounts</a>
                 {% include 'accounts.html'%}
             </div>
@@ -130,7 +123,7 @@
 
 
           <!-- RIGHT CONTENT -->
-          <div id="dashboard-column" class="col s12 m12 l8 mobile-view active-mobile-view" style="height: 100vh;">
+          <div id="dashboard-column" class="col s12 m12 l8" style="height: 100vh;">
             {% include 'dashboard_header.html' %}
             <div id="sticky-curtain"></div>
             <div id="dashboard-viewport" class="hide">

@@ -8,6 +8,10 @@
   /* background-color: #f57f17; yellow darken-4 */
 /* } */
 
+html {
+  overscroll-behavior: none;
+}
+
 body {
   background-color: white;
 }
@@ -584,6 +588,10 @@ h5 {
 
 @media only screen and (max-width: 992px) {  
 
+  html {
+    overscroll-behavior-y: auto;
+  }
+
   body, main, #viewport {
     height: auto;
   }
@@ -597,7 +605,8 @@ h5 {
   }
 
   #dashboard-header {
-    touch-action: none; /* Prevents mobile browsers from scrolling when swiping on the header */
+    /* Prevents mobile browsers from scrolling when swiping on the header */
+    /* touch-action: none;  */
   }
 
   #sticky-curtain {

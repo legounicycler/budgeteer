@@ -1,5 +1,10 @@
-:root{
+:root {
   --dashboard-header-height: 90px;
+}
+
+#dashboard-header.expanded {
+  height: auto;
+  transition: height 0.2s ease;
 }
 
 #dashboard-title-and-search-row  {
@@ -241,11 +246,6 @@
 
 
 @media only screen and (max-width: 600px) {
-
-  /* #dashboard-header {
-    position: relative;
-    top: 0px;
-  } */
 
   /* Stack the title and search columns */
   #dashboard-page-title-col, #search-col  {
