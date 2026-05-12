@@ -55,6 +55,7 @@ body, html {
   color: white;
   font-weight: bold;
   touch-action: none; /* Prevents mobile browsers from triggering text selection or zooming when interacting with the header */
+  transition: height 0.28s ease;
 }
 
 /* THE TABLE WIDGET (The Outlined Box) */
@@ -84,7 +85,12 @@ body, html {
   border-bottom: var(--border-style);
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
+  transition: top 0.28s ease;
 }
+
+/* .table-header:hover {
+  top: 500px;
+} */
 
 /* TOP CURTAIN MASK 
    Hides rows passing through the 5px gap above the table.
@@ -144,4 +150,31 @@ body, html {
 
 .row {
     margin-bottom: 0px;
+}
+
+/* FAB toggle button */
+#toggle-header-fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(var(--footer-height) + 20px + env(safe-area-inset-bottom));
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--brand-yellow);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+  z-index: 1015;
+  cursor: pointer;
+  border: none;
+}
+
+#toggle-header-fab:active {
+  transform: translateY(1px);
+}
+
+.material-icons {
+  font-size: 24px;
 }

@@ -1,12 +1,9 @@
 /* CSS Variables */
 :root{
   --footer-height: 50px;
+  --left-header-height: 90px;
+  interpolate-size: allow-keywords; /* Enables smooth animations of height: auto */
 }
-
-/* html { */
-  /* Makes the top and bottom of page same color as footers on bouncy scroll */
-  /* background-color: #f57f17; yellow darken-4 */
-/* } */
 
 html {
   overscroll-behavior: none;
@@ -41,17 +38,6 @@ body {
   min-height: 100dvh;
   margin: 0 auto;
 }
-
-/* main {
-  height: calc(100svh - var(--navbar-height));
-} */
-
-/* #viewport {
-  height: calc(100svh - var(--navbar-height));
-  width: 100%;
-  position: relative;
-  overflow-x: hidden;
-} */
 
 #transactions-scroller, #scroller, #account-scroller {
     box-sizing: content-box;
@@ -89,8 +75,11 @@ body {
 }
 
 #dashboard-viewport {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
   padding: 5px;
-  height: calc(100vh - var(--dashboard-header-height) - var(--navbar-height));
 }
 
 #left-header {
@@ -152,6 +141,8 @@ body {
 }
 
 #dashboard-column {
+  display: flex;
+  flex-direction: column;
   padding: 0;
   height: 100%;
 }
@@ -160,8 +151,8 @@ body {
   margin: 10px;
 }
 
-#left-header, #dashboard-header {
-  height: var(--dashboard-header-height);
+#left-header {
+  height: var(--left-header-height);
   overflow: hidden;
 }
 
@@ -414,7 +405,7 @@ input[type="text"]:not(.special-fill-input, .special-input-envelope-editor, .spe
 }
 
 #envelopes, #accounts {
-  height: calc(100% - var(--dashboard-header-height) - 48px);
+  height: calc(100% - var(--left-header-height) - 48px);
 }
 
 .transaction-name .row {
@@ -602,19 +593,20 @@ h5 {
     flex-direction: column;
     height: auto;
     padding: 0px;
+    transition: height 0.2s ease;
   }
 
-  #dashboard-header {
-    /* Prevents mobile browsers from scrolling when swiping on the header */
-    /* touch-action: none;  */
+  #dashboard-column.page-load {
+    height: 100vh;
   }
 
   #sticky-curtain {
-    height: 5px;
+    height: 7px;
     position: sticky;
     background: white;
     z-index: 900;
-    top: calc(var(--dashboard-header-height) + var(--navbar-height));
+    top: calc(var(--dashboard-header-height) + var(--navbar-height) - 1px);
+    transition: top 0.2s ease;
   }
 
   #multi-delete-form {
@@ -634,6 +626,7 @@ h5 {
     top: calc(var(--navbar-height) + var(--dashboard-header-height) + 5px);
     z-index: 980;
     background-color: white;
+    transition: top 0.2s ease;
   }
 
   #envelopes, #accounts {

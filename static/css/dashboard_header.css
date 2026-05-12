@@ -2,9 +2,14 @@
   --dashboard-header-height: 90px;
 }
 
+#dashboard-header {
+  height: var(--dashboard-header-height);
+  overflow: hidden;
+  transition: height 0.2s ease;
+}
+
 #dashboard-header.expanded {
   height: auto;
-  transition: height 0.2s ease;
 }
 
 #dashboard-title-and-search-row  {
@@ -134,12 +139,13 @@
 
 /* Animate the advanced search dropdown button */
 #advanced-search-button.collapsed {
-  transform: rotate(0deg);
+  rotate: 0deg;
+  transition: rotate 0.1s ease;
 }
 
 /* Animate the advanced search dropdown button */
 #advanced-search-button.expanded {
-  transform: rotate(180deg);
+  rotate: 180deg;
 }
 
 /* Style the advanced search dropdown button */

@@ -41,7 +41,7 @@
 
     //-------------MATERIALIZE INITIALIZATION FUNCTIONS-------------//
     $(document).ready(function(){
-      $("#dashboard-column").css("height", ""); // Reset the height style set in the html to keep the footer at the bottom of the page while document loads
+      $("#dashboard-column").removeClass("page-load"); // Reset the height style set in the html to keep the footer at the bottom of the page while document loads
       // Define the mobile view order based off the order of the footer buttons
       const MOBILE_VIEW_ORDER = $('.footer-button').map(function() { return $(this).data('view'); }).get();
 

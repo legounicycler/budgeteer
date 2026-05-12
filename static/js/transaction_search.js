@@ -213,52 +213,26 @@ $(document).ready(function() {
 
 // Function for toggling the advanced search bar
 function toggleAdvancedSearch() {
-  if ($("#dashboard-header").hasClass("collapsed")) {
-    // If the header is collapsed, expand it
-    // 1. Save the current header and viewport heights
-    $("#dashboard-header").addClass("expanded").removeClass("collapsed");
-    $("#dashboard-header").addClass("expanded").removeClass("collapsed");
-    var currentDashHeaderHeight = $('#dashboard-header').height();
-    var currentDashViewportHeight = $("#dashboard-viewport").height();
-    var currentDashViewportPadding = parseInt($("#dashboard-viewport").css("padding-top")) + parseInt($("#dashboard-viewport").css("padding-bottom"));
-    // 2. Temporarily set the new header and viewport heights using auto and save the values
-    $('#dashboard-header').css('height', 'auto');
-    var newDashHeaderHeight = $('#dashboard-header').height();
-    $("#dashboard-viewport").css("height", "calc(100% - " + newDashHeaderHeight + "px + " + currentDashViewportPadding + "px)");
-    var newDashViewportHeight = $("#dashboard-viewport").height();
-    // 3. Reset the header and viewport heights to their original values
-    $('#dashboard-header').height(currentDashHeaderHeight);
-    $('#dashboard-viewport').height(currentDashViewportHeight);
-    // 4. Animate the heights to the new values
-    $(":root").css("--dashboard-header-height", newDashHeaderHeight + "px"); // Update the CSS variable for the dashboard header height so that any elements using it will adjust accordingly
-    $("#dashboard-header").animate({height: newDashHeaderHeight}, 200);
-    $("#dashboard-viewport").animate({height: newDashViewportHeight}, 200);
-    // $("#sticky-curtain").animate({"top": "calc(var(--navbar-height) + " + newDashHeaderHeight + "px)"}, 200);
-    // $("#transactions-bin .collection.table-header").animate({"top": "calc(var(--navbar-height) + " + newDashHeaderHeight + "px + 5px)"}, 200);
-    $("#dashboard-header, #advanced-search-button").removeClass("collapsed").addClass("expanded");
-
-    // Adjust the tabselect attribute for all the inputs to make them selectable
+  if ($("#dashboard-header").hasClass("collapsed")) { // If the header is collapsed, expand it
+    let headerHeight = $("#dashboard-header").get(0).scrollHeight; // Get the full height of the header content (including the advanced search fields) to set as the new height when expanded
+    $("#dashboard-header, #advanced-search-button, #dashboard-viewport").addClass("expanded").removeClass("collapsed");
+    $("#dashboard-column").css("--dashboard-header-height", headerHeight + "px"); // Update the CSS variable for the dashboard header height so that any elements using it will adjust accordingly
+    
+    // Adjust the tabselect attribute for all the inputs to make them SELECTABLE
     $('#advanced-search-row input, #advanced-search-row button').each(function() {
       $(this).attr('tabindex', '0'); // Make them focusable
     });
 
-  } else {
-    // If the header is expanded, collapse it
-    $("#dashboard-header").removeClass("expanded").addClass("collapsed");
-    var currentDashViewportHeight = $("#dashboard-viewport").height();
-    var currentDashViewportPadding = parseInt($("#dashboard-viewport").css("padding-top")) + parseInt($("#dashboard-viewport").css("padding-bottom"));
-    $("#dashboard-viewport").css("height", "calc(100% - 90px + " + currentDashViewportPadding + "px)");
-    var newDashViewportHeight = $("#dashboard-viewport").height();
-    $(":root").css("--dashboard-header-height", '90px'); // Update the CSS variable for the dashboard header height so that any elements using it will adjust accordingly
-    $('#dashboard-viewport').height(currentDashViewportHeight);
-    $("#dashboard-header").animate({height: '90px'}, 200);
-    $("#dashboard-viewport").animate({height: newDashViewportHeight}, 200);
-    $("#dashboard-header, #advanced-search-button").removeClass("expanded").addClass("collapsed");
+  } else { // If the header is expanded, collapse it
+
+    $("#dashboard-column").css("--dashboard-header-height", ""); // Reset the dashboard-header-height variable to the default found in :root
+    $("#dashboard-header, #advanced-search-button, #dashboard-viewport").removeClass("expanded").addClass("collapsed");
   
-    // Adjust the tabselect attribute for all the inputs to make them non-selectable
+    // Adjust the tabselect attribute for all the inputs to make them NON-SELECTABLE since they're hidden
     $('#advanced-search-row input, #advanced-search-row button').each(function() {
       $(this).attr('tabindex', '-1'); // Make them non-focusable
     });
+
   }
 }
 

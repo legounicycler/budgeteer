@@ -63,4 +63,9 @@ body {
         display: none;
     }
 
+    /* Hides the reCAPTCHA badge on smaller screens because it doesn't display correctly */
+    .grecaptcha-badge {
+        display: none;
+    }
+
 }

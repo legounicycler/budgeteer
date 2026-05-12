@@ -79,7 +79,7 @@
       <div id="viewport" class="row">
 
           <!--LEFT CONTENT-->
-          <div id="left-content" class="col m12 l4 s12 blue-grey view-wrapper">
+          <div id="left-content" class="col m12 l4 s12 blue-grey view-wrapper hide-on-med-and-down">
 
             <div id="left-header" class="row">
               <div id="total-container" class="collection">
@@ -123,10 +123,10 @@
 
 
           <!-- RIGHT CONTENT -->
-          <div id="dashboard-column" class="col s12 m12 l8" style="height: 100vh;">
+          <div id="dashboard-column" class="col s12 m12 l8 page-load">
             {% include 'dashboard_header.html' %}
             <div id="sticky-curtain"></div>
-            <div id="dashboard-viewport" class="hide">
+            <div id="dashboard-viewport" class="hide collapsed">
               <form id="multi-delete-form" action="{{ url_for('main.multi_delete') }}" method="post">
                 {% include 'transactions.html' %}
               </form> <!-- This may have to move within transactions.html when graph views are added later -->

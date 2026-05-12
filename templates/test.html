@@ -63,3 +63,27 @@
 
 </body>
 </html>
+
+<!-- FAB: Toggle dashboard header height -->
+<button id="toggle-header-fab" aria-label="Toggle header height" title="Toggle header height">
+        <i class="material-icons">expand_less</i>
+</button>
+
+<script>
+    (function(){
+        const fab = document.getElementById('toggle-header-fab');
+        const root = document.documentElement;
+        const icon = fab.querySelector('i');
+        const small = '90px';
+        const large = '190px';
+        const cur = getComputedStyle(root).getPropertyValue('--dashboard-header-height').trim() || small;
+        let expanded = cur === large;
+        icon.textContent = expanded ? 'expand_more' : 'expand_less';
+
+        fab.addEventListener('click', function(){
+            expanded = !expanded;
+            root.style.setProperty('--dashboard-header-height', expanded ? large : small);
+            icon.textContent = expanded ? 'expand_more' : 'expand_less';
+        });
+    })();
+</script>
