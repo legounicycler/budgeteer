@@ -792,8 +792,9 @@ def insert_account(a, timestamp):
         c.execute("INSERT INTO accounts (name, balance, user_id, display_order) VALUES (?, ?, ?, ?)", (a.name, 0, a.user_id, a.display_order))
     account_id = c.lastrowid
     income_name = 'Initial Account Balance: ' + a.name
+    updated_timestamp = timestamp.replace(hour=0, minute=0, second=0, microsecond=0) # Set the time to '00:00:00' for consistency and to avoid display order issues
     log_write('A INSERT: ' + str(get_account(account_id)))
-    insert_transaction(Transaction(TType.INCOME, income_name, -1 * a.balance, timestamp, u.unallocated_e_id, account_id, gen_grouping_num(), '', None, False, a.user_id, False))
+    insert_transaction(Transaction(TType.INCOME, income_name, -1 * a.balance, updated_timestamp, u.unallocated_e_id, account_id, gen_grouping_num(), '', None, False, a.user_id, False))
 
 def get_account(id):
     """
@@ -1511,6 +1512,7 @@ def health_check(toasts, interactive=False):
                         choice = input("Would you like to continue healing the database? (y/n):")
                         if (choice == 'y' or choice =='Y' or choice == 'yes' or choice == 'Yes' or choice =='YES'):
                             choice_valid = True
+                            print("CHOICE VALID!!!")
                             hidden_print("Healing database...")
                             for i in range(0,len(bad_a_ids)):
                                 account_heal(bad_a_ids[i], bad_a_amts_new[i])
