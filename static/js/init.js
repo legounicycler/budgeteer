@@ -52,10 +52,10 @@
         if (targetIndex === -1) return;
 
         // 2. Get the index of the current mobile view
-        const $current = $('.mobile-view.active-mobile-view');
+        const $current = $('.mobile-view.current-mobile-view');
         const currentId = $current.attr('id') || MOBILE_VIEW_ORDER[0];
         const currentIndex = MOBILE_VIEW_ORDER.indexOf(currentId);
-        if (currentId === targetId || currentIndex === -1) return; // If you're already on the target view (or there is no current view, which would be a glitch)do nothing
+        if (currentId === targetId || currentIndex === -1) return; // If you're already on the target view (or there is no current view, which would be a glitch) do nothing
 
         // 3. Determine which direction to animate the view transition
         //        Direction of 1 means transition to view on the right
@@ -63,7 +63,7 @@
         const direction = targetIndex > currentIndex ? 1 : -1;
 
         // 4. Update the active state of the footer buttons
-        $('.footer-button').removeClass('active');
+        console.log("Are we getting here?");
         $(`.footer-button[data-view="${targetId}"]`).addClass('active');
 
         // 4.5 Toggle FAB visibility: show only when navigating to dashboard
@@ -85,16 +85,16 @@
           if (!$mobileView.length) return; //Return if the element doesn't exist
 
           $mobileView.css("display", ""); //Reset any style properties that might interfere with the animation (coming from materialize tabs)
-          if (id === currentId) { // Set the current view to be active and in the normal position so that it can animate out
-            $mobileView.removeClass('offscreen-left-mobile offscreen-right-mobile').addClass('active-mobile-view');
+          if (id === currentId) { // Set the view you're on to be .current-mobile-view and in the normal position so that it can animate out
+            $mobileView.removeClass('offscreen-left-mobile offscreen-right-mobile').addClass('current-mobile-view');
           } else if (id === targetId) {
             if (direction > 0) { // If the target view is to the right of the current view, position it offscreen to the right.
-              $mobileView.removeClass('offscreen-left-mobile active-mobile-view hidden-mobile-view').addClass('offscreen-right-mobile');
+              $mobileView.removeClass('offscreen-left-mobile current-mobile-view hidden-mobile-view').addClass('offscreen-right-mobile');
             } else { // If the target view is to the left of the current view, position it offscreen to the left.
-              $mobileView.removeClass('offscreen-right-mobile active-mobile-view hidden-mobile-view').addClass('offscreen-left-mobile');
+              $mobileView.removeClass('offscreen-right-mobile current-mobile-view hidden-mobile-view').addClass('offscreen-left-mobile');
             }
           } else { // For any non-current, non-target views, ensure they're hidden and offscreen to avoid showing them during the transition
-            $mobileView.removeClass('active-mobile-view').addClass("hidden-mobile-view");
+            $mobileView.removeClass('current-mobile-view').addClass("hidden-mobile-view");
             if (index < currentIndex) {
               $mobileView.removeClass('offscreen-right-mobile').addClass('offscreen-left-mobile');
             } else if (index > currentIndex) {
@@ -108,24 +108,25 @@
 
         // 7. Move the current view offscreen
         if (direction > 0) {
-          $('#' + currentId).removeClass('active-mobile-view').addClass('offscreen-left-mobile');
+          $('#' + currentId).removeClass('current-mobile-view').addClass('offscreen-left-mobile');
         } else {
-          $('#' + currentId).removeClass('active-mobile-view').addClass('offscreen-right-mobile');
+          $('#' + currentId).removeClass('current-mobile-view').addClass('offscreen-right-mobile');
         }
 
         // 8. Move the target view onscreen
-        $('#' + targetId).removeClass('offscreen-left-mobile offscreen-right-mobile').addClass('active-mobile-view');
+        $('#' + targetId).removeClass('offscreen-left-mobile offscreen-right-mobile').addClass('current-mobile-view');
 
         // 9. After transition completes, hide the previous view
         const transitionMs = 300; // must match CSS transition-duration
         setTimeout(function() {
-          $('#' + currentId).removeClass('active-mobile-view').addClass('hidden-mobile-view');
+          $('#' + currentId).removeClass('current-mobile-view').addClass('hidden-mobile-view');
         }, transitionMs + 20);
       }
 
       // Attach click events to footer buttons. Buttons should have a `data-view` attribute
       // that equals the id of the view element to show (e.g. data-view="envelopes").
       $('.footer-button').on('click', function(e) {
+        $(".footer-button").removeClass("active");
         navigateToMobileView($(this).data('view'));
       });
 
@@ -619,7 +620,7 @@
         if (window.innerWidth > MOBILE_BREAKPOINT) {
           $('#fab').removeClass('fab-hidden');
         } else {
-          const $active = $('.mobile-view.active-mobile-view');
+          const $active = $('.mobile-view.current-mobile-view');
           const activeId = $active.attr('id') || MOBILE_VIEW_ORDER[0];
           if (activeId === 'dashboard-column') {
             $('#fab').removeClass('fab-hidden');

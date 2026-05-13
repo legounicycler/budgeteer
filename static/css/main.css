@@ -145,6 +145,7 @@ body {
   flex-direction: column;
   padding: 0;
   height: 100%;
+  min-height: calc(100vh - var(--navbar-height) - var(--footer-height));
 }
 
 #transactions-list {
@@ -587,6 +588,14 @@ h5 {
     height: auto;
   }
 
+  #viewport {
+    min-height: calc(100vh - var(--footer-height));
+  }
+
+  #left-content {
+    min-height: calc(100vh - var(--navbar-height) - var(--footer-height));
+  }
+
   #dashboard-viewport {
     margin: 0px 5px 5px 5px;
     display: flex;
@@ -634,22 +643,18 @@ h5 {
   }
 
   .mobile-view {
-    /* Participate in document flow on mobile to allow address-bar hiding and pull-to-refresh */
-    position: relative;
+    position: absolute;
     width: 100%;
-    /* min-height: calc(var(--vh, 1vh) * 100 - var(--navbar-height) - var(--footer-height)); */
-    /* GPU-accelerated transform for smooth animations */
     transition: transform 300ms ease;
     will-change: transform;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    /* Hide non-active views to avoid showing intermediate pages */
-    visibility: hidden;
+    visibility: hidden; /* Hide non-active views to avoid showing intermediate pages */
     pointer-events: none;
   }
 
   /* Transition States */
-  .mobile-view.active-mobile-view,
+  .mobile-view.current-mobile-view,
   .mobile-view.offscreen-left-mobile,
   .mobile-view.offscreen-right-mobile {
     visibility: visible;
@@ -657,7 +662,7 @@ h5 {
   }
 
   .offscreen-left-mobile { transform: translate3d(-100%, 0, 0); }
-  .active-mobile-view { transform: translate3d(0, 0, 0); }
+  .current-mobile-view { transform: translate3d(0, 0, 0); }
   .offscreen-right-mobile { transform: translate3d(100%, 0, 0); }
   
   .hidden-mobile-view {

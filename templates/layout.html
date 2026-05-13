@@ -79,9 +79,9 @@
       <div id="viewport" class="row">
 
           <!--LEFT CONTENT-->
-          <div id="left-content" class="col m12 l4 s12 blue-grey view-wrapper hide-on-med-and-down">
+          <div id="left-content" class="col m12 l4 s12 blue-grey view-wrapper">
 
-            <div id="left-header" class="row">
+            <div id="left-header" class="row hide-on-med-and-down">
               <div id="total-container" class="collection">
                 <a id="total" class="row collection-item waves-effect" data-url="{{ url_for('main.load_home_transactions') }}">
                   <div class="col s4 valign-wrapper">
@@ -102,19 +102,19 @@
               </div>
             </div>
 
-            <div id="account-envelope-tab-viewr" class="">
+            <div id="account-envelope-tab-viewr" class="hide-on-med-and-down">
               <ul class="tabs blue-grey lighten-5">
                 <li class="tab col s6"><a class="active" href="#envelopes">Envelopes</a></li>
                 <li class="tab col s6"><a href="#accounts">Accounts</a></li>
               </ul>
             </div>
 
-            <div id="envelopes" class="col s12 hide">
+            <div id="envelopes" class="col s12 hide mobile-view">
               <a href="#envelope-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-envelopes">Edit Envelopes</a>
                 {% include 'envelopes.html'%}
             </div>
 
-            <div id="accounts" class="col s12 hide">
+            <div id="accounts" class="col s12 hide mobile-view">
               <a href="#account-editor-modal" class="btn orange waves-effect modal-trigger" id="edit-accounts">Edit Accounts</a>
                 {% include 'accounts.html'%}
             </div>
