@@ -1355,17 +1355,17 @@ def health_check(toasts, interactive=False):
             print(str)
 
     def account_heal(a_id, new_balance):
-        print("   Healing account", a_id)
+        print("   Healing account", a_id, "...")
         update_account_balance(a_id, -1*new_balance)
         print("   Account", a_id, "balance set to", -1*new_balance)
 
     def envelope_heal(e_id, new_balance):
-        print("   Healing envelope", e_id)
+        print("   Healing envelope", e_id, "...")
         update_envelope_balance(e_id, -1*new_balance)
         print("   Envelope", e_id, "balance set to", -1*new_balance)
 
     healthy = True
-    deleted_healthy = True
+    bad_u_ids = []
     bad_e_ids = []
     bad_e_amts_new = []
     bad_a_ids = []
@@ -1378,12 +1378,16 @@ def health_check(toasts, interactive=False):
         hidden_print("----------------------\n")
 
 
+    # ---1. FOR EACH USER: CHECK ENVELOPE/ACCOUNT SUM CONSISTENCY AND THAT ALL DELETED ENVELOPES HAVE A BALANCE OF ZERO
     c.execute("SELECT user_id FROM accounts GROUP BY user_id")
     user_ids = unpack(c.fetchall())
+    i = 1
     for user_id in user_ids:
-        
-        # ---1. CONFIRM CONSISTENCY BETWEEN SUM OF ENVELOPE BALANCES AND SUM OF ACCOUNT BALANCES---
-        hidden_print(f">>> CHECKING TOTALS FOR USER ID:{user_id}")
+        hidden_print(f"\n{i}. -----CHECKING HEALTH FOR USER ID: {user_id}-----")
+        deleted_healthy = True
+
+        # ---1 CONFIRM CONSISTENCY BETWEEN SUM OF ENVELOPE BALANCES AND SUM OF ACCOUNT BALANCES---
+        hidden_print(f"{i}.1 CHECKING ACCOUNT/ENVELOPE TOTAL CONSISTENCY ")
         # Get accounts total
         c.execute("SELECT SUM(balance) FROM accounts WHERE user_id=?", (user_id,))
         accounts_total = c.fetchone()[0]
@@ -1394,14 +1398,15 @@ def health_check(toasts, interactive=False):
         hidden_print(f" Envelopes total: {envelopes_total}")
         hidden_print(f" Difference: {abs(accounts_total - envelopes_total)}")
         if (accounts_total == envelopes_total):
-            hidden_print(" HEALTHY")
+            hidden_print(" <<<HEALTHY>>>")
         else:
-            hidden_print(" INCONSISTENT!!!")
+            hidden_print(" <<<UNHEALTHY!>>>")
+            bad_u_ids.append(user_id)
             log_message = f' [A/E Sum Mismatch -> A: {accounts_total} E: {envelopes_total}] Diff: {accounts_total-envelopes_total}'
             healthy = False
 
         # ---2. CONFIRM THAT DELETED ENVELOPES AND ACCOUNTS ALL HAVE A BALANCE OF ZERO---
-        hidden_print(f"\n>>> CHECKING BALANCES OF DELETED ENVELOPES AND ACCOUNTS FOR USER ID:{user_id}")
+        hidden_print(f"{i}.2 CHECKING THAT BALANCES OF DELETED ENVELOPES AND ACCOUNTS ARE ZERO")
         c.execute("SELECT id,balance,name FROM accounts WHERE user_id=? AND deleted=1", (user_id,))
         account_info = c.fetchall()
         for account in account_info:
@@ -1409,7 +1414,7 @@ def health_check(toasts, interactive=False):
                 bad_a_ids.append(account[0])
                 bad_a_amts_new.append(0)
                 deleted_healthy = False
-                hidden_print(f" [Deleted A Bal NOT 0 -> {account[2]}({account[0]}) balance: {account[1]}]")
+                hidden_print(f" [Deleted Account Balance found that is NOT 0 -> {account[2]} (A_ID: {account[0]}) has balance of {account[1]}]")
         c.execute("SELECT id,balance,name FROM envelopes WHERE user_id=? AND deleted=1", (user_id,))
         envelope_info = c.fetchall()
         for envelope in envelope_info:
@@ -1417,20 +1422,20 @@ def health_check(toasts, interactive=False):
                 bad_e_ids.append(envelope[0])
                 bad_e_amts_new.append(0)
                 deleted_healthy = False
-                hidden_print(f" [Deleted E Bal NOT 0 -> {envelope[2]}({envelope[0]}) balance: {envelope[1]}]")
+                hidden_print(f" [Deleted Envelope Balance found that is NOT 0 -> {envelope[2]} (E_ID: {envelope[0]}) has balance of {envelope[1]}]")
         if deleted_healthy:
-            hidden_print(" HEALTHY")
+            hidden_print(" <<<HEALTHY>>>")
         else:
-            hidden_print(" UNHEALTHY")
+            hidden_print(" <<<UNHEALTHY>>>")
+            bad_u_ids.append(user_id)
             healthy = False
             log_message = ' [UNHEALTHY DELETED ENVELOPE OR ACCOUNT]'
 
-
-        # ---3. ACCOUNTS: CONFIRM THAT THESE VALUES ARE THE SAME---
+        # ---3. ACCOUNTS : CONFIRM THAT THESE VALUES ARE THE SAME---
         #     a. Balances stored in accounts table
         #     b. Sum of all transactions in an account
-        hidden_print("\n>>> CHECKING ACCOUNTS")
-        c.execute("SELECT id,balance,name from accounts")
+        hidden_print(f"\n{i}.3 CHECKING CONSISTENCY OF ACCOUNT BALANCES AND SUM OF ACCOUNT TRANSACTIONS")
+        c.execute("SELECT id,balance,name FROM accounts WHERE user_id=?", (user_id,))
         accounts = c.fetchall()
         for row in accounts:
             a_name = row[2]
@@ -1440,7 +1445,7 @@ def health_check(toasts, interactive=False):
             a_balance_db = -1*row[1]
 
             # b. Get account balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE account_id=? AND pending=0", (a_id,))
+            c.execute("SELECT SUM(amount) from transactions WHERE account_id=? AND pending=0 AND user_id=?", (a_id, user_id))
             a_balance_summed = c.fetchone()[0]
             if a_balance_summed is None: #If there's no transactions in the account yet, placeholder of zero
                 a_balance_summed = 0
@@ -1458,11 +1463,11 @@ def health_check(toasts, interactive=False):
                 hidden_print(f"    {a_balance_db} vs {a_balance_summed}")
                 hidden_print(f" Difference: {abs(a_balance_summed + a_balance_db)}")
 
-        # ---4. ENVELOPES: CONFIRM THAT THESE THREE VALUES ARE THE SAME---
+        # ---4. ENVELOPES (ALL USERS): CONFIRM THAT THESE THREE VALUES ARE THE SAME---
         #     a. Balances stored in envelopes table
         #     b. Sum of all transactions in an envelope
-        hidden_print("\n>>> CHECKING ENVELOPES")
-        c.execute("SELECT id,balance,name from envelopes")
+        hidden_print(f"\n{i}.4 CHECKING CONSISTENCY OF ENVELOPE BALANCES AND SUM OF ENVELOPE TRANSACTIONS")
+        c.execute("SELECT id,balance,name FROM envelopes WHERE user_id=?", (user_id,))
         envelopes = c.fetchall()
         for row in envelopes:
             e_name = row[2]
@@ -1472,7 +1477,7 @@ def health_check(toasts, interactive=False):
             e_balance_db = -1*row[1]
 
             # b. Get envelope balance according to summed transaction totals
-            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND pending=0", (e_id,))
+            c.execute("SELECT SUM(amount) from transactions WHERE envelope_id=? AND pending=0 AND user_id=?", (e_id, user_id))
             e_balance_summed = c.fetchone()[0]
             if e_balance_summed is None: #If there are no transactions in the envelope yet, placeholder of zero
                 e_balance_summed = 0
@@ -1485,52 +1490,54 @@ def health_check(toasts, interactive=False):
                 healthy = False
                 bad_e_ids.append(e_id)
                 bad_e_amts_new.append(e_balance_summed)
-                hidden_print(f" WRONG!! ---> (ID:{e_id}) {e_name}")
+                hidden_print(f" UNHEALTHY! ---> (ID:{e_id}) {e_name}")
                 hidden_print("     Envelope balance VS Summed balance")
-                hidden_print(f"    {e_balance_db} vs {e_balance_summed}")
-                hidden_print(f" Difference: {abs(e_balance_db - e_balance_summed)}")
+                hidden_print(f"     {e_balance_db} vs {e_balance_summed}")
+                hidden_print(f"     Difference: {abs(e_balance_db - e_balance_summed)}")
 
-        hidden_print(f"\nBad Account IDs: {bad_a_ids}")
-        hidden_print(f"Bad Envelope IDs: {bad_e_ids}")
+        i = i + 1 #Increment counter for displaying the number of the user we're on in the health check
 
-        hidden_print("\n---------------------")
-        hidden_print("HEALTH CHECK COMPLETE")
-        hidden_print("---------------------\n")
+    hidden_print(f"\n----------------------------------------FINAL RESULTS----------------------------------------")
+    hidden_print(f"  Bad User IDs: {bad_u_ids}")
+    hidden_print(f"  Bad Account IDs: {bad_a_ids}")
+    hidden_print(f"  Bad Envelope IDs: {bad_e_ids}")
 
-        if (not healthy):
-            toasts.append("HEALTH ERROR!")
-            hidden_print("STATUS -> UNHEALTHY")
-            log_write(log_message)
-            if not interactive:
-                return healthy
-            else:
-                if (deleted_healthy is False):
-                    hidden_print("There is an error with your deleted envelopes or accounts that must be fixed manually!\n")
-                else:
-                    choice_valid = False
-                    while (choice_valid == False):
-                        choice = input("Would you like to continue healing the database? (y/n):")
-                        if (choice == 'y' or choice =='Y' or choice == 'yes' or choice == 'Yes' or choice =='YES'):
-                            choice_valid = True
-                            print("CHOICE VALID!!!")
-                            hidden_print("Healing database...")
-                            for i in range(0,len(bad_a_ids)):
-                                account_heal(bad_a_ids[i], bad_a_amts_new[i])
-
-                            for i in range(0,len(bad_e_ids)):
-                                envelope_heal(bad_e_ids[i], bad_e_amts_new[i])
-                            hidden_print("Database heal complete!")
-                            log_write('-----Account healed!-----\n')
-                        elif (choice == 'n' or choice == 'N' or choice =='no' or choice =='No' or choice =='NO'):
-                            choice_valid = True
-                            hidden_print("Database heal aborted.")
-                        else:
-                            hidden_print("Invalid option. Try again.")
-
-        else:
-            hidden_print("STATUS -> HEALTHY\n")
-            hidden_print("(No further action required.)\n\n")
+    if (not healthy):
+        toasts.append("HEALTH ERROR!")
+        hidden_print("\n  [OVERALL DATABASE STATUS -> UNHEALTHY!]")
+        log_write(log_message)
+        if not interactive:
             return healthy
+        else:
+            if (deleted_healthy is False):
+                hidden_print("  There is an error with your deleted envelopes or accounts that must be fixed manually!")
+            else:
+                choice_valid = False
+                while (choice_valid == False):
+                    choice = input("\nWould you like to continue healing the database? (y/n):")
+                    if (choice == 'y' or choice =='Y' or choice == 'yes' or choice == 'Yes' or choice =='YES'):
+                        choice_valid = True
+                        hidden_print("\nHealing database...")
+                        for i in range(0,len(bad_a_ids)):
+                            account_heal(bad_a_ids[i], bad_a_amts_new[i])
+                        for i in range(0,len(bad_e_ids)):
+                            envelope_heal(bad_e_ids[i], bad_e_amts_new[i])
+                        if (len(bad_a_ids) + len(bad_e_ids) == 0):
+                            hidden_print("No accounts or envelopes were able to be healed! Please investigate problem manually.")
+                        else:
+                            hidden_print("Database heal complete!")
+                            log_write('-----Database healed!-----\n')
+                    elif (choice == 'n' or choice == 'N' or choice =='no' or choice =='No' or choice =='NO'):
+                        choice_valid = True
+                        hidden_print("Database heal aborted.")
+                    else:
+                        hidden_print("Invalid option. Try again.")
+
+    else:
+        hidden_print("\n  [OVERALL DATABASE STATUS -> HEALTHY]")
+        hidden_print("\n  (No further action required.)")
+        return healthy
+    hidden_print("---------------------------------------------------------------------------------------------")
 
 # endregion OTHER FUNCTIONS
 
