@@ -623,8 +623,8 @@ def delete_transaction(uuid, t_id):
                         # Step 1. Get both the ID's for the ENVELOPE_DELETE transactions of the deleted envelope referenced by the transaction
                         c.execute("""SELECT id FROM transactions WHERE grouping = (
                                         SELECT grouping FROM transactions WHERE (type=? AND envelope_id=?)
-                                    )""", (TType.ENVELOPE_DELETE, t.envelope_id)
-                                    )
+                                    )""", (TType.ENVELOPE_DELETE.value[0], t.envelope_id)
+                                )
                         e_delete_ids = unpack(c.fetchall())
 
                         # Step 2. Get the ENVELOPE_DELETE transactions
@@ -655,7 +655,7 @@ def delete_transaction(uuid, t_id):
                         #      unless you change the amount ACCOUNT_DELETE transaction (which drains the deleted account balance down to 0).
 
                         # Step 1. Get the id of the ACCOUNT_DELETE transaction
-                        c.execute("""SELECT id FROM transactions WHERE (type=? AND account_id=?)""", (TType.ACCOUNT_DELETE, t.account_id))
+                        c.execute("""SELECT id FROM transactions WHERE (type=? AND account_id=?)""", (TType.ACCOUNT_DELETE.value[0], t.account_id))
                         a_delete_id = c.fetchone()[0]
                         a_delete_t = get_transaction(a_delete_id)
 
