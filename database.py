@@ -691,6 +691,7 @@ def get_search_transactions(uuid, start, amount, search_term=None, amt_min=None,
     #   ENVELOPE_FILL's display as the amount filled from unallocated to the envelope
     #   ENVELOPE_DELETE's display as the amount deleted from the envelope
     #   Everything else displays as the negative sum of the amounts (since all amounts in the database are negative of what is typicallly displayed)
+    #TODO: Fix the TType statements in the query below??
     inner = f'''
         SELECT
             MIN(id) AS rep_id,
