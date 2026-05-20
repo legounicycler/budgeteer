@@ -590,10 +590,21 @@ h5 {
 
   #viewport {
     min-height: calc(100vh - var(--footer-height));
+    display: flex;
+    flex-direction: column;
   }
 
   #left-content {
-    min-height: calc(100vh - var(--navbar-height) - var(--footer-height));
+    /* Don't force a large min-height on mobile; allow reordering */
+    min-height: 0;
+    height: auto;
+    order: 2; /* place left column after dashboard on mobile */
+  }
+
+  /* Ensure the dashboard is shown before the left column in source order on mobile */
+  #dashboard-column {
+    order: 1;
+    width: 100%;
   }
 
   #dashboard-viewport {
@@ -643,14 +654,19 @@ h5 {
   }
 
   .mobile-view {
-    position: absolute;
+    /* Use document flow (relative), allow transforms for animation. */
+    display: block;
     width: 100%;
-    transition: transform 300ms ease;
-    will-change: transform;
+    box-sizing: border-box;
+    transition: transform 300ms ease, visibility 300ms;
+    will-change: transform, visibility;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     visibility: hidden; /* Hide non-active views to avoid showing intermediate pages */
     pointer-events: none;
+    min-height: calc(100vh - var(--navbar-height) - var(--footer-height));
+    overflow: auto;
+    -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
   }
 
   /* Transition States */
@@ -666,7 +682,11 @@ h5 {
   .offscreen-right-mobile { transform: translate3d(100%, 0, 0); }
   
   .hidden-mobile-view {
-    display: none !important;
+    visibility: hidden;
+    pointer-events: none;
+    height: 0 !important;
+    overflow: hidden;
+    transform: translate3d(100%, 0, 0);
   }
 
   /* On mobile allow the page root to scroll; make internal scrollers flow into the document instead of creating nested scroll containers */
